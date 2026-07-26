@@ -13,6 +13,7 @@ import type {
   LobbyView,
   QuizDetail,
   QuizSummary,
+  Subject,
 } from "@/lib/types";
 
 /**
@@ -87,8 +88,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 // --- Quizzes ---------------------------------------------------------------
 
-export function listQuizzes(): Promise<QuizSummary[]> {
-  return request<QuizSummary[]>("/quizzes");
+export function listSubjects(): Promise<Subject[]> {
+  return request<Subject[]>("/subjects");
+}
+
+export function listQuizzes(subjectSlugs?: string[]): Promise<QuizSummary[]> {
+  const query = subjectSlugs?.length
+    ? `?${subjectSlugs.map((s) => `subject=${encodeURIComponent(s)}`).join("&")}`
+    : "";
+  return request<QuizSummary[]>(`/quizzes${query}`);
 }
 
 export function getQuiz(slugOrId: string): Promise<QuizDetail> {
@@ -174,14 +182,23 @@ export function markAway(code: string, playerId: string): void {
   }
 }
 
+/**
+ * Start a game. The host chooses subjects and a length; the server picks which
+ * questions come up, spread evenly across those subjects.
+ */
 export function startGame(
   code: string,
   playerId: string,
-  quizSlugs: string[],
+  subjectSlugs: string[],
+  roundCount: number,
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/start`, {
     method: "POST",
-    body: JSON.stringify({ player_id: playerId, quiz_slugs: quizSlugs }),
+    body: JSON.stringify({
+      player_id: playerId,
+      subject_slugs: subjectSlugs,
+      round_count: roundCount,
+    }),
   });
 }
 

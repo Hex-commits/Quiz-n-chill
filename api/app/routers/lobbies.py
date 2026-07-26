@@ -44,7 +44,14 @@ def get_lobby(code: str, player_id: UUID | None = None) -> LobbyView:
 
 @router.post("/{code}/start", response_model=LobbyView)
 def start_game(code: str, payload: LobbyStart) -> LobbyView:
-    return service.start_game(code, payload.player_id, payload.quiz_slugs)
+    """Start a game drawn from the chosen subjects.
+
+    The host picks areas and a round count; the server decides which questions
+    come up, spread evenly across those subjects.
+    """
+    return service.start_game(
+        code, payload.player_id, payload.subject_slugs, payload.round_count
+    )
 
 
 @router.post("/{code}/turns", response_model=LobbyView)

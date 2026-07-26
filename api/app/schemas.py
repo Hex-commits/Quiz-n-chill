@@ -67,11 +67,27 @@ class ItemCreate(BaseModel):
 # --------------------------------------------------------------------------
 
 
+class Subject(ORMModel):
+    """A quiz-pool area (Geografie, Musik).
+
+    Distinct from `Category`, which is a bucket *inside* one question.
+    """
+
+    id: UUID
+    slug: str
+    name: str
+    description: str | None = None
+    position: int
+    quiz_count: int = 0
+
+
 class QuizSummary(ORMModel):
     id: UUID
     slug: str
     title: str
     description: str | None = None
+    subject_slug: str | None = None
+    subject_name: str | None = None
     category_count: int = 0
     item_count: int = 0
     created_at: datetime
@@ -196,9 +212,14 @@ class LobbyView(BaseModel):
     status: LobbyStatus
     players: list[PlayerPublic] = []
     quiz_slugs: list[str] = []
+    subject_names: list[str] = []
     round_index: int = 0
     round_count: int = 0
     current_player_id: UUID | None = None
+    # True when the player on the clock has stopped checking in but has not yet
+    # timed out. Lets the other screens explain the pause instead of appearing
+    # to hang. Goes false by itself once the turn is handed on.
+    current_player_quiet: bool = False
     round_view: RoundView | None = None
     last_move: LastMove | None = None
     winner_ids: list[UUID] = []
@@ -223,7 +244,10 @@ class LobbyIdentity(BaseModel):
 
 class LobbyStart(BaseModel):
     player_id: UUID
-    quiz_slugs: list[str] = Field(min_length=1)
+    # Subjects to draw from, not specific questions -- the server picks which
+    # ones, spread evenly across these.
+    subject_slugs: list[str] = Field(min_length=1)
+    round_count: int = Field(default=5, ge=1, le=20)
 
 
 class TurnSubmit(BaseModel):

@@ -39,7 +39,7 @@ import {
   submitTurn,
 } from "@/lib/api";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
-import type { LobbyView, QuizSummary } from "@/lib/types";
+import type { LobbyView, Subject } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
 
@@ -47,12 +47,14 @@ import { RejoinForm } from "./rejoin-form";
 
 const POLL_MS = 1500;
 
+const ROUND_CHOICES = [3, 5, 7, 10];
+
 export function LobbyRoom({
   code,
-  topics,
+  subjects,
 }: {
   code: string;
-  topics: QuizSummary[];
+  subjects: Subject[];
 }) {
   const router = useRouter();
   const playerId = useStored<string | null>(() => recallPlayer(code), null);
@@ -60,9 +62,10 @@ export function LobbyRoom({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [chosenSlugs, setChosenSlugs] = useState<string[]>(
-    topics.slice(0, 3).map((topic) => topic.slug),
+  const [chosenSubjects, setChosenSubjects] = useState<string[]>(
+    subjects.slice(0, 3).map((subject) => subject.slug),
   );
+  const [roundCount, setRoundCount] = useState(5);
 
   // Polling and turn submission race: a poll started before a turn can land
   // after it and show pre-turn state. Applying only newer versions fixes it.
@@ -114,6 +117,12 @@ export function LobbyRoom({
 
   const me = lobby?.players.find((player) => player.id === playerId) ?? null;
   const isMyTurn = Boolean(playerId && lobby?.current_player_id === playerId);
+
+  // Lets the host see when they have asked for more rounds than the chosen
+  // subjects can supply, rather than silently getting a shorter game.
+  const availableQuestions = subjects
+    .filter((subject) => chosenSubjects.includes(subject.slug))
+    .reduce((total, subject) => total + subject.quiz_count, 0);
 
   async function act(fn: () => Promise<LobbyView>) {
     setBusy(true);
@@ -265,42 +274,75 @@ export function LobbyRoom({
         {me?.is_host ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pick the topics</CardTitle>
+              <CardTitle className="text-base">Pick the subjects</CardTitle>
               <CardDescription>
-                One round per topic, played in this order.
+                Questions are drawn at random from whatever you choose, spread
+                as evenly as possible across them.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {topics.map((topic) => (
-                <div key={topic.slug} className="flex items-start gap-3">
-                  <Checkbox
-                    id={topic.slug}
-                    checked={chosenSlugs.includes(topic.slug)}
-                    onCheckedChange={(checked) =>
-                      setChosenSlugs((current) =>
-                        checked
-                          ? [...current, topic.slug]
-                          : current.filter((slug) => slug !== topic.slug),
-                      )
-                    }
-                  />
-                  <Label htmlFor={topic.slug} className="font-normal">
-                    {topic.title}
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · {topic.item_count} answers
-                    </span>
-                  </Label>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {subjects.map((subject) => (
+                  <div key={subject.slug} className="flex items-start gap-3">
+                    <Checkbox
+                      id={subject.slug}
+                      checked={chosenSubjects.includes(subject.slug)}
+                      onCheckedChange={(checked) =>
+                        setChosenSubjects((current) =>
+                          checked
+                            ? [...current, subject.slug]
+                            : current.filter((slug) => slug !== subject.slug),
+                        )
+                      }
+                    />
+                    <Label htmlFor={subject.slug} className="font-normal">
+                      {subject.name}
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {subject.quiz_count}
+                      </span>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Rounds</Label>
+                <div className="flex flex-wrap gap-2">
+                  {ROUND_CHOICES.map((n) => (
+                    <Button
+                      key={n}
+                      type="button"
+                      size="sm"
+                      variant={roundCount === n ? "default" : "outline"}
+                      aria-pressed={roundCount === n}
+                      onClick={() => setRoundCount(n)}
+                    >
+                      {n}
+                    </Button>
+                  ))}
                 </div>
-              ))}
+                {roundCount > availableQuestions ? (
+                  <p className="text-muted-foreground text-sm">
+                    Only {availableQuestions} question
+                    {availableQuestions === 1 ? "" : "s"} available in the
+                    chosen subjects — the game will be that short.
+                  </p>
+                ) : null}
+              </div>
             </CardContent>
             <CardFooter>
               <Button
                 onClick={() =>
-                  playerId && act(() => startGame(code, playerId, chosenSlugs))
+                  playerId &&
+                  act(() =>
+                    startGame(code, playerId, chosenSubjects, roundCount),
+                  )
                 }
                 disabled={
-                  busy || chosenSlugs.length === 0 || lobby.players.length < 2
+                  busy || chosenSubjects.length === 0 || lobby.players.length < 2
                 }
               >
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -404,6 +446,11 @@ export function LobbyRoom({
         {round.description ? (
           <p className="text-muted-foreground text-sm">{round.description}</p>
         ) : null}
+        {lobby.subject_names.length > 0 ? (
+          <p className="text-muted-foreground text-xs">
+            Drawn from: {lobby.subject_names.join(", ")}
+          </p>
+        ) : null}
       </div>
 
       {scoreboard}
@@ -446,6 +493,17 @@ export function LobbyRoom({
               ? "You are out for this round. You are back in at the next topic."
               : "One placement per turn. Get it wrong and you sit out the rest of the round."}
           </CardDescription>
+          {/*
+            Only the other players ever see this: if it were you, your own
+            polling would be keeping you marked responsive.
+          */}
+          {lobby.current_player_quiet ? (
+            <p className="text-muted-foreground flex items-center gap-2 pt-1 text-sm">
+              <WifiOff className="size-4 shrink-0" aria-hidden />
+              {currentPlayer?.nickname ?? "That player"} has stopped responding
+              — their turn will be skipped shortly.
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {round.remaining_items.map((item) => (

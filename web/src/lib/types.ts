@@ -20,11 +20,26 @@ export interface Item {
   label: string;
 }
 
+/**
+ * A quiz-pool area (Geografie, Musik). Distinct from `Category`, which is a
+ * bucket *inside* one question.
+ */
+export interface Subject {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  position: number;
+  quiz_count: number;
+}
+
 export interface QuizSummary {
   id: string;
   slug: string;
   title: string;
   description: string | null;
+  subject_slug: string | null;
+  subject_name: string | null;
   category_count: number;
   item_count: number;
   created_at: string;
@@ -113,9 +128,12 @@ export interface LobbyView {
   status: LobbyStatus;
   players: PlayerPublic[];
   quiz_slugs: string[];
+  subject_names: string[];
   round_index: number;
   round_count: number;
   current_player_id: string | null;
+  /** The player on the clock has gone silent but has not timed out yet. */
+  current_player_quiet: boolean;
   round_view: RoundView | null;
   last_move: LastMove | null;
   winner_ids: string[];

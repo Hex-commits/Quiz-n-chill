@@ -32,7 +32,8 @@ from app.schemas import (
     RoundView,
     SolvedItem,
 )
-from app.services.quizzes import get_quiz_solution
+from app.services.drafting import draw_balanced
+from app.services.quizzes import get_quiz_solution, list_subjects, pools_by_subject
 from app.services.scoring import grade_item
 
 # Ambiguous characters left out so a code can be read aloud without confusion.
@@ -45,6 +46,12 @@ LOBBY_TTL = timedelta(hours=4)
 # several to be missed -- a flaky phone connection should not eject anyone --
 # while still noticing a closed tab quickly enough not to stall a game.
 PRESENCE_TIMEOUT = timedelta(seconds=10)
+
+# How long the player on the clock may be silent before the others are told
+# something is up. Two missed polls: long enough not to cry wolf over one
+# dropped request, short enough that the wait before a skip is explained rather
+# than mysterious. Must stay below PRESENCE_TIMEOUT or it could never fire.
+QUIET_AFTER = timedelta(seconds=3)
 
 
 @dataclass
@@ -87,6 +94,7 @@ class Lobby:
     code: str
     players: list[Player] = field(default_factory=list)
     quiz_slugs: list[str] = field(default_factory=list)
+    subject_names: list[str] = field(default_factory=list)
     # Every round is loaded when the game starts, so no database call happens
     # mid-game while the store lock is held.
     rounds: list[Round] = field(default_factory=list)
@@ -166,7 +174,17 @@ def join_lobby(code: str, nickname: str) -> UUID:
         return player.id
 
 
-def start_game(code: str, player_id: UUID, quiz_slugs: list[str]) -> LobbyView:
+def start_game(
+    code: str,
+    player_id: UUID,
+    subject_slugs: list[str],
+    round_count: int = 5,
+) -> LobbyView:
+    """Begin a game drawn from the chosen subjects.
+
+    The host picks areas and a length, not specific questions -- which ones come
+    up is decided here, spread evenly across the subjects.
+    """
     with _lock:
         lobby = _require(code)
         player = lobby.player(player_id)
@@ -179,10 +197,18 @@ def start_game(code: str, player_id: UUID, quiz_slugs: list[str]) -> LobbyView:
         if len(lobby.players) < 2:
             raise ConflictError("At least two players are needed to start.")
 
-        # Load every topic up front so a bad slug fails here rather than
-        # halfway through a game.
+        pools = pools_by_subject(subject_slugs)
+        if not pools:
+            raise ConflictError("The chosen subjects contain no questions.")
+
+        quiz_slugs = draw_balanced(pools, round_count)
+        subject_names = _subject_names(subject_slugs)
+
+        # Load every question up front, so a content problem surfaces now
+        # rather than halfway through a game.
         rounds = [_load_round(slug) for slug in quiz_slugs]
 
+        lobby.subject_names = subject_names
         lobby.quiz_slugs = quiz_slugs
         lobby.rounds = rounds
         lobby.status = LobbyStatus.playing
@@ -205,6 +231,7 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         lobby.status = LobbyStatus.lobby
         lobby.current_round = None
         lobby.rounds = []
+        lobby.subject_names = []
         lobby.solved = {}
         lobby.round_index = 0
         lobby.turn_cursor = 0
@@ -488,6 +515,12 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     _begin_round(lobby, lobby.rounds[next_index])
 
 
+def _subject_names(subject_slugs: list[str]) -> list[str]:
+    """Display names for the chosen subjects, so the lobby can show them."""
+    by_slug = {subject.slug: subject.name for subject in list_subjects()}
+    return [by_slug[slug] for slug in subject_slugs if slug in by_slug]
+
+
 def _load_round(slug: str) -> Round:
     row, categories, items = get_quiz_solution(slug)
     return Round(
@@ -508,6 +541,7 @@ def _load_round(slug: str) -> Round:
 def _view(lobby: Lobby) -> LobbyView:
     current_player = _current_player(lobby)
     return LobbyView(
+        current_player_quiet=_is_quiet(lobby, current_player),
         code=lobby.code,
         status=lobby.status,
         players=[
@@ -522,6 +556,7 @@ def _view(lobby: Lobby) -> LobbyView:
             for p in lobby.players
         ],
         quiz_slugs=lobby.quiz_slugs,
+        subject_names=lobby.subject_names,
         round_index=lobby.round_index,
         round_count=len(lobby.quiz_slugs),
         current_player_id=current_player.id if current_player else None,
@@ -530,6 +565,18 @@ def _view(lobby: Lobby) -> LobbyView:
         winner_ids=_winner_ids(lobby),
         version=lobby.version,
     )
+
+
+def _is_quiet(lobby: Lobby, current_player: Player | None) -> bool:
+    """Has the player on the clock gone silent, without having timed out yet?
+
+    Exists purely so the other players are told why nothing is happening. Once
+    the silence passes PRESENCE_TIMEOUT the turn is handed on and there is no
+    longer anything to explain, so this goes false on its own.
+    """
+    if lobby.status is not LobbyStatus.playing or current_player is None:
+        return False
+    return datetime.now(UTC) - current_player.last_seen > QUIET_AFTER
 
 
 def _round_view(lobby: Lobby) -> RoundView | None:

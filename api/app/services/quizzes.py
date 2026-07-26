@@ -22,30 +22,87 @@ from app.schemas import (
     QuizCreate,
     QuizDetail,
     QuizSummary,
+    Subject,
 )
 from app.services.scoring import score_assignments
 
 QUIZ_COLUMNS = "id, slug, title, description, created_at"
+QUIZ_WITH_SUBJECT = f"{QUIZ_COLUMNS}, subjects(slug, name)"
+SUBJECT_COLUMNS = "id, slug, name, description, position"
 CATEGORY_COLUMNS = "id, label, position"
 ITEM_SOLUTION_COLUMNS = "id, label, position, category_id"
 
 
-def list_quizzes() -> list[QuizSummary]:
+def list_subjects() -> list[Subject]:
     response = (
         get_client()
-        .table("quizzes")
-        .select(f"{QUIZ_COLUMNS}, categories(count), items(count)")
-        .order("created_at")
+        .table("subjects")
+        .select(f"{SUBJECT_COLUMNS}, quizzes(count)")
+        .order("position")
         .execute()
     )
     return [
-        QuizSummary(
-            **{k: v for k, v in row.items() if k not in ("categories", "items")},
-            category_count=_embedded_count(row, "categories"),
-            item_count=_embedded_count(row, "items"),
+        Subject(
+            **{k: v for k, v in row.items() if k != "quizzes"},
+            quiz_count=_embedded_count(row, "quizzes"),
         )
         for row in response.data
     ]
+
+
+def list_quizzes(subject_slugs: list[str] | None = None) -> list[QuizSummary]:
+    # PostgREST filters on an embedded resource by nulling the embed out, not by
+    # dropping the parent row -- so a plain `subjects.slug=in.(...)` returns every
+    # quiz with `subjects: null`. The `!inner` hint makes it a real inner join.
+    embed = "subjects!inner(slug, name)" if subject_slugs else "subjects(slug, name)"
+    query = (
+        get_client()
+        .table("quizzes")
+        .select(f"{QUIZ_COLUMNS}, {embed}, categories(count), items(count)")
+    )
+    if subject_slugs:
+        query = query.in_("subjects.slug", subject_slugs)
+
+    response = query.order("created_at").execute()
+    return [_to_summary(row) for row in response.data]
+
+
+def pools_by_subject(subject_slugs: list[str]) -> dict[str, list[str]]:
+    """Available question slugs per subject, for the balanced draw.
+
+    Subjects that exist but hold no questions are dropped; a subject slug that
+    does not exist at all is reported, because silently playing a shorter game
+    than the host asked for is worse than an error.
+    """
+    response = (
+        get_client()
+        .table("subjects")
+        .select("slug, quizzes(slug)")
+        .in_("slug", subject_slugs)
+        .execute()
+    )
+
+    found = {row["slug"] for row in response.data}
+    missing = [slug for slug in subject_slugs if slug not in found]
+    if missing:
+        raise NotFoundError(f"Unknown subject(s): {', '.join(sorted(missing))}.")
+
+    pools = {
+        row["slug"]: [quiz["slug"] for quiz in (row.get("quizzes") or [])]
+        for row in response.data
+    }
+    return {slug: quizzes for slug, quizzes in pools.items() if quizzes}
+
+
+def _to_summary(row: dict) -> QuizSummary:
+    subject = row.get("subjects") or {}
+    return QuizSummary(
+        **{k: v for k, v in row.items() if k not in ("categories", "items", "subjects")},
+        subject_slug=subject.get("slug"),
+        subject_name=subject.get("name"),
+        category_count=_embedded_count(row, "categories"),
+        item_count=_embedded_count(row, "items"),
+    )
 
 
 def get_quiz(quiz_ref: str) -> QuizDetail:

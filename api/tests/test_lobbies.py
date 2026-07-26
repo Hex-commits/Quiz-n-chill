@@ -37,14 +37,27 @@ def make_round(slug: str):
 
 @pytest.fixture(autouse=True)
 def clean_store(monkeypatch):
+    """Stub out everything that would reach the database.
+
+    `draw_balanced` is replaced with a deterministic passthrough so a test that
+    asks for two rounds reliably gets the two it named -- the real draw is
+    random by design and is tested separately in test_drafting.py.
+    """
     lobbies._reset_store_for_tests()
     monkeypatch.setattr(lobbies, "_load_round", make_round)
+    monkeypatch.setattr(lobbies, "_subject_names", lambda slugs: [s.title() for s in slugs])
+    monkeypatch.setattr(
+        lobbies, "pools_by_subject", lambda slugs: {slug: [slug] for slug in slugs}
+    )
+    monkeypatch.setattr(
+        lobbies, "draw_balanced", lambda pools, count: sorted(pools)[:count]
+    )
 
 
 def setup_game(nicknames=("Anna", "Ben"), slugs=("topic-a",)):
     code, host_id = lobbies.create_lobby(nicknames[0])
     ids = [host_id] + [lobbies.join_lobby(code, name) for name in nicknames[1:]]
-    lobbies.start_game(code, host_id, list(slugs))
+    lobbies.start_game(code, host_id, list(slugs), len(slugs))
     return code, ids
 
 
@@ -518,6 +531,72 @@ def test_any_request_counts_as_proof_of_life_even_a_rejected_one():
     view = lobbies.get_view(code)
     assert next(p for p in view.players if p.id == ben).is_connected
     assert view.current_player_id == anna  # the turn itself is unaffected
+
+
+def go_quiet(code, *player_ids):
+    """Backdate last_seen past QUIET_AFTER but well inside PRESENCE_TIMEOUT."""
+    lobby = lobbies._lobbies[code]
+    quiet = datetime.now(UTC) - lobbies.QUIET_AFTER - timedelta(seconds=1)
+    for player in lobby.players:
+        if player.id in player_ids:
+            player.last_seen = quiet
+
+
+def test_a_responsive_player_is_not_flagged_as_quiet():
+    code, _ids = setup_game()
+
+    assert not lobbies.get_view(code).current_player_quiet
+
+
+def test_the_others_are_told_when_the_active_player_goes_quiet():
+    code, (anna, ben) = setup_game()
+    go_quiet(code, anna)
+
+    view = lobbies.get_view(code, ben)
+
+    assert view.current_player_quiet
+    # Still their turn: this explains the pause, it does not cause a skip.
+    assert view.current_player_id == anna
+
+
+def test_a_quiet_player_can_still_take_their_turn():
+    """The flag is advisory -- the grace period is the whole point."""
+    code, (anna, _ben) = setup_game()
+    items = items_of(code)
+    go_quiet(code, anna)
+
+    view = lobbies.submit_turn(code, anna, items["Berlin"], DE)
+
+    assert view.players[0].score == 1
+
+
+def test_a_quiet_player_going_silent_clears_the_flag_by_skipping():
+    code, (anna, ben) = setup_game()
+    go_quiet(code, anna)
+    assert lobbies.get_view(code, ben).current_player_quiet
+
+    go_silent(code, anna)
+    view = lobbies.get_view(code, ben)
+
+    # The turn moved on, so there is nothing left to warn about.
+    assert view.current_player_id == ben
+    assert not view.current_player_quiet
+
+
+def test_a_quiet_player_who_checks_in_clears_the_flag():
+    code, (anna, ben) = setup_game()
+    go_quiet(code, anna)
+    assert lobbies.get_view(code, ben).current_player_quiet
+
+    assert not lobbies.get_view(code, anna).current_player_quiet
+
+
+def test_the_quiet_flag_is_off_in_the_waiting_room():
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    go_quiet(code, anna)
+
+    assert not lobbies.get_view(code).current_player_quiet
 
 
 def test_marking_away_moves_the_turn_immediately():

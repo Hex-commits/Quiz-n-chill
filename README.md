@@ -59,10 +59,13 @@ on save; uvicorn's watcher handles the mount fine.)
 
 ## The data model
 
-Three tables. That is the whole thing.
+Four tables.
 
 ```
-quizzes                      one Zuordnungs-topic
+subjects                     the quiz pool: "Geografie", "Musik"
+  id, slug, name, position
+
+quizzes       -> subject_id  one Zuordnungsfrage
   id, slug, title, description
 
 categories    -> quiz_id     the buckets: "Deutschland"
@@ -71,6 +74,12 @@ categories    -> quiz_id     the buckets: "Deutschland"
 items         -> quiz_id     the answers: "Berlin", "Barcelona"
   id, label, position, category_id NULL
 ```
+
+**`subject` and `category` are different things**, and the naming is deliberate.
+A *subject* is the area a whole question belongs to and is what the host picks
+before a game. A *category* is a bucket inside one question, and is what players
+sort answers into during a round. Calling both "category" would mean the host
+picks categories and then players sort into different categories.
 
 **`items.category_id IS NULL` means the item is a fake.** No separate distractor
 table, no flag column — one nullable foreign key says "belongs nowhere", and
@@ -98,8 +107,13 @@ Rules, as implemented in `api/app/services/lobbies.py`:
 - A correct placement scores **1 point**. Spotting a fake counts.
 - A round ends when every item is placed **or** nobody is left active — so the
   last player standing keeps going alone while items remain.
-- One round per topic; the host picks which topics and in what order. Scores
-  carry across rounds, and the highest total wins. Ties report every winner.
+- The host picks **subjects and a round count**, not individual questions. The
+  server draws that many at random, spread as evenly as possible across the
+  chosen subjects — 5 rounds over 3 subjects gives 2/2/1, and which subject
+  gets the extra one varies. Asking for more rounds than exist simply plays
+  everything available. See `api/app/services/drafting.py`.
+- Scores carry across rounds, and the highest total wins. Ties report every
+  winner.
 - The starting player rotates each round.
 - Anyone can **leave** at any point. If it was their turn it passes on; if they
   were the host the role moves to whoever is left; if they were the last active
@@ -115,7 +129,7 @@ Two separate states, deliberately:
 | | meaning | resets |
 | --- | --- | --- |
 | `is_active` | knocked out this round by a wrong answer | every round |
-| `is_connected` | their client stopped checking in | when they return |
+| `is_connected` | their client stopped checking in (10s) | when they return |
 
 A player can only be dealt a turn when **both** are true.
 
@@ -129,6 +143,23 @@ correct.
 
 Any request from a client counts as proof of life, including a rejected one —
 a client making requests is a client that is there.
+
+A disconnected player is **skipped, not knocked out** — `is_active` and their
+score are untouched, they just lose that turn and rejoin the rotation when it
+comes round again. Only a wrong answer knocks you out.
+
+The 10s grace is deliberate, but it would otherwise look like a hang, so
+`LobbyView.current_player_quiet` goes true once the player on the clock has been
+silent for `QUIET_AFTER` (3s, two missed polls). The other screens then show
+"… has stopped responding — skipping shortly" instead of a stuck "Waiting for
+…". It is advisory only: a quiet player can still take their turn, and the flag
+clears itself either when they check back in or when the turn is handed on.
+
+```
+ t=0.0  Waiting for Anna…
+ t=3.0  Anna has stopped responding — skipping shortly
+ t=10.5 your turn
+```
 
 Because a disconnect could otherwise stall the game with nobody submitting
 anything, every read re-checks presence and moves the clock off a player who is
@@ -152,7 +183,8 @@ POST /lobbies                     {nickname}                 -> {code, player_id
 POST /lobbies/{code}/join         {nickname}                 -> {code, player_id}
                                   (also reclaims a disconnected seat)
 GET  /lobbies/{code}?player_id=   poll + heartbeat           -> LobbyView
-POST /lobbies/{code}/start        {player_id, quiz_slugs[]}  -> LobbyView  (host)
+POST /lobbies/{code}/start        {player_id, subject_slugs[], round_count}
+                                                             -> LobbyView  (host)
 POST /lobbies/{code}/turns        {player_id, item_id, category_id}
 POST /lobbies/{code}/away         {player_id}                -> 204  (tab closing)
 POST /lobbies/{code}/leave        {player_id}                -> 204  (permanent)
@@ -187,6 +219,7 @@ correctly carry a `category_id`; everything else is `{id, label}`.
 │   │   └── services/
 │   │       ├── quizzes.py     reads + grading orchestration
 │   │       ├── lobbies.py     ephemeral multiplayer state + turn loop
+│   │       ├── drafting.py    balanced question draw across subjects
 │   │       └── scoring.py     <- the rules live here
 │   ├── tests/
 │   ├── index.py           Vercel entrypoint
@@ -200,7 +233,7 @@ correctly carry a `category_id`; everything else is `{id, label}`.
 │       └── lib/api.ts       the only module that calls the backend
 ├── supabase/
 │   ├── migrations/        forward-only SQL
-│   └── seed.sql           three German topics, each with fakes
+│   └── seed.sql           9 subjects x 3 German questions, all with fakes
 └── docker-compose.yml     api + web (database is separate, see below)
 ```
 
@@ -216,12 +249,13 @@ what `SUPABASE_URL` in `.env` points at.
 
 ## API surface
 
-| Method | Path                     | Purpose                                    |
-| ------ | ------------------------ | ------------------------------------------ |
-| GET    | `/health`                | liveness + database reachability           |
-| GET    | `/quizzes`               | all topics with category and answer counts |
-| GET    | `/quizzes/{slug or id}`  | one topic; items shuffled, **no solution** |
-| POST   | `/quizzes/{slug}/check`  | grade an assignment; stores nothing        |
+| Method | Path                       | Purpose                                       |
+| ------ | -------------------------- | --------------------------------------------- |
+| GET    | `/health`                  | liveness + database reachability              |
+| GET    | `/subjects`                | quiz-pool areas with question counts          |
+| GET    | `/quizzes?subject=slug`    | questions, optionally filtered by subject     |
+| GET    | `/quizzes/{slug or id}`    | one question; items shuffled, **no solution** |
+| POST   | `/quizzes/{slug}/check`    | grade an assignment; stores nothing           |
 
 `/check` takes `{"assignments": [{"item_id": "...", "category_id": "..." }]}`.
 A `category_id` of `null` means "this is a fake". Items you omit are treated as
@@ -248,8 +282,23 @@ docker compose exec web npx eslint src
 To change the schema: add a **new** file in `supabase/migrations/` and run
 `npm run db:reset`. Never edit an applied migration.
 
-Adding a topic is three inserts — see `supabase/seed.sql` for the shape. Or use
-Supabase Studio; the API reads whatever is there.
+**Adding a question** means adding one row to the `spec` table in
+`supabase/seed.sql`:
+
+```sql
+('musik', 'genres-instrumente', 'Genres & Instrumente',
+ 'Welches Instrument prägt das Genre?',
+ '[["Jazz", ["Saxophon"]], ["Blues", ["Mundharmonika"]]]'::jsonb,
+ array['Dudelsack', 'Sitar']),        -- belong to no category: the fakes
+```
+
+Then `npm run db:reset`. Everything else — quiz, categories, items, positions —
+is derived from that row. Or edit rows directly in Supabase Studio; the API
+reads whatever is there.
+
+> The seed is one large statement rather than a PL/pgSQL helper because the
+> Supabase CLI's seed runner cannot execute a `$$`-quoted function body. It
+> works fine through `psql`, so the constraint is the tool, not the SQL.
 
 > Run `next build` on the host or via `docker build --target production ./web`,
 > not inside the running dev container. That container sets
@@ -300,6 +349,8 @@ publishable key reads zero rows — including `items.category_id`.
 - **Other question types.** The schema is shaped for Zuordnungsfragen. Adding a
   second type means a `kind` column on `quizzes` and a matching branch in
   `scoring.py`; nothing in the current model blocks it.
+- **Question difficulty.** The draw balances across subjects only. There is no
+  notion of an easy or hard question, so a round's difficulty is luck.
 - **Frontend types are hand-written.** `web/src/lib/types.ts` mirrors
   `schemas.py` manually. Generate them once the shapes churn:
   `npx openapi-typescript http://localhost:8001/openapi.json -o src/lib/api-types.ts`

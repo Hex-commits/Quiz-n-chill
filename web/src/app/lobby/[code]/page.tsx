@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 import { ApiErrorNotice } from "@/components/api-error-notice";
-import { listQuizzes } from "@/lib/api";
-import type { QuizSummary } from "@/lib/types";
+import { listSubjects } from "@/lib/api";
+import type { Subject } from "@/lib/types";
 
 import { LobbyRoom } from "./lobby-room";
 
@@ -20,11 +20,11 @@ export async function generateMetadata({
 export default async function LobbyPage({ params }: PageProps) {
   const { code } = await params;
 
-  // Fetched here so the host's topic picker is populated on first paint. The
+  // Fetched here so the host's subject picker is populated on first paint. The
   // live lobby state itself is polled client-side.
-  let topics: QuizSummary[] = [];
+  let subjects: Subject[] = [];
   try {
-    topics = await listQuizzes();
+    subjects = await listSubjects();
   } catch (cause) {
     return (
       <ApiErrorNotice
@@ -33,5 +33,5 @@ export default async function LobbyPage({ params }: PageProps) {
     );
   }
 
-  return <LobbyRoom code={code.toUpperCase()} topics={topics} />;
+  return <LobbyRoom code={code.toUpperCase()} subjects={subjects} />;
 }
