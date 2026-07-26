@@ -137,8 +137,41 @@ export function joinLobby(
   });
 }
 
-export function getLobby(code: string): Promise<LobbyView> {
-  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}`);
+/**
+ * Poll lobby state. Passing `playerId` also checks that player in: the poll is
+ * the heartbeat, so a tab that stops polling is treated as gone.
+ */
+export function getLobby(
+  code: string,
+  playerId?: string | null,
+): Promise<LobbyView> {
+  const query = playerId
+    ? `?player_id=${encodeURIComponent(playerId)}`
+    : "";
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}${query}`);
+}
+
+/**
+ * Tell the server this tab is closing, so the turn moves on without waiting
+ * out the presence timeout.
+ *
+ * `keepalive` lets the request outlive the page. Browsers do not guarantee it
+ * is delivered, which is why the server also times players out; treat this
+ * purely as a latency improvement. Failures are swallowed deliberately -- the
+ * page is going away and there is nobody left to tell.
+ */
+export function markAway(code: string, playerId: string): void {
+  const url = `${baseUrl()}/lobbies/${encodeURIComponent(code)}/away`;
+  try {
+    void fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ player_id: playerId }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Ignore: unload is not a place to surface errors.
+  }
 }
 
 export function startGame(

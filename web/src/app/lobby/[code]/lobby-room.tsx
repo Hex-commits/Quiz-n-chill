@@ -10,6 +10,7 @@ import {
   LogOut,
   TriangleAlert,
   Users,
+  WifiOff,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   getLobby,
   leaveLobby,
+  markAway,
   restartLobby,
   startGame,
   submitTurn,
@@ -40,6 +42,8 @@ import { forgetPlayer, recallPlayer } from "@/lib/identity";
 import type { LobbyView, QuizSummary } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
+
+import { RejoinForm } from "./rejoin-form";
 
 const POLL_MS = 1500;
 
@@ -50,6 +54,7 @@ export function LobbyRoom({
   code: string;
   topics: QuizSummary[];
 }) {
+  const router = useRouter();
   const playerId = useStored<string | null>(() => recallPlayer(code), null);
   const [lobby, setLobby] = useState<LobbyView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +79,8 @@ export function LobbyRoom({
 
     async function poll() {
       try {
-        const view = await getLobby(code);
+        // Passing the player id makes this poll double as a heartbeat.
+        const view = await getLobby(code, playerId);
         if (!cancelled) {
           apply(view);
           setError(null);
@@ -92,7 +98,19 @@ export function LobbyRoom({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [code, apply]);
+  }, [code, playerId, apply]);
+
+  // Closing or backgrounding the tab hands the turn on immediately instead of
+  // making everyone wait out the server's presence timeout. `pagehide` fires
+  // where `beforeunload` does not, notably on mobile Safari. Coming back is
+  // handled by the next poll, which re-checks the player in.
+  useEffect(() => {
+    if (!playerId) return;
+
+    const onHide = () => markAway(code, playerId);
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [code, playerId]);
 
   const me = lobby?.players.find((player) => player.id === playerId) ?? null;
   const isMyTurn = Boolean(playerId && lobby?.current_player_id === playerId);
@@ -105,6 +123,21 @@ export function LobbyRoom({
       toast.error(cause instanceof Error ? cause.message : "Action failed.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function leave() {
+    if (!playerId) return;
+    setBusy(true);
+    try {
+      await leaveLobby(code, playerId);
+    } catch {
+      // Leaving is best-effort: if the call fails the lobby may already be
+      // gone. Either way this browser is done with it, so drop the identity
+      // rather than trapping the player on a dead screen.
+    } finally {
+      forgetPlayer(code);
+      router.push("/play");
     }
   }
 
@@ -131,24 +164,9 @@ export function LobbyRoom({
     );
   }
 
-  if (!playerId) {
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>You are not in lobby {code}</CardTitle>
-          <CardDescription>
-            This browser has no player for this lobby. Join with the code to
-            take part.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Button asChild>
-            <Link href="/play">Go to join screen</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
+  // No identity in this browser: either a newcomer or someone returning on a
+  // different device. Both are handled by rejoining with a nickname.
+  if (!playerId) return <RejoinForm code={code} />;
 
   // --- Shared header -------------------------------------------------------
 
@@ -160,11 +178,17 @@ export function LobbyRoom({
           {lobby.code}
         </p>
       </div>
-      <Badge variant="secondary" className="gap-1.5">
-        <Users className="size-3.5" aria-hidden />
-        {lobby.players.length}{" "}
-        {lobby.players.length === 1 ? "player" : "players"}
-      </Badge>
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary" className="gap-1.5">
+          <Users className="size-3.5" aria-hidden />
+          {lobby.players.length}{" "}
+          {lobby.players.length === 1 ? "player" : "players"}
+        </Badge>
+        <Button variant="ghost" size="sm" onClick={leave} disabled={busy}>
+          <LogOut className="size-4" aria-hidden />
+          Leave
+        </Button>
+      </div>
     </div>
   );
 
@@ -176,11 +200,18 @@ export function LobbyRoom({
           <Badge
             key={player.id}
             variant={player.id === lobby.current_player_id ? "default" : "outline"}
-            className={cn("gap-1.5", !player.is_active && "opacity-50")}
+            className={cn(
+              "gap-1.5",
+              (!player.is_active || !player.is_connected) && "opacity-50",
+            )}
           >
             {player.id === playerId ? `${player.nickname} (you)` : player.nickname}
             <span className="font-mono">{player.score}</span>
-            {!player.is_active ? <X className="size-3" aria-label="out" /> : null}
+            {!player.is_connected ? (
+              <WifiOff className="size-3" aria-label="offline" />
+            ) : !player.is_active ? (
+              <X className="size-3" aria-label="out" />
+            ) : null}
           </Badge>
         ))}
     </div>
@@ -203,11 +234,24 @@ export function LobbyRoom({
           <CardContent className="space-y-2">
             {lobby.players.map((player) => (
               <div key={player.id} className="flex items-center gap-2 text-sm">
-                <span className="font-medium">{player.nickname}</span>
+                <span
+                  className={cn(
+                    "font-medium",
+                    !player.is_connected && "text-muted-foreground",
+                  )}
+                >
+                  {player.nickname}
+                </span>
                 {player.is_host ? (
                   <Badge variant="secondary" className="gap-1">
                     <Crown className="size-3" aria-hidden />
                     Host
+                  </Badge>
+                ) : null}
+                {!player.is_connected ? (
+                  <Badge variant="outline" className="gap-1">
+                    <WifiOff className="size-3" aria-hidden />
+                    Offline
                   </Badge>
                 ) : null}
                 {player.id === playerId ? (

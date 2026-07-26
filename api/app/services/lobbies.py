@@ -41,6 +41,11 @@ CODE_LENGTH = 4
 MAX_PLAYERS = 10
 LOBBY_TTL = timedelta(hours=4)
 
+# A client polls every ~1.5s, and that poll is the heartbeat. This allows
+# several to be missed -- a flaky phone connection should not eject anyone --
+# while still noticing a closed tab quickly enough not to stall a game.
+PRESENCE_TIMEOUT = timedelta(seconds=10)
+
 
 @dataclass
 class Player:
@@ -50,6 +55,16 @@ class Player:
     score: int = 0
     # Cleared when the player answers wrongly; restored at the next round.
     is_active: bool = True
+
+    # Presence is separate from is_active on purpose. Being knocked out is a
+    # game state that resets each round; being gone is a connection state that
+    # persists until the player comes back.
+    last_seen: datetime = field(default_factory=lambda: datetime.now(UTC))
+    marked_away: bool = False
+    is_connected: bool = True
+
+    def can_play(self) -> bool:
+        return self.is_active and self.is_connected
 
 
 @dataclass
@@ -114,16 +129,36 @@ def create_lobby(nickname: str) -> tuple[str, UUID]:
 
 
 def join_lobby(code: str, nickname: str) -> UUID:
+    """Join a lobby, or reclaim a seat you were disconnected from.
+
+    Reclaiming is what makes "close the tab, open the link again" work from a
+    fresh browser, where localStorage no longer holds the player id. The
+    nickname is the only credential, which is fine for a party game but means
+    anyone who knows the code and a name can take that seat.
+    """
     with _lock:
         lobby = _require(code)
+        _refresh_presence(lobby)
+        cleaned = nickname.strip()
+
+        existing = next(
+            (p for p in lobby.players if p.nickname.casefold() == cleaned.casefold()),
+            None,
+        )
+        if existing is not None:
+            if existing.is_connected:
+                raise ConflictError(f"'{cleaned}' is already taken in this lobby.")
+            # Same person coming back: keep their score and their place in the
+            # turn order rather than handing out a new seat.
+            _heartbeat(lobby, existing.id)
+            _resync(lobby)
+            lobby.touch()
+            return existing.id
+
         if lobby.status is not LobbyStatus.lobby:
             raise ConflictError("This game has already started.")
         if len(lobby.players) >= MAX_PLAYERS:
             raise ConflictError(f"This lobby is full ({MAX_PLAYERS} players).")
-
-        cleaned = nickname.strip()
-        if any(p.nickname.casefold() == cleaned.casefold() for p in lobby.players):
-            raise ConflictError(f"'{cleaned}' is already taken in this lobby.")
 
         player = Player(id=uuid4(), nickname=cleaned)
         lobby.players.append(player)
@@ -135,6 +170,8 @@ def start_game(code: str, player_id: UUID, quiz_slugs: list[str]) -> LobbyView:
     with _lock:
         lobby = _require(code)
         player = lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
         if not player.is_host:
             raise ConflictError("Only the host can start the game.")
         if lobby.status is LobbyStatus.playing:
@@ -190,6 +227,7 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
     with _lock:
         lobby = _require(code)
         player = lobby.player(player_id)
+        _refresh_presence(lobby)
 
         current = _current_player(lobby)
         current_id = current.id if current else None
@@ -218,9 +256,43 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
         return _view(lobby)
 
 
-def get_view(code: str) -> LobbyView:
+def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
+    """Read lobby state, and treat the read as `player_id`'s heartbeat.
+
+    Piggybacking presence on the poll the client already makes keeps the
+    protocol to one endpoint: a tab that closes simply stops polling.
+    """
     with _lock:
-        return _view(_require(code))
+        lobby = _require(code)
+        _heartbeat(lobby, player_id)
+        changed = _refresh_presence(lobby)
+        before = (lobby.turn_cursor, lobby.round_index, lobby.status)
+        _resync(lobby)
+        # Only bump the version on a real change, or every poll would look like
+        # new state to the clients.
+        if changed or before != (lobby.turn_cursor, lobby.round_index, lobby.status):
+            lobby.touch()
+        return _view(lobby)
+
+
+def mark_away(code: str, player_id: UUID) -> None:
+    """Best-effort 'my tab is closing' signal.
+
+    Optimisation only -- browsers do not guarantee an unload request goes out,
+    so `PRESENCE_TIMEOUT` remains the mechanism that actually guarantees a
+    vanished player stops holding up the game.
+    """
+    with _lock:
+        lobby = _lobbies.get(code.upper())
+        if lobby is None:
+            return
+        for player in lobby.players:
+            if player.id == player_id:
+                player.marked_away = True
+                player.is_connected = False
+                _resync(lobby)
+                lobby.touch()
+                return
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +313,9 @@ def submit_turn(
     with _lock:
         lobby = _require(code)
         player = lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
+        _resync(lobby)
         current = lobby.current_round
 
         if lobby.status is not LobbyStatus.playing or current is None:
@@ -311,7 +386,7 @@ def _advance_turn(lobby: Lobby) -> None:
 
     for step in range(1, count + 1):
         candidate = lobby.players[(lobby.turn_cursor + step) % count]
-        if candidate.is_active:
+        if candidate.can_play():
             lobby.turn_cursor = (lobby.turn_cursor + step) % count
             return
 
@@ -319,12 +394,53 @@ def _advance_turn(lobby: Lobby) -> None:
     # `_maybe_finish_round` is about to handle it.
 
 
+def _refresh_presence(lobby: Lobby) -> bool:
+    """Recompute who is still connected. Returns True if anything changed.
+
+    Called at the top of every operation, so a player whose tab went away stops
+    being dealt turns even though nothing in the game itself happened.
+    """
+    now = datetime.now(UTC)
+    changed = False
+    for player in lobby.players:
+        connected = not player.marked_away and (now - player.last_seen) <= PRESENCE_TIMEOUT
+        if connected != player.is_connected:
+            player.is_connected = connected
+            changed = True
+    return changed
+
+
+def _resync(lobby: Lobby) -> None:
+    """Keep the clock on someone who can actually play.
+
+    Without this a disconnected player would hold the turn forever: no one
+    submits, so nothing would otherwise run to move it along.
+    """
+    if lobby.status is not LobbyStatus.playing:
+        return
+    if _current_player(lobby) is None:
+        _advance_turn(lobby)
+    _maybe_finish_round(lobby)
+
+
+def _heartbeat(lobby: Lobby, player_id: UUID | None) -> None:
+    """Record that a player's client is still there."""
+    if player_id is None:
+        return
+    for player in lobby.players:
+        if player.id == player_id:
+            player.last_seen = datetime.now(UTC)
+            player.marked_away = False
+            player.is_connected = True
+            return
+
+
 def _next_active_id(lobby: Lobby, *, exclude: UUID | None = None) -> UUID | None:
     """Who plays after the cursor, ignoring `exclude`. Identity, not position."""
     count = len(lobby.players)
     for step in range(1, count + 1):
         candidate = lobby.players[(lobby.turn_cursor + step) % count]
-        if candidate.is_active and candidate.id != exclude:
+        if candidate.can_play() and candidate.id != exclude:
             return candidate.id
     return None
 
@@ -340,7 +456,7 @@ def _current_player(lobby: Lobby) -> Player | None:
     if not lobby.players:
         return None
     player = lobby.players[lobby.turn_cursor % len(lobby.players)]
-    return player if player.is_active else None
+    return player if player.can_play() else None
 
 
 def _maybe_finish_round(lobby: Lobby) -> None:
@@ -349,9 +465,17 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     if current is None:
         return
 
+    # If every last player has vanished, freeze rather than racing through the
+    # remaining rounds to a meaningless winner. Play resumes when someone
+    # reconnects.
+    if not any(player.is_connected for player in lobby.players):
+        return
+
     all_solved = len(lobby.solved) == len(current.items)
-    nobody_active = not any(player.is_active for player in lobby.players)
-    if not (all_solved or nobody_active):
+    # Someone merely being disconnected must not stall the players who are
+    # still here, so this asks who *can* play, not who is nominally active.
+    nobody_can_play = not any(player.can_play() for player in lobby.players)
+    if not (all_solved or nobody_can_play):
         return
 
     next_index = lobby.round_index + 1
@@ -392,6 +516,7 @@ def _view(lobby: Lobby) -> LobbyView:
                 nickname=p.nickname,
                 score=p.score,
                 is_active=p.is_active,
+                is_connected=p.is_connected,
                 is_host=p.is_host,
             )
             for p in lobby.players

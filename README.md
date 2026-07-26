@@ -101,14 +101,62 @@ Rules, as implemented in `api/app/services/lobbies.py`:
 - One round per topic; the host picks which topics and in what order. Scores
   carry across rounds, and the highest total wins. Ties report every winner.
 - The starting player rotates each round.
+- Anyone can **leave** at any point. If it was their turn it passes on; if they
+  were the host the role moves to whoever is left; if they were the last active
+  player the round ends just as a wrong answer would; and once the last player
+  leaves the lobby is discarded. Leaving is permanent — the seat is gone.
+- **Closing a tab is not leaving.** The player is marked disconnected, keeps
+  their seat and score, and can come back. See below.
+
+### Presence
+
+Two separate states, deliberately:
+
+| | meaning | resets |
+| --- | --- | --- |
+| `is_active` | knocked out this round by a wrong answer | every round |
+| `is_connected` | their client stopped checking in | when they return |
+
+A player can only be dealt a turn when **both** are true.
+
+The client already polls `GET /lobbies/{code}` every 1.5s, so that poll carries
+`?player_id=` and doubles as the **heartbeat** — no extra traffic. Miss it for
+`PRESENCE_TIMEOUT` (10s, several polls' grace) and the player is treated as
+gone. On `pagehide` the browser also fires `POST /lobbies/{code}/away` with
+`keepalive`, which hands the turn on instantly; that is an optimisation only,
+since browsers do not guarantee unload requests. The timeout is what makes it
+correct.
+
+Any request from a client counts as proof of life, including a rejected one —
+a client making requests is a client that is there.
+
+Because a disconnect could otherwise stall the game with nobody submitting
+anything, every read re-checks presence and moves the clock off a player who is
+no longer there. Two consequences follow:
+
+- Someone being offline never stalls the players who are still present: a round
+  ends when nobody **can** play, not when nobody is nominally active.
+- If *everyone* disconnects the game **freezes** instead of racing through the
+  remaining rounds to a meaningless winner. It resumes when anyone comes back.
+
+**Coming back** works two ways. The same browser still has the player id in
+`localStorage`, so reopening the link resumes automatically. From a fresh
+browser, joining with the same nickname reclaims the seat, score and place in
+the turn order — matching is case- and whitespace-insensitive. A *connected*
+player's nickname cannot be taken. The nickname is the only credential, which
+is fine for a party game but does mean anyone with the code and a name can
+claim a disconnected seat.
 
 ```
-POST /lobbies                 {nickname}                 -> {code, player_id}
-POST /lobbies/{code}/join     {nickname}                 -> {code, player_id}
-GET  /lobbies/{code}                                     -> LobbyView  (poll)
-POST /lobbies/{code}/start    {player_id, quiz_slugs[]}  -> LobbyView  (host)
-POST /lobbies/{code}/turns    {player_id, item_id, category_id}
-POST /lobbies/{code}/restart  {player_id}                -> LobbyView  (host)
+POST /lobbies                     {nickname}                 -> {code, player_id}
+POST /lobbies/{code}/join         {nickname}                 -> {code, player_id}
+                                  (also reclaims a disconnected seat)
+GET  /lobbies/{code}?player_id=   poll + heartbeat           -> LobbyView
+POST /lobbies/{code}/start        {player_id, quiz_slugs[]}  -> LobbyView  (host)
+POST /lobbies/{code}/turns        {player_id, item_id, category_id}
+POST /lobbies/{code}/away         {player_id}                -> 204  (tab closing)
+POST /lobbies/{code}/leave        {player_id}                -> 204  (permanent)
+POST /lobbies/{code}/restart      {player_id}                -> LobbyView  (host)
 ```
 
 `category_id: null` on a turn means "I say this one is a fake". The frontend
@@ -244,8 +292,9 @@ publishable key reads zero rows — including `items.category_id`.
   Supabase Realtime behind the same `lobbies.py` interface.
 - **Polling, not push.** 1.5s polling is fine for a party game and needs no
   infrastructure. Websockets or Supabase Realtime would tighten it.
-- **Nobody can leave a lobby.** A disconnected player still gets turns and
-  blocks the round until someone plays for them. A kick or timeout is the fix.
+- **No turn timeout.** Presence handles a player who *disappears*, but one who
+  sits there doing nothing still holds the turn indefinitely. A per-turn
+  deadline that auto-passes would close this.
 - **Content editing.** No admin UI or write endpoints beyond `create_quiz`.
   Edit through Supabase Studio or `seed.sql` for now.
 - **Other question types.** The schema is shaped for Zuordnungsfragen. Adding a

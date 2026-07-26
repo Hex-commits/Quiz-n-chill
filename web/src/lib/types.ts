@@ -77,6 +77,8 @@ export interface PlayerPublic {
   score: number;
   /** False once the player has answered wrongly; resets every round. */
   is_active: boolean;
+  /** False when their client stopped checking in — a closed tab. Persists across rounds. */
+  is_connected: boolean;
   is_host: boolean;
 }
 

@@ -4,6 +4,7 @@ The topic loader is stubbed so these run without a database: the rules are what
 is under test, not PostgREST.
 """
 
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -368,6 +369,178 @@ def test_a_departed_player_cannot_play():
 
     with pytest.raises(NotFoundError, match="not in this lobby"):
         lobbies.submit_turn(code, anna, items["Berlin"], DE)
+
+
+# ---------------------------------------------------------------------------
+# Presence: closing a tab, and coming back
+# ---------------------------------------------------------------------------
+
+
+def go_silent(code, *player_ids):
+    """Backdate last_seen so the player looks like a closed tab."""
+    lobby = lobbies._lobbies[code]
+    stale = datetime.now(UTC) - lobbies.PRESENCE_TIMEOUT - timedelta(seconds=1)
+    for player in lobby.players:
+        if player.id in player_ids:
+            player.last_seen = stale
+
+
+def test_a_silent_client_is_reported_disconnected():
+    code, (anna, _ben) = setup_game()
+    go_silent(code, anna)
+
+    view = lobbies.get_view(code)
+
+    assert [p.is_connected for p in view.players] == [False, True]
+
+
+def test_polling_keeps_a_player_connected():
+    code, (anna, _ben) = setup_game()
+    go_silent(code, anna)
+
+    # Anna's own poll is her heartbeat.
+    view = lobbies.get_view(code, anna)
+
+    assert view.players[0].is_connected
+
+
+def test_a_disconnected_player_does_not_hold_the_turn():
+    """The stall case: nobody submits, so only a read can move the clock."""
+    code, (anna, ben) = setup_game()
+    assert lobbies.get_view(code).current_player_id == anna
+
+    go_silent(code, anna)
+    view = lobbies.get_view(code, ben)
+
+    assert view.current_player_id == ben
+
+
+def test_a_disconnected_player_is_skipped_in_rotation():
+    code, (anna, ben, cem) = setup_game(("Anna", "Ben", "Cem"))
+    items = items_of(code)
+    go_silent(code, ben)
+
+    view = lobbies.submit_turn(code, anna, items["Berlin"], DE)
+
+    assert view.current_player_id == cem
+
+
+def test_a_disconnected_player_cannot_play():
+    code, (anna, _ben) = setup_game()
+    items = items_of(code)
+    go_silent(code, anna)
+    lobbies.get_view(code)  # the sweep notices Anna is gone
+
+    with pytest.raises(ConflictError, match="not your turn"):
+        lobbies.submit_turn(code, anna, items["Berlin"], DE)
+
+
+def test_everyone_disconnecting_freezes_rather_than_ending_the_game():
+    """Otherwise an empty lobby would race through every round to a winner."""
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    go_silent(code, anna, ben)
+
+    view = lobbies.get_view(code)
+
+    assert view.status is LobbyStatus.playing
+    assert view.round_index == 0
+    assert view.current_player_id is None
+
+
+def test_the_game_resumes_when_someone_comes_back():
+    code, (anna, ben) = setup_game()
+    go_silent(code, anna, ben)
+    lobbies.get_view(code)
+
+    view = lobbies.get_view(code, ben)
+
+    assert view.current_player_id == ben
+
+
+def test_reconnecting_by_nickname_keeps_the_same_seat_and_score():
+    code, (anna, _ben) = setup_game()
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna scores 1
+    go_silent(code, anna)
+    lobbies.get_view(code)
+
+    # A fresh browser has no player id, so it rejoins by name.
+    reclaimed = lobbies.join_lobby(code, "Anna")
+
+    assert reclaimed == anna
+    view = lobbies.get_view(code)
+    anna_view = next(p for p in view.players if p.id == anna)
+    assert anna_view.score == 1
+    assert anna_view.is_connected
+
+
+def test_reconnecting_is_case_insensitive():
+    code, (anna, _ben) = setup_game()
+    go_silent(code, anna)
+
+    assert lobbies.join_lobby(code, "  aNNa ") == anna
+
+
+def test_a_connected_players_nickname_cannot_be_stolen():
+    code, (_anna, _ben) = setup_game()
+
+    with pytest.raises(ConflictError, match="already taken"):
+        lobbies.join_lobby(code, "Anna")
+
+
+def test_a_knocked_out_player_who_reconnects_stays_knocked_out():
+    code, (anna, ben) = setup_game()
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], FR)  # wrong, Anna out
+    go_silent(code, anna)
+    lobbies.get_view(code)
+
+    lobbies.join_lobby(code, "Anna")
+
+    view = lobbies.get_view(code)
+    anna_view = next(p for p in view.players if p.id == anna)
+    assert anna_view.is_connected
+    assert not anna_view.is_active  # still out until the next round
+    assert view.current_player_id == ben
+
+
+def test_any_request_counts_as_proof_of_life_even_a_rejected_one():
+    """A client making requests is alive, whatever the request's verdict."""
+    code, (anna, ben) = setup_game()
+    items = items_of(code)
+    go_silent(code, ben)
+    lobbies.get_view(code)
+
+    # Ben plays out of turn: refused, but it shows his tab is open.
+    with pytest.raises(ConflictError, match="not your turn"):
+        lobbies.submit_turn(code, ben, items["Berlin"], DE)
+
+    view = lobbies.get_view(code)
+    assert next(p for p in view.players if p.id == ben).is_connected
+    assert view.current_player_id == anna  # the turn itself is unaffected
+
+
+def test_marking_away_moves_the_turn_immediately():
+    code, (anna, ben) = setup_game()
+
+    lobbies.mark_away(code, anna)
+
+    view = lobbies.get_view(code)
+    assert not view.players[0].is_connected
+    assert view.current_player_id == ben
+
+
+def test_marking_away_on_an_unknown_lobby_is_not_an_error():
+    lobbies.mark_away("ZZZZ", uuid4())
+
+
+def test_reconnecting_after_marking_away_works():
+    code, (anna, _ben) = setup_game()
+    lobbies.mark_away(code, anna)
+
+    view = lobbies.get_view(code, anna)
+
+    assert view.players[0].is_connected
 
 
 def test_leaving_frees_a_slot_in_the_waiting_room():

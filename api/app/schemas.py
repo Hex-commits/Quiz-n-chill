@@ -154,6 +154,9 @@ class PlayerPublic(BaseModel):
     score: int
     # False once the player has answered wrongly; resets each round.
     is_active: bool
+    # False when their client has stopped checking in -- a closed tab. Distinct
+    # from is_active: it persists across rounds until they come back.
+    is_connected: bool = True
     is_host: bool
 
 
