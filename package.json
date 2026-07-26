@@ -1,0 +1,21 @@
+{
+  "name": "quiz-quiz",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Quiz app: Next.js frontend, FastAPI backend, Supabase database.",
+  "scripts": {
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff -f",
+    "dev": "docker compose up --build",
+    "dev:down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "dev:api": "docker compose up api",
+    "dev:web": "npm --prefix web run dev"
+  },
+  "devDependencies": {
+    "supabase": "^2"
+  }
+}
