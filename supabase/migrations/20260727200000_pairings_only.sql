@@ -8,12 +8,41 @@
 -- Two constraints express it, and between them they make the old shape
 -- unstorable rather than merely discouraged.
 
--- Existing questions cannot satisfy either rule -- every seeded one has fakes
--- and multi-answer categories -- so the pool is cleared and refilled from the
--- rewritten seed. Nothing is recoverable here that the seed does not replace.
-delete from items;
-delete from categories;
-delete from quizzes;
+-- Questions written for the old design cannot satisfy either rule. This
+-- migration refuses to run rather than deleting them: it also runs against
+-- databases holding generated questions that took hours of model time and
+-- exist nowhere else, and a migration is the last place a silent `delete from`
+-- belongs. Clearing the pool is a decision for whoever is at the keyboard.
+do $$
+declare
+    orphans bigint;
+    crowded bigint;
+begin
+    select count(*) into orphans
+      from items
+     where category_id is null;
+
+    select count(*) into crowded
+      from (
+            select 1
+              from items
+             where category_id is not null
+             group by quiz_id, category_id
+            having count(*) > 1
+           ) as offending;
+
+    if orphans > 0 or crowded > 0 then
+        raise exception
+            'Cannot enforce one-to-one pairings: % answer(s) without a category, % category/categories holding more than one answer.',
+            orphans, crowded
+        using hint =
+            'These are questions from the removed fake-based design. Delete the '
+            'affected quizzes and re-run. To clear the whole pool and refill it '
+            'from the rewritten seed: delete from items; delete from categories; '
+            'delete from quizzes;';
+    end if;
+end
+$$;
 
 -- 1. No answer without a category. This is what removes the fake.
 alter table items

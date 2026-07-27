@@ -12,10 +12,17 @@ import os
 
 import pytest
 
-from tools.ingest.config import ConfigError, Settings, load_dotenv, service_role_key, supabase_url
+from tools.ingest.config import (
+    ConfigError,
+    Settings,
+    is_local,
+    load_dotenv,
+    service_role_key,
+    supabase_url,
+)
 
-VARS = ("SUPABASE_URL", "INGEST_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "OLLAMA_URL",
-        "INGEST_MODEL")
+VARS = ("SUPABASE_URL", "INGEST_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
+        "INGEST_SUPABASE_SERVICE_ROLE_KEY", "OLLAMA_URL", "INGEST_MODEL")
 
 
 @pytest.fixture(autouse=True)
@@ -79,6 +86,52 @@ def test_a_missing_service_role_key_says_where_to_find_it():
         service_role_key()
 
     assert "service_role" in str(caught.value)
+
+
+# -- the key, which has to name the same project as the URL --------------
+
+
+def test_the_key_flag_beats_everything(monkeypatch):
+    monkeypatch.setenv("INGEST_SUPABASE_SERVICE_ROLE_KEY", "from-env")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "local-stack")
+
+    assert service_role_key("from-flag") == "from-flag"
+
+
+def test_the_dedicated_key_beats_the_local_stack_one(monkeypatch):
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "local-stack")
+    monkeypatch.setenv("INGEST_SUPABASE_SERVICE_ROLE_KEY", "hosted-project")
+
+    assert service_role_key() == "hosted-project"
+
+
+def test_the_url_and_the_key_can_be_overridden_together(monkeypatch):
+    """The point of the pair: filling a hosted project from this machine must
+    not reach for the local stack's key."""
+    monkeypatch.setenv("INGEST_SUPABASE_URL", "http://127.0.0.1:54321")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "local-stack")
+
+    settings = Settings.resolve(
+        supabase_url_override="https://abc.supabase.co",
+        supabase_key_override="hosted-key",
+    )
+
+    assert settings.supabase_url == "https://abc.supabase.co"
+    assert settings.supabase_key == "hosted-key"
+
+
+@pytest.mark.parametrize(
+    "url, local",
+    [
+        ("http://127.0.0.1:54321", True),
+        ("http://localhost:54321", True),
+        ("http://host.docker.internal:54321", True),
+        ("https://abcdefgh.supabase.co", False),
+    ],
+)
+def test_a_remote_project_is_recognised_as_remote(url, local):
+    """Drives the [REMOTE PROJECT] marker in the run header."""
+    assert is_local(url) is local
 
 
 def test_settings_fall_back_to_the_documented_defaults(monkeypatch):

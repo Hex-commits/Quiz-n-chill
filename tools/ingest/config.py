@@ -77,14 +77,40 @@ def supabase_url(override: str | None = None) -> str:
     return base.replace(CONTAINER_HOST, LOCALHOST).rstrip("/")
 
 
-def service_role_key() -> str:
+def service_role_key(override: str | None = None) -> str:
+    """The service-role key for whichever project the URL names.
+
+    Overridable for the same reason the URL is, and it matters more: the key and
+    the URL have to describe the *same* project. Filling a hosted project from
+    this machine means pointing the URL at it and passing its key in the same
+    breath -- with only the URL overridable, that run would reach for the local
+    stack's key and fail against production, or worse, succeed against the wrong
+    one.
+    """
+    if override:
+        return override
+
+    configured = os.environ.get("INGEST_SUPABASE_SERVICE_ROLE_KEY")
+    if configured:
+        return configured
+
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not key:
         raise ConfigError(
-            "SUPABASE_SERVICE_ROLE_KEY is not set. `npm run db:start` prints it "
-            'as "service_role key".'
+            "No service-role key. Set SUPABASE_SERVICE_ROLE_KEY in the repo-root "
+            "`.env` for the local stack (`npm run db:start` prints it as "
+            '"service_role key"), or INGEST_SUPABASE_SERVICE_ROLE_KEY / '
+            "--supabase-key to fill a hosted project."
         )
     return key
+
+
+def is_local(url: str) -> bool:
+    """Does this URL name a stack on this machine?
+
+    Used to say out loud when a run is about to write somewhere permanent.
+    """
+    return any(host in url for host in ("127.0.0.1", "localhost", CONTAINER_HOST))
 
 
 @dataclass(frozen=True)
@@ -101,12 +127,13 @@ class Settings:
         cls,
         *,
         supabase_url_override: str | None = None,
+        supabase_key_override: str | None = None,
         ollama_url: str | None = None,
         model: str | None = None,
     ) -> Settings:
         return cls(
             supabase_url=supabase_url(supabase_url_override),
-            supabase_key=service_role_key(),
+            supabase_key=service_role_key(supabase_key_override),
             ollama_url=(
                 ollama_url or os.environ.get("OLLAMA_URL") or DEFAULT_OLLAMA_URL
             ).rstrip("/"),

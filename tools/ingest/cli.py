@@ -25,6 +25,7 @@ from .config import (
     REPO_ROOT,
     ConfigError,
     Settings,
+    is_local,
     load_dotenv,
 )
 from .output.report import render_markdown
@@ -67,8 +68,18 @@ Settings come from the command line, then the environment, then the repo-root
     INGEST_SUPABASE_URL         the stack as reachable from the host; falls back
                                 to SUPABASE_URL with host.docker.internal
                                 rewritten to 127.0.0.1
+    INGEST_SUPABASE_SERVICE_ROLE_KEY
+                                key for that URL, when it is not the local stack
     OLLAMA_URL                  default http://localhost:11435
     INGEST_MODEL                default glm4:9b
+
+Filling a hosted project from this machine is the same command with both halves
+pointed at it -- the URL and the key have to name the same project:
+
+    python -m tools.ingest --limit 50 --commit \\
+        --supabase-url https://<ref>.supabase.co --supabase-key <service-role>
+
+The model still runs locally; only the finished rows leave the machine.
 """
 
 # An article shorter than this has no room for a set of clean pairings.
@@ -122,6 +133,15 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Supabase URL as reachable from this machine. Overrides "
             "INGEST_SUPABASE_URL and SUPABASE_URL."
+        ),
+    )
+    parser.add_argument(
+        "--supabase-key",
+        help=(
+            "Service-role key for that project. Pass it whenever --supabase-url "
+            "names a project other than the local stack -- the key has to match "
+            "the URL. Overrides INGEST_SUPABASE_SERVICE_ROLE_KEY and "
+            "SUPABASE_SERVICE_ROLE_KEY."
         ),
     )
     parser.add_argument(
@@ -185,6 +205,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = Settings.resolve(
             supabase_url_override=args.supabase_url,
+            supabase_key_override=args.supabase_key,
             ollama_url=args.ollama_url,
             model=args.model,
         )
@@ -241,7 +262,10 @@ def main(argv: list[str] | None = None) -> int:
     ]
     print("=" * 72)
     print(f"  Model      {settings.model}  via {settings.ollama_url}  [{_processor(settings.ollama_url)}]")
-    print(f"  Supabase   {settings.supabase_url}")
+    # Said out loud, because a run aimed at a hosted project from this machine
+    # looks exactly like a local one until the rows are already there.
+    where = "" if is_local(settings.supabase_url) else "   [REMOTE PROJECT]"
+    print(f"  Supabase   {settings.supabase_url}{where}")
     print(f"  Source     {args.source}" + (f", {args.months} months" if args.source in ("mixed", "evergreen", "lists") else ""))
     print(f"  Pipeline   {' -> '.join(steps_on)}   ({args.attempts} attempts per article)")
     print(f"  Workers    {args.workers}")
