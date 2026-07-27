@@ -1,14 +1,34 @@
 -- Development seed data, reloaded by `supabase db reset`.
 --
--- Content is German; identifiers stay English. Every question carries fakes --
--- plausible answers that belong to no category at all, which the player is
--- meant to spot.
+-- Content is German; identifiers stay English.
+--
+-- **Every question is a one-to-one pairing.** One category, one answer, and
+-- every answer belongs to exactly one category. There are no extra answers and
+-- no category holds two -- the database enforces both, with a NOT NULL on
+-- items.category_id and a unique (quiz_id, category_id).
 --
 -- Each question is one row of the `spec` table below:
 --
 --   subject, slug, title, description,
---   '[["Kategorie", ["Antwort", "Antwort"]], ...]',   -- ordered groups
---   array['Fake', 'Fake']                             -- belong nowhere
+--   difficulty, source_title, source_url,
+--   '[["Kategorie", "Antwort", "Begründung"], ...]'
+--
+-- The third element is shown to the player *after* the round, underneath the
+-- answer it belongs to, so a lost round still teaches something. It gives the
+-- answer away, so it is served only on the solution paths -- never in what a
+-- player sees while the question is live.
+--
+-- Keep it to one short sentence that names the deciding fact. Not "richtig,
+-- weil ..." and not the rule of the game: the fact itself.
+--
+-- Every source_url here was read back from the Wikipedia API rather than
+-- assembled by hand, so each one resolves.
+--
+-- The one thing to watch when editing: **an answer must fit only one category
+-- on its own board.** "Wasser" under "Anorganische Stoffe" is fine until
+-- "Reduktionsmittel" is also on the board -- then the player who picks the
+-- other one is marked wrong for being right. Every pairing below is chosen so
+-- that exactly one category can take it.
 --
 -- The inserts are driven off that one table rather than hundreds of hand-written
 -- UUIDs. It is a single statement on purpose: a PL/pgSQL helper would read
@@ -27,258 +47,352 @@ insert into subjects (slug, name, description, position) values
     ('essen-trinken',     'Essen & Trinken',   'Gerichte, Zutaten und Getränke.',                9);
 
 
-with spec (subject_slug, slug, title, description, groups, fakes) as (
+with spec (subject_slug, slug, title, description, difficulty,
+           source_title, source_url, pairs) as (
     values
 
     -- === Geografie =========================================================
     ('geografie', 'hauptstaedte-europas', 'Hauptstädte Europas',
-     'Ordne die Städte ihren Ländern zu. Achtung: Nicht jede Stadt ist eine Hauptstadt.',
-     '[["Deutschland", ["Berlin"]],
-       ["Frankreich",  ["Paris"]],
-       ["Italien",     ["Rom"]],
-       ["Spanien",     ["Madrid"]]]'::jsonb,
-     array['Barcelona', 'München', 'Mailand']),
+     'Welche Stadt ist die Hauptstadt des Landes?',
+     'easy', 'Hauptstadt', 'https://de.wikipedia.org/wiki/Hauptstadt',
+     '[["Deutschland", "Berlin", "Hauptstadt seit 1990, Regierungssitz seit 1999."],
+       ["Frankreich", "Paris", "Hauptstadt seit dem 10. Jahrhundert."],
+       ["Italien", "Rom", "Hauptstadt seit 1871, davor Turin und Florenz."],
+       ["Spanien", "Madrid", "Hauptstadt seit 1561 unter Philipp II."],
+       ["Portugal", "Lissabon", "Hauptstadt seit 1255, davor Coimbra."],
+       ["Österreich", "Wien", "Hauptstadt und zugleich eigenes Bundesland."],
+       ["Polen", "Warschau", "Hauptstadt seit 1596, davor Krakau."],
+       ["Griechenland", "Athen", "Hauptstadt seit 1834, kurz nach der Unabhängigkeit."]]'::jsonb),
 
-    ('geografie', 'fluesse-europas', 'Flüsse Europas',
-     'Durch welches Land fließt der Fluss? Zwei Flüsse liegen auf einem anderen Kontinent.',
-     '[["Deutschland", ["Rhein", "Elbe"]],
-       ["Frankreich",  ["Seine", "Loire"]],
-       ["Russland",    ["Wolga"]]]'::jsonb,
-     array['Amazonas', 'Sambesi']),
+    ('geografie', 'fluesse-hauptstaedte', 'Flüsse & Hauptstädte',
+     'An welchem Fluss liegt die Stadt?',
+     'medium', 'Liste von Flüssen in Europa',
+     'https://de.wikipedia.org/wiki/Liste_von_Fl%C3%BCssen_in_Europa',
+     '[["Seine", "Paris", "Die Stadt entstand auf der Seine-Insel Île de la Cité."],
+       ["Themse", "London", "Der Hafen an der Themse begründete den Aufstieg der Stadt."],
+       ["Donau", "Wien", "Die Donau fließt im Nordosten an der Stadt vorbei."],
+       ["Tiber", "Rom", "Die Stadt wuchs auf den Hügeln über dem Tiber."],
+       ["Spree", "Berlin", "Die Spree durchfließt die Stadt und mündet dort in die Havel."],
+       ["Moldau", "Prag", "Die Moldau teilt die Stadt, überspannt von der Karlsbrücke."],
+       ["Weichsel", "Warschau", "Die Weichsel trennt die Innenstadt vom Stadtteil Praga."]]'::jsonb),
 
     ('geografie', 'laender-waehrungen', 'Länder & Währungen',
      'Welche Währung gehört zu welchem Land?',
-     '[["Japan",                  ["Yen"]],
-       ["Schweiz",                ["Franken"]],
-       ["Vereinigtes Königreich", ["Pfund Sterling"]],
-       ["Polen",                  ["Złoty"]]]'::jsonb,
-     array['Rubel', 'Dänische Krone']),
+     'medium', 'ISO 4217', 'https://de.wikipedia.org/wiki/ISO_4217',
+     '[["Japan", "Yen", "Währung seit der Meiji-Reform 1871."],
+       ["Schweiz", "Franken", "Währung seit 1850, Code CHF."],
+       ["Polen", "Złoty", "Der Name bedeutet golden."],
+       ["Indien", "Rupie", "Vom Sanskrit-Wort rupya für Silber."],
+       ["Russland", "Rubel", "Eine der ältesten noch genutzten Währungen Europas."],
+       ["Dänemark", "Dänische Krone", "Das Land behielt sie und trat dem Euro nicht bei."],
+       ["Vereinigtes Königreich", "Pfund Sterling", "Älteste durchgehend genutzte Währung der Welt."],
+       ["Südafrika", "Rand", "Benannt nach dem Goldgebiet Witwatersrand."]]'::jsonb),
 
     -- === Geschichte ========================================================
     ('geschichte', 'beruehmte-herrscher', 'Berühmte Herrscher',
-     'Welcher Herrscher regierte welches Reich?',
-     '[["Frankreich", ["Ludwig XIV.", "Napoleon Bonaparte"]],
-       ["Russland",   ["Katharina die Große", "Peter der Große"]],
-       ["Ägypten",    ["Kleopatra"]]]'::jsonb,
-     array['Alexander der Große', 'Dschingis Khan']),
+     'Über welches Reich herrschte diese Person?',
+     'medium', 'Herrscher', 'https://de.wikipedia.org/wiki/Herrscher',
+     '[["Frankreich", "Ludwig XIV.", "Der Sonnenkönig regierte 72 Jahre von Versailles aus."],
+       ["Russland", "Katharina die Große", "Zarin von 1762 bis 1796, gebürtige Deutsche."],
+       ["Ägypten", "Kleopatra", "Letzte Herrscherin der Ptolemäer-Dynastie."],
+       ["Makedonien", "Alexander der Große", "Zog bis nach Indien und gründete Alexandria."],
+       ["Mongolei", "Dschingis Khan", "Einte die Stämme und gründete das Mongolenreich."],
+       ["England", "Elisabeth I.", "Regierte 1558 bis 1603, das elisabethanische Zeitalter."],
+       ["Preußen", "Friedrich der Große", "König von 1740 bis 1786, genannt der Alte Fritz."]]'::jsonb),
 
     ('geschichte', 'ereignisse-jahrhunderte', 'Ereignisse & Jahrhunderte',
-     'In welchem Jahrhundert geschah das? Zwei Ereignisse liegen weit davor.',
-     '[["18. Jahrhundert", ["Französische Revolution", "Amerikanische Unabhängigkeitserklärung"]],
-       ["19. Jahrhundert", ["Deutsche Reichsgründung"]],
-       ["20. Jahrhundert", ["Erster Weltkrieg", "Mondlandung"]]]'::jsonb,
-     array['Fall von Konstantinopel', 'Entdeckung Amerikas']),
+     'In welches Jahrhundert gehört das Ereignis?',
+     'hard', 'Zeitleiste', 'https://de.wikipedia.org/wiki/Zeitleiste',
+     '[["15. Jahrhundert", "Entdeckung Amerikas", "Kolumbus erreichte 1492 die Bahamas."],
+       ["16. Jahrhundert", "Reformation", "Luthers Thesen von 1517 spalteten die Kirche."],
+       ["17. Jahrhundert", "Dreißigjähriger Krieg", "1618 bis 1648, beendet im Westfälischen Frieden."],
+       ["18. Jahrhundert", "Französische Revolution", "Der Sturm auf die Bastille war 1789."],
+       ["19. Jahrhundert", "Deutsche Reichsgründung", "Kaiserproklamation in Versailles 1871."],
+       ["20. Jahrhundert", "Mondlandung", "Apollo 11 landete 1969 auf dem Mond."],
+       ["21. Jahrhundert", "Euro-Bargeld", "Scheine und Münzen kamen 2002 in Umlauf."]]'::jsonb),
 
     ('geschichte', 'historische-bauwerke', 'Historische Bauwerke',
      'In welchem Land steht das Bauwerk?',
-     '[["Ägypten", ["Pyramiden von Gizeh"]],
-       ["China",   ["Chinesische Mauer"]],
-       ["Italien", ["Kolosseum"]],
-       ["Indien",  ["Taj Mahal"]]]'::jsonb,
-     array['Machu Picchu', 'Stonehenge']),
+     'easy', 'Weltwunder', 'https://de.wikipedia.org/wiki/Weltwunder',
+     '[["Ägypten", "Pyramiden von Gizeh", "Einziges erhaltenes der sieben antiken Weltwunder."],
+       ["China", "Chinesische Mauer", "Über Jahrhunderte gebauter Grenzwall im Norden."],
+       ["Italien", "Kolosseum", "Amphitheater in Rom, um 80 n. Chr. eingeweiht."],
+       ["Indien", "Taj Mahal", "Grabmal in Agra, erbaut für die Frau von Shah Jahan."],
+       ["Peru", "Machu Picchu", "Inkastadt in den Anden, 1911 weltweit bekannt gemacht."],
+       ["Jordanien", "Petra", "Nabatäerstadt, in roten Sandstein geschlagen."],
+       ["Griechenland", "Akropolis", "Tempelberg über Athen mit dem Parthenon."]]'::jsonb),
 
     -- === Naturwissenschaft =================================================
     ('naturwissenschaft', 'chemische-elemente', 'Chemische Elemente',
-     'Ordne die Elemente ihrer Gruppe zu. Zwei Einträge sind gar keine Elemente.',
-     '[["Metalle",      ["Eisen", "Kupfer"]],
-       ["Edelgase",     ["Helium", "Neon"]],
-       ["Nichtmetalle", ["Sauerstoff", "Schwefel"]]]'::jsonb,
-     array['Wasser', 'Bronze']),
+     'Welches Symbol steht für das Element?',
+     'medium', 'Chemisches Element', 'https://de.wikipedia.org/wiki/Chemisches_Element',
+     '[["Sauerstoff", "O", "Vom lateinischen oxygenium."],
+       ["Wasserstoff", "H", "Vom lateinischen hydrogenium."],
+       ["Eisen", "Fe", "Vom lateinischen ferrum."],
+       ["Gold", "Au", "Vom lateinischen aurum."],
+       ["Silber", "Ag", "Vom lateinischen argentum."],
+       ["Kupfer", "Cu", "Vom lateinischen cuprum, nach der Insel Zypern."],
+       ["Natrium", "Na", "Vom lateinischen natrium, englisch sodium."],
+       ["Kalium", "K", "Vom lateinischen kalium, englisch potassium."]]'::jsonb),
 
-    ('naturwissenschaft', 'planeten', 'Planeten des Sonnensystems',
-     'Gasriese oder Gesteinsplanet? Drei Himmelskörper sind gar keine Planeten.',
-     '[["Gasriesen",        ["Jupiter", "Saturn"]],
-       ["Gesteinsplaneten", ["Merkur", "Venus", "Erde", "Mars"]]]'::jsonb,
-     array['Pluto', 'Titan', 'Ceres']),
+    ('naturwissenschaft', 'planeten-monde', 'Planeten & Monde',
+     'Welchen Planeten umkreist der Mond?',
+     'hard', 'Sonnensystem', 'https://de.wikipedia.org/wiki/Sonnensystem',
+     '[["Erde", "Mond", "Der einzige natürliche Satellit der Erde."],
+       ["Mars", "Phobos", "Der innere der beiden Marsmonde."],
+       ["Jupiter", "Ganymed", "Größter Mond des Sonnensystems, größer als Merkur."],
+       ["Saturn", "Titan", "Einziger Mond mit dichter Atmosphäre."],
+       ["Neptun", "Triton", "Läuft rückläufig um, vermutlich eingefangen."],
+       ["Uranus", "Titania", "Größter Uranusmond, benannt nach Shakespeare."]]'::jsonb),
 
     ('naturwissenschaft', 'organe-systeme', 'Organe & Organsysteme',
-     'Zu welchem System gehört das Organ?',
-     '[["Herz-Kreislauf-System", ["Herz", "Arterien"]],
-       ["Verdauungssystem",      ["Magen", "Leber", "Dünndarm"]],
-       ["Nervensystem",          ["Gehirn", "Rückenmark"]]]'::jsonb,
-     array['Bizeps', 'Kniescheibe']),
+     'Zu welchem Organsystem gehört das Organ?',
+     'medium', 'Organsystem', 'https://de.wikipedia.org/wiki/Organsystem',
+     '[["Herz", "Kreislaufsystem", "Pumpt das Blut durch den ganzen Körper."],
+       ["Lunge", "Atmungssystem", "Nimmt Sauerstoff auf und gibt Kohlendioxid ab."],
+       ["Magen", "Verdauungssystem", "Zersetzt die Nahrung mit Magensäure."],
+       ["Niere", "Harnsystem", "Filtert das Blut und bildet den Harn."],
+       ["Gehirn", "Nervensystem", "Steuerzentrale aller Nervenbahnen."],
+       ["Schilddrüse", "Hormonsystem", "Bildet die Hormone Thyroxin und Trijodthyronin."],
+       ["Milz", "Immunsystem", "Filtert Krankheitserreger aus dem Blut."]]'::jsonb),
 
     -- === Kunst & Kultur ====================================================
     ('kunst-kultur', 'gemaelde-maler', 'Gemälde & Maler',
-     'Wer hat das Bild gemalt?',
-     '[["Vincent van Gogh",  ["Sternennacht", "Sonnenblumen"]],
-       ["Leonardo da Vinci", ["Mona Lisa", "Das Abendmahl"]],
-       ["Pablo Picasso",     ["Guernica"]]]'::jsonb,
-     array['Der Schrei', 'Die Geburt der Venus']),
+     'Wer hat das Gemälde gemalt?',
+     'medium', 'Liste von Malern', 'https://de.wikipedia.org/wiki/Liste_von_Malern',
+     '[["Mona Lisa", "Leonardo da Vinci", "Um 1503 entstanden, heute im Louvre."],
+       ["Sternennacht", "Vincent van Gogh", "1889 in der Heilanstalt Saint-Rémy gemalt."],
+       ["Guernica", "Pablo Picasso", "1937 gegen die Bombardierung der Stadt gemalt."],
+       ["Der Schrei", "Edvard Munch", "1893, Sinnbild existenzieller Angst."],
+       ["Die Geburt der Venus", "Sandro Botticelli", "Um 1485, Hauptwerk der Florentiner Renaissance."],
+       ["Der Kuss", "Gustav Klimt", "1908, Höhepunkt seiner Goldenen Periode."],
+       ["Das Nebelmeer", "Caspar David Friedrich", "Um 1818, Ikone der deutschen Romantik."]]'::jsonb),
 
     ('kunst-kultur', 'werke-autoren', 'Werke & Autoren',
      'Wer hat das Werk geschrieben?',
-     '[["Johann Wolfgang von Goethe", ["Faust", "Die Leiden des jungen Werthers"]],
-       ["William Shakespeare",        ["Hamlet", "Romeo und Julia"]],
-       ["Franz Kafka",                ["Die Verwandlung", "Der Prozess"]]]'::jsonb,
-     array['Krieg und Frieden', 'Der alte Mann und das Meer']),
+     'medium', 'Weltliteratur', 'https://de.wikipedia.org/wiki/Weltliteratur',
+     '[["Faust", "Goethe", "Tragödie in zwei Teilen, vollendet 1831."],
+       ["Hamlet", "Shakespeare", "Um 1600 entstandene Rachetragödie."],
+       ["Don Quijote", "Cervantes", "1605 erschienen, gilt als erster moderner Roman."],
+       ["Krieg und Frieden", "Tolstoi", "Russland zur Zeit der Napoleonischen Kriege."],
+       ["Die Verwandlung", "Kafka", "1915, Gregor Samsa erwacht als Ungeziefer."],
+       ["Madame Bovary", "Flaubert", "1857, Skandalroman um Emma Bovary."],
+       ["Die Göttliche Komödie", "Dante", "Reise durch Hölle, Läuterungsberg und Paradies."]]'::jsonb),
 
     ('kunst-kultur', 'bauwerke-baustile', 'Bauwerke & Baustile',
-     'In welchem Stil wurde gebaut?',
-     '[["Gotik",   ["Kölner Dom", "Notre-Dame de Paris"]],
-       ["Barock",  ["Schloss Versailles", "Zwinger Dresden"]],
-       ["Moderne", ["Bauhaus Dessau"]]]'::jsonb,
-     array['Kolosseum', 'Hagia Sophia']),
+     'In welchem Baustil wurde das Bauwerk errichtet?',
+     'hard', 'Baustil', 'https://de.wikipedia.org/wiki/Baustil',
+     '[["Kölner Dom", "Gotik", "Spitzbögen und Strebewerk, begonnen 1248."],
+       ["Schloss Versailles", "Barock", "Prunk und strenge Symmetrie unter Ludwig XIV."],
+       ["Bauhaus Dessau", "Moderne", "Gropius-Bau von 1926, Form folgt Funktion."],
+       ["Kolosseum", "Römische Antike", "Rundbögen und Travertin, um 80 n. Chr."],
+       ["Hagia Sophia", "Byzantinisch", "Riesenkuppel über Pendentifs, 537 geweiht."],
+       ["Alhambra", "Maurisch", "Stuckornamente und Muqarnas in Granada."],
+       ["Petersdom", "Renaissance", "Kuppel nach dem Entwurf Michelangelos."]]'::jsonb),
 
     -- === Sport =============================================================
     ('sport', 'sportarten-geraete', 'Sportarten & Geräte',
-     'Welches Gerät gehört zu welcher Sportart?',
-     '[["Tennis",    ["Filzball", "Tennisschläger"]],
-       ["Golf",      ["Golfball", "Abschlagtee"]],
-       ["Eishockey", ["Puck", "Eishockeyschläger"]]]'::jsonb,
-     array['Speer', 'Diskus']),
+     'Welches Gerät gehört zur Sportart?',
+     'easy', 'Sportart', 'https://de.wikipedia.org/wiki/Sportart',
+     '[["Eishockey", "Puck", "Hartgummischeibe, vor dem Spiel gekühlt."],
+       ["Golf", "Golfschläger", "Ein Satz umfasst höchstens vierzehn Stück."],
+       ["Fechten", "Florett", "Stoßwaffe, Treffer zählen nur am Rumpf."],
+       ["Curling", "Curlingstein", "Granitstein von rund zwanzig Kilogramm."],
+       ["Bogenschießen", "Pfeil", "Wird mit dem Bogen auf die Scheibe geschossen."],
+       ["Billard", "Queue", "Stock zum Stoßen der Kugeln."],
+       ["Tischtennis", "Zelluloidball", "Hohlball, heute meist aus Kunststoff."]]'::jsonb),
 
-    ('sport', 'vereine-laender', 'Fußballvereine & Länder',
+    ('sport', 'vereine-laender', 'Vereine & Länder',
      'In welchem Land spielt der Verein?',
-     '[["Deutschland", ["FC Bayern München", "Borussia Dortmund"]],
-       ["Spanien",     ["Real Madrid", "FC Barcelona"]],
-       ["England",     ["Manchester United"]],
-       ["Italien",     ["Juventus Turin"]]]'::jsonb,
-     array['Ajax Amsterdam', 'Benfica Lissabon']),
+     'easy', 'Fußballverein', 'https://de.wikipedia.org/wiki/Fu%C3%9Fballverein',
+     '[["FC Bayern München", "Deutschland", "Rekordmeister der Bundesliga."],
+       ["Real Madrid", "Spanien", "Spielt in der spanischen La Liga."],
+       ["Juventus Turin", "Italien", "Rekordmeister der italienischen Serie A."],
+       ["Manchester United", "England", "Spielt in der englischen Premier League."],
+       ["Ajax Amsterdam", "Niederlande", "Rekordmeister der niederländischen Eredivisie."],
+       ["Benfica Lissabon", "Portugal", "Rekordmeister der portugiesischen Primeira Liga."],
+       ["Paris Saint-Germain", "Frankreich", "Spielt in der französischen Ligue 1."]]'::jsonb),
 
     ('sport', 'olympische-disziplinen', 'Olympische Disziplinen',
      'Zu welcher Sportart gehört die Disziplin?',
-     '[["Leichtathletik", ["Speerwurf", "Stabhochsprung", "Marathon"]],
-       ["Schwimmen",      ["Brustschwimmen", "Delfinschwimmen"]],
-       ["Turnen",         ["Reck", "Barren"]]]'::jsonb,
-     array['Slalom', 'Dressur']),
+     'medium', 'Olympische Sportarten',
+     'https://de.wikipedia.org/wiki/Olympische_Sportarten',
+     '[["Leichtathletik", "Stabhochsprung", "Sprung über die Latte mit Hilfe eines Stabs."],
+       ["Schwimmen", "Delfinschwimmen", "Schmetterlingsstil mit gleichzeitigem Armzug."],
+       ["Turnen", "Reck", "Gerätturnen an der horizontalen Stange."],
+       ["Reiten", "Dressur", "Bewertet wird die Lektionsfolge von Pferd und Reiter."],
+       ["Fechten", "Degen", "Fechtwaffe, bei der der ganze Körper Trefferfläche ist."],
+       ["Kanu", "Slalom", "Fahrt durch hängende Tore im Wildwasser."],
+       ["Radsport", "Bahnradfahren", "Rennen auf der ovalen, überhöhten Radrennbahn."]]'::jsonb),
 
     -- === Technik ===========================================================
     ('technik', 'erfindungen', 'Erfindungen & Erfinder',
-     'Wer hat es erfunden? Zwei Erfindungen stammen von niemandem aus der Liste.',
-     '[["Johannes Gutenberg", ["Buchdruck mit beweglichen Lettern"]],
-       ["Karl Benz",          ["Automobil mit Verbrennungsmotor"]],
-       ["Alexander Fleming",  ["Penicillin"]]]'::jsonb,
-     array['Telefon', 'Glühbirne']),
+     'Was hat diese Person erfunden?',
+     'medium', 'Erfindung', 'https://de.wikipedia.org/wiki/Erfindung',
+     '[["Johannes Gutenberg", "Buchdruck", "Bewegliche Metalllettern, um 1450 in Mainz."],
+       ["Karl Benz", "Automobil", "Der Patent-Motorwagen von 1886."],
+       ["Alexander Fleming", "Penicillin", "1928 zufällig an einer Schimmelkultur entdeckt."],
+       ["Wilhelm Conrad Röntgen", "Röntgenstrahlen", "1895 entdeckt, erster Nobelpreis für Physik."],
+       ["Alexander Graham Bell", "Telefon", "Erhielt 1876 das US-Patent."],
+       ["Thomas Edison", "Glühlampe", "Machte die Kohlefadenlampe 1879 marktreif."],
+       ["Alfred Nobel", "Dynamit", "1867 patentiert, Grundlage der Nobelpreise."]]'::jsonb),
 
     ('technik', 'programmiersprachen', 'Programmiersprachen',
-     'Wofür wird die Sprache typischerweise eingesetzt? Zwei sind gar keine Programmiersprachen.',
-     '[["Webentwicklung",       ["JavaScript", "TypeScript"]],
-       ["Systemprogrammierung", ["C", "Rust"]],
-       ["Datenanalyse",         ["Python", "R"]]]'::jsonb,
-     array['HTML', 'CSS']),
+     'Wer hat die Sprache entworfen?',
+     'hard', 'Programmiersprache', 'https://de.wikipedia.org/wiki/Programmiersprache',
+     '[["Python", "Guido van Rossum", "1991 veröffentlicht, benannt nach Monty Python."],
+       ["C", "Dennis Ritchie", "Anfang der 1970er in den Bell Labs entwickelt."],
+       ["Java", "James Gosling", "1995 bei Sun Microsystems veröffentlicht."],
+       ["JavaScript", "Brendan Eich", "1995 bei Netscape in zehn Tagen entworfen."],
+       ["Ruby", "Yukihiro Matsumoto", "1995 in Japan veröffentlicht."],
+       ["PHP", "Rasmus Lerdorf", "1995 aus eigenen Webseiten-Skripten entstanden."],
+       ["Pascal", "Niklaus Wirth", "1970 als Lehrsprache entworfen."]]'::jsonb),
 
     ('technik', 'automarken-laender', 'Automarken & Länder',
      'Aus welchem Land stammt die Marke?',
-     '[["Deutschland", ["Volkswagen", "BMW"]],
-       ["Japan",       ["Toyota", "Honda"]],
-       ["Italien",     ["Ferrari"]],
-       ["Schweden",    ["Volvo"]]]'::jsonb,
-     array['Renault', 'Ford']),
+     'easy', 'Liste von Pkw-Marken', 'https://de.wikipedia.org/wiki/Liste_von_Pkw-Marken',
+     '[["Volkswagen", "Deutschland", "Stammsitz ist Wolfsburg."],
+       ["Renault", "Frankreich", "1899 in Boulogne-Billancourt gegründet."],
+       ["Fiat", "Italien", "Steht für Fabbrica Italiana Automobili Torino."],
+       ["Toyota", "Japan", "Sitz in der Stadt Toyota, Präfektur Aichi."],
+       ["Volvo", "Schweden", "1927 in Göteborg gegründet."],
+       ["Hyundai", "Südkorea", "Konzernsitz in Seoul."],
+       ["Škoda", "Tschechien", "1895 in Mladá Boleslav gegründet."]]'::jsonb),
 
     -- === Musik =============================================================
     ('musik', 'instrumente-familien', 'Instrumente & Familien',
-     'Zu welcher Instrumentenfamilie gehört das Instrument?',
-     '[["Streichinstrumente", ["Violine", "Violoncello"]],
-       ["Blasinstrumente",    ["Trompete", "Querflöte"]],
-       ["Schlaginstrumente",  ["Pauke", "Kleine Trommel"]]]'::jsonb,
-     array['Klavier', 'Harfe']),
+     'Zu welcher Instrumentenfamilie gehört es?',
+     'medium', 'Musikinstrument', 'https://de.wikipedia.org/wiki/Musikinstrument',
+     '[["Violine", "Streichinstrument", "Die Saiten werden mit dem Bogen gestrichen."],
+       ["Trompete", "Blechblasinstrument", "Der Ton entsteht durch Lippenschwingung im Kesselmundstück."],
+       ["Klarinette", "Holzblasinstrument", "Ein einfaches Rohrblatt erzeugt den Ton."],
+       ["Pauke", "Schlaginstrument", "Das Fell wird angeschlagen und über ein Pedal gestimmt."],
+       ["Harfe", "Zupfinstrument", "Die Saiten werden mit den Fingern gezupft."],
+       ["Orgel", "Tasteninstrument", "Die Tasten öffnen die Ventile der Pfeifen."]]'::jsonb),
 
     ('musik', 'komponisten-epochen', 'Komponisten & Epochen',
      'In welcher Epoche komponierte er?',
-     '[["Barock",   ["Johann Sebastian Bach", "Georg Friedrich Händel"]],
-       ["Klassik",  ["Wolfgang Amadeus Mozart", "Joseph Haydn"]],
-       ["Romantik", ["Frédéric Chopin", "Robert Schumann"]]]'::jsonb,
-     array['Igor Strawinsky', 'Claude Debussy']),
+     'hard', 'Komponist', 'https://de.wikipedia.org/wiki/Komponist',
+     '[["Johann Sebastian Bach", "Barock", "Sein Todesjahr 1750 gilt als Ende der Epoche."],
+       ["Wolfgang Amadeus Mozart", "Wiener Klassik", "Neben Haydn und Beethoven ihr Hauptvertreter."],
+       ["Frédéric Chopin", "Romantik", "Schrieb fast ausschließlich für das Klavier."],
+       ["Claude Debussy", "Impressionismus", "Klangfarbe wurde wichtiger als klare Harmonik."],
+       ["Arnold Schönberg", "Moderne", "Begründete die Zwölftonmusik."],
+       ["Giovanni Palestrina", "Renaissance", "Meister der Vokalpolyphonie des 16. Jahrhunderts."],
+       ["Guillaume de Machaut", "Mittelalter", "Führender Komponist der Ars nova."]]'::jsonb),
 
-    ('musik', 'bands-herkunft', 'Bands & Herkunftsländer',
+    ('musik', 'bands-herkunft', 'Bands & Herkunft',
      'Aus welchem Land kommt die Band?',
-     '[["Vereinigtes Königreich", ["The Beatles", "Queen"]],
-       ["USA",                    ["Nirvana", "The Beach Boys"]],
-       ["Schweden",               ["ABBA"]]]'::jsonb,
-     array['Rammstein', 'U2']),
+     'easy', 'Rockband', 'https://de.wikipedia.org/wiki/Rockband',
+     '[["The Beatles", "Vereinigtes Königreich", "1960 in Liverpool gegründet."],
+       ["Nirvana", "USA", "1987 in Aberdeen im Bundesstaat Washington gegründet."],
+       ["ABBA", "Schweden", "1972 in Stockholm gegründet."],
+       ["Rammstein", "Deutschland", "1994 in Berlin gegründet."],
+       ["U2", "Irland", "1976 in Dublin gegründet."],
+       ["AC/DC", "Australien", "1973 in Sydney gegründet."],
+       ["Rush", "Kanada", "1968 in Toronto gegründet."]]'::jsonb),
 
     -- === Film & Fernsehen ==================================================
     ('film-fernsehen', 'regisseure-filme', 'Regisseure & Filme',
-     'Wer hat Regie geführt?',
-     '[["Steven Spielberg",  ["Jurassic Park", "Der weiße Hai"]],
-       ["Quentin Tarantino", ["Pulp Fiction", "Kill Bill"]],
-       ["Christopher Nolan", ["Inception", "Interstellar"]]]'::jsonb,
-     array['Titanic', 'Der Pate']),
+     'Wer hat bei dem Film Regie geführt?',
+     'medium', 'Filmregisseur', 'https://de.wikipedia.org/wiki/Filmregisseur',
+     '[["Pulp Fiction", "Quentin Tarantino", "Gewann 1994 die Goldene Palme in Cannes."],
+       ["Inception", "Christopher Nolan", "2010, verschachtelte Traumebenen."],
+       ["Psycho", "Alfred Hitchcock", "1960, berühmt für die Duschszene."],
+       ["Der Pate", "Francis Ford Coppola", "1972, nach dem Roman von Mario Puzo."],
+       ["Jurassic Park", "Steven Spielberg", "1993, Maßstab für digitale Effekte."],
+       ["Parasite", "Bong Joon-ho", "Erster nicht englischsprachiger Oscar als bester Film."],
+       ["Metropolis", "Fritz Lang", "1927, Klassiker des Stummfilms."]]'::jsonb),
 
     ('film-fernsehen', 'figuren-serien', 'Figuren & Serien',
      'Aus welcher Serie stammt die Figur?',
-     '[["Die Simpsons",    ["Homer Simpson", "Bart Simpson"]],
-       ["Game of Thrones", ["Jon Schnee", "Daenerys Targaryen"]],
-       ["Breaking Bad",    ["Walter White", "Jesse Pinkman"]]]'::jsonb,
-     array['Michael Scott', 'Tony Soprano']),
+     'easy', 'Fernsehserie', 'https://de.wikipedia.org/wiki/Fernsehserie',
+     '[["Walter White", "Breaking Bad", "Chemielehrer, der Crystal Meth zu kochen beginnt."],
+       ["Homer Simpson", "Die Simpsons", "Sicherheitsinspektor im Kernkraftwerk von Springfield."],
+       ["Jon Schnee", "Game of Thrones", "Zieht aus Winterfell zur Nachtwache an der Mauer."],
+       ["Michael Scott", "The Office", "Regionalleiter der Papierfirma Dunder Mifflin."],
+       ["Eleven", "Stranger Things", "Mädchen mit telekinetischen Kräften aus Hawkins."],
+       ["Tony Soprano", "Die Sopranos", "Mafiaboss aus New Jersey, der in Therapie geht."],
+       ["Don Draper", "Mad Men", "Werbetexter im New York der 1960er Jahre."]]'::jsonb),
 
-    ('film-fernsehen', 'filmgenres', 'Filmgenres',
+    ('film-fernsehen', 'filmgenres', 'Filme & Genres',
      'Zu welchem Genre gehört der Film?',
-     '[["Western",         ["Zwölf Uhr mittags", "Spiel mir das Lied vom Tod"]],
-       ["Science-Fiction", ["Blade Runner", "Matrix"]],
-       ["Horror",          ["Der Exorzist", "Shining"]]]'::jsonb,
-     array['Casablanca', 'Ziemlich beste Freunde']),
+     'medium', 'Filmgenre', 'https://de.wikipedia.org/wiki/Filmgenre',
+     '[["Alien", "Science-Fiction", "1979, das Grauen an Bord eines Raumschiffs."],
+       ["Der Exorzist", "Horror", "1973, Teufelsaustreibung an einem Mädchen."],
+       ["Ziemlich beste Freunde", "Komödie", "2011, Freundschaft zwischen Millionär und Pfleger."],
+       ["Zwölf Uhr mittags", "Western", "1952, ein Sheriff allein gegen die Bande."],
+       ["Casablanca", "Liebesfilm", "1942, Wiedersehen zweier Liebender im Krieg."],
+       ["Stirb langsam", "Actionfilm", "1988, ein Polizist gegen Geiselnehmer im Hochhaus."],
+       ["Der dritte Mann", "Film noir", "1949, harte Schatten und schiefe Kamerawinkel."]]'::jsonb),
 
     -- === Essen & Trinken ===================================================
     ('essen-trinken', 'gerichte-laender', 'Gerichte & Länder',
      'Aus welchem Land stammt das Gericht?',
-     '[["Italien", ["Pizza Margherita", "Risotto"]],
-       ["Japan",   ["Sushi", "Ramen"]],
-       ["Mexiko",  ["Tacos"]],
-       ["Spanien", ["Paella"]]]'::jsonb,
-     array['Wiener Schnitzel', 'Gulasch']),
+     'easy', 'Nationalgericht', 'https://de.wikipedia.org/wiki/Nationalgericht',
+     '[["Pizza Margherita", "Italien", "1889 in Neapel nach Königin Margherita benannt."],
+       ["Sushi", "Japan", "Gesäuerter Reis, meist mit rohem Fisch."],
+       ["Tacos", "Mexiko", "Gefüllte und gefaltete Maistortilla."],
+       ["Paella", "Spanien", "Reisgericht aus Valencia, in flacher Pfanne gegart."],
+       ["Wiener Schnitzel", "Österreich", "Paniertes Kalbfleisch, die Bezeichnung ist geschützt."],
+       ["Gulasch", "Ungarn", "Paprikaeintopf, ursprünglich von Rinderhirten."],
+       ["Moussaka", "Griechenland", "Auflauf aus Auberginen und Hackfleisch."]]'::jsonb),
 
-    ('essen-trinken', 'zutaten-gerichte', 'Zutaten & Gerichte',
-     'In welchem Gericht steckt die Zutat?',
-     '[["Guacamole",           ["Avocado", "Limette"]],
-       ["Pesto alla genovese", ["Basilikum", "Pinienkerne"]],
-       ["Hummus",              ["Kichererbsen", "Tahini"]]]'::jsonb,
-     array['Sojasauce', 'Safran']),
+    ('essen-trinken', 'gerichte-zutaten', 'Gerichte & Hauptzutaten',
+     'Welche Zutat macht das Gericht aus?',
+     'medium', 'Zutat', 'https://de.wikipedia.org/wiki/Zutat',
+     '[["Guacamole", "Avocado", "Zerdrückte Avocado mit Limette und Salz."],
+       ["Hummus", "Kichererbsen", "Püree aus Kichererbsen und Sesammus."],
+       ["Pesto alla genovese", "Basilikum", "Basilikum wird mit Pinienkernen im Mörser zerrieben."],
+       ["Tzatziki", "Joghurt", "Joghurt mit Gurke und Knoblauch."],
+       ["Ratatouille", "Aubergine", "Auberginen tragen das provenzalische Gemüseschmoren."],
+       ["Sauerkraut", "Weißkohl", "Milchsauer vergorener Weißkohl."],
+       ["Polenta", "Maisgrieß", "Brei aus gekochtem Maisgrieß."]]'::jsonb),
 
     ('essen-trinken', 'getraenke-herkunft', 'Getränke & Herkunft',
      'Woher stammt das Getränk?',
-     '[["Schottland", ["Scotch Whisky"]],
-       ["Mexiko",     ["Tequila", "Mezcal"]],
-       ["Japan",      ["Sake"]],
-       ["Frankreich", ["Champagner", "Cognac"]]]'::jsonb,
-     array['Wodka', 'Rum'])
+     'medium', 'Spirituose', 'https://de.wikipedia.org/wiki/Spirituose',
+     '[["Scotch Whisky", "Schottland", "Muss mindestens drei Jahre in Schottland reifen."],
+       ["Tequila", "Mexiko", "Aus blauer Agave, mit geschützter Herkunft."],
+       ["Sake", "Japan", "Aus Reis gebraut, nicht gebrannt."],
+       ["Cognac", "Frankreich", "Weinbrand aus der Region um die Stadt Cognac."],
+       ["Wodka", "Russland", "Aus Getreide oder Kartoffeln gebrannt."],
+       ["Grappa", "Italien", "Aus Traubentrester gebrannt."],
+       ["Ouzo", "Griechenland", "Anisschnaps, der sich mit Wasser trübt."]]'::jsonb)
 ),
 
 new_quizzes as (
-    insert into quizzes (subject_id, slug, title, description)
-    select s.id, sp.slug, sp.title, sp.description
+    insert into quizzes (subject_id, slug, title, description,
+                         difficulty, source_title, source_url)
+    select s.id, sp.slug, sp.title, sp.description,
+           sp.difficulty::difficulty, sp.source_title, sp.source_url
       from spec sp
       join subjects s on s.slug = sp.subject_slug
     returning id, slug
 ),
 
+-- One row per pair, carrying all three parts. The ordinal is the position for
+-- the category and its answer alike, which is what keeps the two aligned.
+flat as (
+    select q.id          as quiz_id,
+           p.value ->> 0 as label,
+           p.value ->> 1 as answer,
+           p.value ->> 2 as explanation,
+           p.ord::int    as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
-    select q.id, g.value ->> 0, g.ord::int
-      from spec sp
-      join new_quizzes q on q.slug = sp.slug
-     cross join lateral jsonb_array_elements(sp.groups) with ordinality g(value, ord)
+    select quiz_id, label, position from flat
     returning id, quiz_id, label
-),
-
--- Positions only need to sort stably, so group/item ordinals are combined
--- rather than renumbered, and fakes are pushed to the end.
-real_items as (
-    select q.id                        as quiz_id,
-           g.value ->> 0               as category_label,
-           it.value                    as label,
-           (g.ord * 100 + it.ord)::int as position
-      from spec sp
-      join new_quizzes q on q.slug = sp.slug
-     cross join lateral jsonb_array_elements(sp.groups) with ordinality g(value, ord)
-     cross join lateral jsonb_array_elements_text(g.value -> 1) with ordinality it(value, ord)
-),
-
-fake_items as (
-    select q.id as quiz_id, f.value as label, (9000 + f.ord)::int as position
-      from spec sp
-      join new_quizzes q on q.slug = sp.slug
-     cross join lateral unnest(sp.fakes) with ordinality f(value, ord)
 )
 
-insert into items (quiz_id, category_id, label, position)
-select r.quiz_id, c.id, r.label, r.position
-  from real_items r
+insert into items (quiz_id, category_id, label, position, explanation)
+select f.quiz_id, c.id, f.answer, f.position, f.explanation
+  from flat f
   join new_categories c
-    on c.quiz_id = r.quiz_id
-   and c.label = r.category_label
-union all
--- category_id NULL is what makes an item a fake.
-select f.quiz_id, null, f.label, f.position
-  from fake_items f;
+    on c.quiz_id = f.quiz_id
+   and c.label = f.label;

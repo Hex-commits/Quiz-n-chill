@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  BookOpen,
   Check,
   Crown,
   Loader2,
   LogOut,
-  TriangleAlert,
   Users,
   WifiOff,
   X,
@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { ApiErrorNotice } from "@/components/api-error-notice";
+import { DifficultyBadge, SourceLink } from "@/components/source-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,11 +36,12 @@ import {
   leaveLobby,
   markAway,
   restartLobby,
+  skipReview,
   startGame,
   submitTurn,
 } from "@/lib/api";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
-import type { LobbyView, Subject } from "@/lib/types";
+import type { LobbyView, ResolvedPair, Subject } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
 
@@ -150,7 +152,7 @@ export function LobbyRoom({
     }
   }
 
-  function play(categoryId: string | null) {
+  function play(categoryId: string) {
     if (!playerId || !selectedItemId) return;
     const itemId = selectedItemId;
     setSelectedItemId(null);
@@ -411,10 +413,64 @@ export function LobbyRoom({
               </Button>
             ) : null}
             <Button variant="ghost" asChild>
-              <Link href="/quizzes">Browse topics</Link>
+              <Link href="/play">New game</Link>
             </Button>
           </CardFooter>
         </Card>
+
+        {/*
+          Every question has now been answered, so the material each was written
+          from can be published for players to check against.
+        */}
+        {lobby.finished_rounds.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Questions and sources</CardTitle>
+              <CardDescription>
+                Check the answers against where each question came from.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {lobby.finished_rounds.map((finished, index) => (
+                <div
+                  key={finished.quiz_id}
+                  className="space-y-2 border-b pb-3 text-sm last:border-0 last:pb-0"
+                >
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-muted-foreground w-6 font-mono">
+                      {index + 1}.
+                    </span>
+                    <span className="font-medium">{finished.title}</span>
+                    <DifficultyBadge difficulty={finished.difficulty} />
+                    <SourceLink source={finished.source} className="ml-auto" />
+                  </div>
+                  {/*
+                    The last round never gets a between-rounds review -- there is
+                    no next round to pause before -- so this is the only place
+                    its answers can be read.
+                  */}
+                  <dl className="space-y-1 pl-9">
+                    {finished.solution.map((pair) => (
+                      <div key={pair.category_label}>
+                        <dt className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-muted-foreground">
+                            {pair.category_label}
+                          </span>
+                          <span className="font-medium">{pair.item_label}</span>
+                        </dt>
+                        {pair.explanation ? (
+                          <dd className="text-muted-foreground text-xs">
+                            {pair.explanation}
+                          </dd>
+                        ) : null}
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     );
   }
@@ -427,8 +483,13 @@ export function LobbyRoom({
   const currentPlayer = lobby.players.find(
     (player) => player.id === lobby.current_player_id,
   );
+  const reviewing = lobby.status === "reviewing";
+  // The round that just ended is the last one appended.
+  const justFinished = reviewing
+    ? (lobby.finished_rounds[lobby.finished_rounds.length - 1] ?? null)
+    : null;
   const total = round.remaining_items.length + round.solved_items.length;
-  const solvedIn = (categoryId: string | null) =>
+  const solvedIn = (categoryId: string) =>
     round.solved_items.filter((item) => item.category_id === categoryId);
 
   return (
@@ -437,7 +498,10 @@ export function LobbyRoom({
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">{round.title}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">{round.title}</h1>
+            <DifficultyBadge difficulty={round.difficulty} />
+          </div>
           <p className="text-muted-foreground text-sm">
             Round {lobby.round_index + 1} of {lobby.round_count}
           </p>
@@ -479,6 +543,39 @@ export function LobbyRoom({
 
       <Separator />
 
+      {/*
+        Between rounds. The board stays on screen with every answer revealed and
+        its reason underneath, which is the point of the pause -- so this is a
+        banner over the board rather than a screen that replaces it.
+      */}
+      {reviewing ? (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+              <BookOpen className="size-4 shrink-0" aria-hidden />
+              Round over — here is why
+            </CardTitle>
+            <CardDescription>
+              {lobby.review_seconds_left !== null
+                ? `Next round in ${lobby.review_seconds_left}s.`
+                : "Starting the next round…"}
+            </CardDescription>
+            <SourceLink source={justFinished?.source ?? null} className="pt-1" />
+          </CardHeader>
+          {me?.is_host ? (
+            <CardFooter>
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() => playerId && act(() => skipReview(code, playerId))}
+              >
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                Next round
+              </Button>
+            </CardFooter>
+          ) : null}
+        </Card>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
@@ -522,25 +619,33 @@ export function LobbyRoom({
           ))}
         </CardContent>
       </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {round.categories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            title={category.label}
-            solved={solvedIn(category.id)}
-            armed={isMyTurn && selectedItemId !== null && !busy}
-            onPlace={() => play(category.id)}
-          />
-        ))}
-        <CategoryCard
-          title="No category"
-          description="For answers that fit nowhere"
-          icon={<TriangleAlert className="size-4" aria-hidden />}
-          solved={solvedIn(null)}
-          armed={isMyTurn && selectedItemId !== null && !busy}
-          onPlace={() => play(null)}
-        />
+        {round.categories.map((category) => {
+          const solved = solvedIn(category.id);
+          // A category holds exactly one answer, so once it is filled there is
+          // no legal move left into it. Arming it anyway would offer a
+          // placement that is always wrong and costs the player the round.
+          const full = solved.length > 0;
+          // Matched by label because the solution is built from the round that
+          // has just been dropped, so its category ids are no longer to hand.
+          const reveal =
+            justFinished?.solution.find(
+              (pair) => pair.category_label === category.label,
+            ) ?? null;
+          return (
+            <CategoryCard
+              key={category.id}
+              title={category.label}
+              solved={solved}
+              full={full}
+              reveal={reveal}
+              armed={isMyTurn && selectedItemId !== null && !busy && !full}
+              onPlace={() => play(category.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -548,41 +653,74 @@ export function LobbyRoom({
 
 function CategoryCard({
   title,
-  description,
-  icon,
   solved,
+  full,
+  reveal,
   armed,
   onPlace,
 }: {
   title: string;
-  description?: string;
-  icon?: React.ReactNode;
   solved: { item_id: string; label: string }[];
+  /** Already holds its one answer, so it is done for this round. */
+  full: boolean;
+  /** Set only between rounds: the answer and why, whether or not it was found. */
+  reveal: ResolvedPair | null;
   armed: boolean;
   onPlace: () => void;
 }) {
+  const missed = reveal !== null && reveal.solved_by === null;
+
   return (
     <Card
-      className={cn("transition-colors", armed && "border-primary cursor-pointer")}
+      className={cn(
+        "transition-colors",
+        armed && "border-primary cursor-pointer",
+        // Greyed out rather than hidden: the pairing so far is what players
+        // reason from when placing what is left.
+        full && !reveal && "bg-muted/50 opacity-60",
+        // Nobody got this one, so it is the one worth looking at.
+        missed && "border-amber-500/50",
+      )}
       onClick={armed ? onPlace : undefined}
+      aria-disabled={full || undefined}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          {icon}
+          {full ? (
+            <Check
+              className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+              aria-hidden
+            />
+          ) : null}
           {title}
         </CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
-      <CardContent className="flex min-h-14 flex-wrap gap-2">
-        {solved.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Empty</p>
-        ) : (
-          solved.map((item) => (
-            <Badge key={item.item_id} variant="secondary">
-              {item.label}
+      <CardContent className="min-h-14 space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {reveal ? (
+            <Badge variant={missed ? "outline" : "secondary"}>
+              {reveal.item_label}
             </Badge>
-          ))
-        )}
+          ) : solved.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Empty</p>
+          ) : (
+            solved.map((item) => (
+              <Badge key={item.item_id} variant="secondary">
+                {item.label}
+              </Badge>
+            ))
+          )}
+          {missed ? (
+            <span className="text-muted-foreground text-xs">nobody got this</span>
+          ) : null}
+        </div>
+        {/*
+          The reason, underneath its answer. Absent on questions seeded before
+          the explain step existed, and then simply nothing is shown.
+        */}
+        {reveal?.explanation ? (
+          <p className="text-muted-foreground text-sm">{reveal.explanation}</p>
+        ) : null}
       </CardContent>
     </Card>
   );

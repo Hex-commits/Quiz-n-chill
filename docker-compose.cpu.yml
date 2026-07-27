@@ -1,0 +1,19 @@
+# Run Ollama on the CPU.
+#
+# The main compose file reserves an NVIDIA GPU, and Docker treats that as a hard
+# requirement: without one, `docker compose up ollama` fails outright rather
+# than falling back. On a machine with no NVIDIA card -- or with the container
+# runtime unavailable -- add this override:
+#
+#     docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d ollama
+#
+# `!reset` is what actually removes the reservation. A plain empty list does
+# not: Compose merges list fields by appending, so `devices: []` leaves the GPU
+# entry exactly where it was. Needs Compose v2.24 or newer.
+#
+# Expect it to be slow. On a 9B model the difference measured on this project
+# was roughly 12 seconds per call on an RTX 4070 against nearly three minutes on
+# CPU, and the ingest pipeline makes up to three calls per question.
+services:
+  ollama:
+    deploy: !reset null

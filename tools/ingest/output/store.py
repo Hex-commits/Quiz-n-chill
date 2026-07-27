@@ -1,0 +1,133 @@
+"""Writing generated questions into Supabase.
+
+Uses the service-role key, exactly like the API does -- row level security is on
+with no policies, so nothing else can write.
+
+Inserts are ordered quiz -> categories -> items and the quiz row is deleted
+again if a later step fails. The three tables have no transaction across them
+through PostgREST, so this is the closest thing available to all-or-nothing;
+without it a failure would leave a question with no answers, which the game
+would happily try to deal into a round.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from supabase import Client, create_client
+
+from ..domain.models import GeneratedQuestion
+from ..sources.wikipedia import Article
+
+
+@dataclass(frozen=True)
+class Written:
+    quiz_id: str
+    slug: str
+    categories: int
+    items: int
+
+
+class StoreError(RuntimeError):
+    pass
+
+
+def connect(url: str, service_role_key: str) -> Client:
+    return create_client(url, service_role_key)
+
+
+def subjects(client: Client) -> list[tuple[str, str]]:
+    rows = client.table("subjects").select("slug, name").order("position").execute().data
+    return [(row["slug"], row["name"]) for row in rows]
+
+
+def existing_slugs(client: Client) -> set[str]:
+    rows = client.table("quizzes").select("slug").execute().data
+    return {row["slug"] for row in rows}
+
+
+def existing_source_urls(client: Client) -> set[str]:
+    rows = client.table("quizzes").select("source_url").not_.is_("source_url", "null").execute()
+    return {row["source_url"] for row in rows.data if row["source_url"]}
+
+
+def write_question(
+    client: Client,
+    question: GeneratedQuestion,
+    article: Article,
+) -> Written:
+    subject = (
+        client.table("subjects")
+        .select("id")
+        .eq("slug", question.subject_slug)
+        .limit(1)
+        .execute()
+    )
+    if not subject.data:
+        raise StoreError(f"Unknown subject slug {question.subject_slug!r}")
+
+    quiz = (
+        client.table("quizzes")
+        .insert(
+            {
+                "subject_id": subject.data[0]["id"],
+                "slug": question.slug,
+                "title": question.title,
+                "description": question.description or None,
+                "difficulty": question.difficulty,
+                "source_url": article.url,
+                "source_title": article.title,
+            }
+        )
+        .execute()
+    )
+    quiz_id = quiz.data[0]["id"]
+
+    try:
+        category_rows = (
+            client.table("categories")
+            .insert(
+                [
+                    {
+                        "quiz_id": quiz_id,
+                        "label": pair.label.strip(),
+                        "position": index,
+                    }
+                    for index, pair in enumerate(question.pairs, start=1)
+                ]
+            )
+            .execute()
+            .data
+        )
+        by_label = {row["label"]: row["id"] for row in category_rows}
+
+        # Explanations are optional: the step that writes them can be switched
+        # off, and it never fails a question, so an absent one stores as NULL.
+        explanations = question.explanations
+
+        # One row per pair, so the one-answer-per-category rule is expressed by
+        # the loop rather than merely enforced afterwards.
+        client.table("items").insert(
+            [
+                {
+                    "quiz_id": quiz_id,
+                    "category_id": by_label[pair.label.strip()],
+                    "label": pair.answer.strip(),
+                    "position": index,
+                    "explanation": explanations.get(pair.answer) or None,
+                }
+                for index, pair in enumerate(question.pairs, start=1)
+            ]
+        ).execute()
+    except Exception:
+        # Cascades to categories and items, leaving nothing half-written.
+        client.table("quizzes").delete().eq("id", quiz_id).execute()
+        raise
+
+    # Equal by construction now: one category and one answer per pair.
+    return Written(
+        quiz_id=quiz_id,
+        slug=question.slug,
+        categories=len(question.pairs),
+        items=len(question.pairs),
+    )

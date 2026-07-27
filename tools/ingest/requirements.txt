@@ -1,0 +1,11 @@
+# The model runs locally in the project's Ollama container -- no vendor SDK, no
+# API key. LangGraph is the pipeline engine (see graph.py); langchain-ollama is
+# the adapter that binds our JSON Schema to Ollama's `format` field.
+#
+# langsmith arrives as a langchain-core dependency. It only phones home when
+# LANGSMITH_TRACING is set, and tools/ingest/__init__.py sets it to false at
+# import time so an ambient variable cannot switch it on.
+langgraph>=1.0,<2.0
+langchain-ollama>=1.0,<2.0
+pydantic>=2.8,<3.0
+supabase>=2.6,<3.0

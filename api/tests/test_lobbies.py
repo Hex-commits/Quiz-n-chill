@@ -8,29 +8,42 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from app.errors import ConflictError, NotFoundError, ValidationError
-from app.schemas import Category, ItemSolution, LobbyStatus
+from app.schemas import Category, ItemSolution, LobbyStatus, Source, TurnSubmit
 from app.services import lobbies
 
-DE, FR = uuid4(), uuid4()
+DE, FR, ES = uuid4(), uuid4(), uuid4()
 
 
 def make_round(slug: str):
-    """Two categories, two real items and one fake."""
+    """Three categories, one answer each -- a one-to-one pairing."""
     return lobbies.Round(
         quiz_id=uuid4(),
         slug=slug,
         title=slug.title(),
         description=None,
+        difficulty="medium",
+        source=Source(url=f"https://example.test/{slug}", title=slug.title()),
         categories=[
             Category(id=DE, label="Deutschland", position=1),
             Category(id=FR, label="Frankreich", position=2),
+            Category(id=ES, label="Spanien", position=3),
         ],
         items=[
-            ItemSolution(id=uuid4(), label="Berlin", position=1, category_id=DE),
-            ItemSolution(id=uuid4(), label="Paris", position=2, category_id=FR),
-            ItemSolution(id=uuid4(), label="Barcelona", position=3, category_id=None),
+            ItemSolution(
+                id=uuid4(), label="Berlin", position=1, category_id=DE,
+                explanation="Hauptstadt Deutschlands seit 1990.",
+            ),
+            ItemSolution(
+                id=uuid4(), label="Paris", position=2, category_id=FR,
+                explanation="Hauptstadt Frankreichs.",
+            ),
+            ItemSolution(
+                id=uuid4(), label="Madrid", position=3, category_id=ES,
+                explanation="Hauptstadt Spaniens.",
+            ),
         ],
     )
 
@@ -66,6 +79,15 @@ def items_of(code):
     return {item.label: item.id for item in view.round_view.remaining_items}
 
 
+def next_round(code, host):
+    """Leave the between-rounds review, as the host's button does.
+
+    A round no longer rolls straight into the next one -- it pauses on the
+    answers first -- so any test that wants round two has to say so.
+    """
+    return lobbies.skip_review(code, host)
+
+
 def test_turn_passes_to_the_next_player_after_a_correct_answer():
     code, (anna, ben) = setup_game()
     items = items_of(code)
@@ -98,7 +120,7 @@ def test_a_knocked_out_player_is_skipped_and_cannot_play():
     # Cem is next, and the cursor skips Anna on the way round again.
     assert view.current_player_id == cem
     with pytest.raises(ConflictError, match="out for this round"):
-        lobbies.submit_turn(code, anna, items["Barcelona"], None)
+        lobbies.submit_turn(code, anna, items["Madrid"], ES)
 
 
 def test_playing_out_of_turn_is_rejected():
@@ -109,24 +131,24 @@ def test_playing_out_of_turn_is_rejected():
         lobbies.submit_turn(code, ben, items["Berlin"], DE)
 
 
-def test_spotting_a_fake_scores_a_point():
+def test_a_correct_placement_scores_a_point():
     code, (anna, _ben) = setup_game()
     items = items_of(code)
 
-    view = lobbies.submit_turn(code, anna, items["Barcelona"], None)
+    view = lobbies.submit_turn(code, anna, items["Madrid"], ES)
 
     assert view.players[0].score == 1
-    assert [s.label for s in view.round_view.solved_items] == ["Barcelona"]
+    assert [s.label for s in view.round_view.solved_items] == ["Madrid"]
 
 
-def test_calling_a_real_item_a_fake_knocks_you_out():
-    code, (anna, _ben) = setup_game()
-    items = items_of(code)
+def test_a_turn_must_name_a_category():
+    """There is no "this one fits nowhere" move any more: a question is a
+    one-to-one pairing, so every turn places an answer in some category.
 
-    view = lobbies.submit_turn(code, anna, items["Berlin"], None)
-
-    assert view.players[0].score == 0
-    assert not view.players[0].is_active
+    Guarded at the schema rather than in the service, which is why this asserts
+    on `TurnSubmit` -- the router never builds a call without one."""
+    with pytest.raises(PydanticValidationError):
+        TurnSubmit(player_id=uuid4(), item_id=uuid4(), category_id=None)
 
 
 def test_a_solved_item_cannot_be_played_again():
@@ -144,7 +166,21 @@ def test_round_ends_when_every_item_is_placed():
 
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
-    view = lobbies.submit_turn(code, anna, items["Barcelona"], None)
+    view = lobbies.submit_turn(code, anna, items["Madrid"], ES)
+
+    # The round pauses on its answers rather than rolling straight on.
+    assert view.status is LobbyStatus.reviewing
+    assert view.round_index == 0
+
+
+def test_the_next_round_begins_after_the_review():
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+
+    view = next_round(code, anna)
 
     assert view.round_index == 1
     assert view.status is LobbyStatus.playing
@@ -160,8 +196,114 @@ def test_round_ends_when_nobody_is_active():
     lobbies.submit_turn(code, anna, items["Berlin"], FR)  # wrong, Anna out
     view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
 
+    # Everyone knocked out is exactly the round worth reading afterwards.
+    assert view.status is LobbyStatus.reviewing
+
+    view = next_round(code, anna)
     assert view.round_index == 1
     assert all(player.is_active for player in view.players)
+
+
+def finish_round_one(code, anna, ben):
+    """Play topic-a out so the lobby lands on its review."""
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    return lobbies.submit_turn(code, anna, items["Madrid"], ES)
+
+
+def test_the_review_reveals_the_whole_answer_key_with_explanations():
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+
+    view = finish_round_one(code, anna, ben)
+
+    solution = view.finished_rounds[0].solution
+    assert [(p.category_label, p.item_label) for p in solution] == [
+        ("Deutschland", "Berlin"),
+        ("Frankreich", "Paris"),
+        ("Spanien", "Madrid"),
+    ]
+    assert solution[0].explanation == "Hauptstadt Deutschlands seit 1990."
+
+
+def test_the_review_includes_pairs_nobody_solved():
+    """A round that ended because everyone was knocked out is the one most
+    worth reading, so its unsolved pairs must be in the review too."""
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    items = items_of(code)
+
+    lobbies.submit_turn(code, anna, items["Berlin"], FR)  # wrong, Anna out
+    view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+
+    solution = view.finished_rounds[0].solution
+    assert len(solution) == 3
+    assert all(pair.solved_by is None for pair in solution)
+    assert {pair.item_label for pair in solution} == {"Berlin", "Paris", "Madrid"}
+
+
+def test_the_review_counts_down():
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+
+    view = finish_round_one(code, anna, ben)
+
+    assert view.review_seconds_left is not None
+    assert 0 < view.review_seconds_left <= lobbies.REVIEW_SECONDS
+
+
+def test_the_next_round_starts_on_its_own_once_the_review_runs_out():
+    """Nobody has to press anything: polling is what notices, since no turn is
+    submitted during a review."""
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    finish_round_one(code, anna, ben)
+
+    lobbies._lobbies[code].review_until = datetime.now(UTC) - timedelta(seconds=1)
+    view = lobbies.get_view(code, anna)
+
+    assert view.status is LobbyStatus.playing
+    assert view.round_index == 1
+    assert view.review_seconds_left is None
+
+
+def test_no_countdown_outside_a_review():
+    code, (anna, _ben) = setup_game(slugs=("topic-a", "topic-b"))
+
+    assert lobbies.get_view(code, anna).review_seconds_left is None
+
+
+def test_only_the_host_can_skip_the_review():
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    finish_round_one(code, anna, ben)
+
+    with pytest.raises(ConflictError, match="Only the host"):
+        lobbies.skip_review(code, ben)
+
+
+def test_a_review_cannot_be_skipped_while_a_round_is_still_running():
+    """Otherwise the host could cut a live board short."""
+    code, (anna, _ben) = setup_game(slugs=("topic-a", "topic-b"))
+
+    with pytest.raises(ConflictError, match="no review to skip"):
+        lobbies.skip_review(code, anna)
+
+
+def test_a_turn_cannot_be_played_during_the_review():
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    finish_round_one(code, anna, ben)
+
+    with pytest.raises(ConflictError, match="not running"):
+        lobbies.submit_turn(code, ben, uuid4(), DE)
+
+
+def test_the_last_round_goes_straight_to_the_final_scoreboard():
+    """There is no next round to pause before, and the finished screen carries
+    every round's answers anyway."""
+    code, (anna, ben) = setup_game(slugs=("topic-a",))
+
+    view = finish_round_one(code, anna, ben)
+
+    assert view.status is LobbyStatus.finished
+    assert view.review_seconds_left is None
+    assert view.finished_rounds[0].solution
 
 
 def test_the_last_active_player_keeps_going_alone():
@@ -183,7 +325,7 @@ def test_game_finishes_after_the_last_round_and_names_a_winner():
 
     lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna 1
     lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
-    lobbies.submit_turn(code, anna, items["Barcelona"], None)  # Anna 2
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)  # Anna 2
     view = lobbies.submit_turn(code, anna, items["Paris"], FR)  # Anna 3, all placed
 
     assert view.status is LobbyStatus.finished
@@ -197,8 +339,8 @@ def test_a_draw_reports_every_tied_player():
 
     lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna 1
     lobbies.submit_turn(code, ben, items["Paris"], FR)  # Ben 1
-    lobbies.submit_turn(code, anna, items["Barcelona"], DE)  # wrong, Anna out
-    view = lobbies.submit_turn(code, ben, items["Barcelona"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, anna, items["Madrid"], DE)  # wrong, Anna out
+    view = lobbies.submit_turn(code, ben, items["Madrid"], DE)  # wrong, Ben out
 
     # Nobody left active, so the round -- and the game -- ends at 1 apiece.
     assert view.status is LobbyStatus.finished
@@ -211,7 +353,8 @@ def test_scores_carry_across_rounds():
 
     lobbies.submit_turn(code, anna, first["Berlin"], DE)
     lobbies.submit_turn(code, ben, first["Paris"], FR)
-    lobbies.submit_turn(code, anna, first["Barcelona"], None)
+    lobbies.submit_turn(code, anna, first["Madrid"], ES)
+    next_round(code, anna)
 
     second = items_of(code)
     view = lobbies.submit_turn(code, ben, second["Berlin"], DE)
@@ -228,9 +371,9 @@ def test_the_lobby_view_never_leaks_an_unsolved_answer():
     view = lobbies.get_view(code)
     payload = view.model_dump_json()
 
-    # Berlin is solved, so its category is fair game. Paris and Barcelona are
-    # not placed yet and must carry nothing that hints at the answer.
-    assert [item.label for item in view.round_view.remaining_items] == ["Paris", "Barcelona"]
+    # Berlin is solved, so its category is fair game. Paris and Madrid are not
+    # placed yet and must carry nothing that hints at the answer.
+    assert [item.label for item in view.round_view.remaining_items] == ["Paris", "Madrid"]
     assert all(not hasattr(item, "category_id") for item in view.round_view.remaining_items)
     assert payload.count(str(FR)) == 1  # only as a category definition
 
@@ -354,11 +497,14 @@ def test_the_last_active_player_leaving_ends_the_round():
     items = items_of(code)
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)  # Ben correct
-    lobbies.submit_turn(code, anna, items["Barcelona"], DE)  # Anna wrong, out
+    lobbies.submit_turn(code, anna, items["Madrid"], DE)  # Anna wrong, out
 
     view = lobbies.leave_lobby(code, ben)  # only active player walks out
 
-    # Round could not continue, so it advanced and Anna is back in.
+    # Round could not continue, so it ended -- on its review.
+    assert view.status is LobbyStatus.reviewing
+
+    view = next_round(code, anna)
     assert view.round_index == 1
     assert view.players[0].is_active
 
@@ -597,6 +743,48 @@ def test_the_quiet_flag_is_off_in_the_waiting_room():
     go_quiet(code, anna)
 
     assert not lobbies.get_view(code).current_player_quiet
+
+
+def test_the_source_is_hidden_while_a_round_is_being_played():
+    code, _ids = setup_game(slugs=("topic-a", "topic-b"))
+
+    view = lobbies.get_view(code)
+    payload = view.model_dump_json()
+
+    assert view.round_view is not None
+    assert not hasattr(view.round_view, "source")
+    assert view.finished_rounds == []
+    assert "example.test" not in payload  # the source URL has not leaked
+
+
+def test_a_finished_round_publishes_its_source():
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    view = lobbies.submit_turn(code, anna, items["Madrid"], ES)
+
+    # Round one is over, so its source is now fair game -- round two's is not.
+    assert [r.slug for r in view.finished_rounds] == ["topic-a"]
+    assert view.finished_rounds[0].source.url == "https://example.test/topic-a"
+    assert "example.test/topic-b" not in view.model_dump_json()
+
+    view = next_round(code, anna)
+    assert view.round_view.slug == "topic-b"
+    assert "example.test/topic-b" not in view.model_dump_json()
+
+
+def test_restarting_clears_the_published_sources():
+    code, (anna, ben) = setup_game()
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    assert lobbies.get_view(code).finished_rounds
+
+    view = lobbies.reset_to_lobby(code, anna)
+
+    assert view.finished_rounds == []
 
 
 def test_marking_away_moves_the_turn_immediately():

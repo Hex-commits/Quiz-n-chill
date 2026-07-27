@@ -22,15 +22,22 @@ from app.schemas import (
     QuizCreate,
     QuizDetail,
     QuizSummary,
+    Source,
     Subject,
 )
 from app.services.scoring import score_assignments
 
-QUIZ_COLUMNS = "id, slug, title, description, created_at"
+# Two column sets on purpose. `QUIZ_COLUMNS` is what a player may see while
+# playing; the source lives only in `QUIZ_SOLUTION_COLUMNS`, alongside the answer
+# key, because a link to the source article is a link to the answers.
+QUIZ_COLUMNS = "id, slug, title, description, difficulty, created_at"
+QUIZ_SOLUTION_COLUMNS = f"{QUIZ_COLUMNS}, source_url, source_title"
 QUIZ_WITH_SUBJECT = f"{QUIZ_COLUMNS}, subjects(slug, name)"
 SUBJECT_COLUMNS = "id, slug, name, description, position"
 CATEGORY_COLUMNS = "id, label, position"
-ITEM_SOLUTION_COLUMNS = "id, label, position, category_id"
+# `explanation` gives the answer away, exactly like `source_url`, so it lives
+# only in the solution column list -- never in what `get_quiz` serves.
+ITEM_SOLUTION_COLUMNS = "id, label, position, category_id, explanation"
 
 
 def list_subjects() -> list[Subject]:
@@ -128,14 +135,20 @@ def get_quiz_solution(quiz_ref: str) -> tuple[dict, list[Category], list[ItemSol
     Only for callers that need the answer key -- grading, and the lobby game
     loop. Never hand the result to a router that serves players.
     """
-    row = _fetch_quiz_row(quiz_ref)
+    row = _fetch_quiz_row(quiz_ref, with_source=True)
     categories, items = _fetch_parts(UUID(row["id"]))
     return row, [Category(**c) for c in categories], [ItemSolution(**i) for i in items]
 
 
+def source_of(row: dict) -> Source | None:
+    """Build a `Source` from a solution row, or None when the question has none."""
+    url = row.get("source_url")
+    return Source(url=url, title=row.get("source_title")) if url else None
+
+
 def check_assignment(quiz_ref: str, assignments: list[Assignment]) -> CheckResult:
     """Grade a submitted assignment. Stateless -- nothing is persisted."""
-    row = _fetch_quiz_row(quiz_ref)
+    row = _fetch_quiz_row(quiz_ref, with_source=True)
     quiz_id = UUID(row["id"])
     categories, items = _fetch_parts(quiz_id)
     if not items:
@@ -166,8 +179,8 @@ def check_assignment(quiz_ref: str, assignments: list[Assignment]) -> CheckResul
             label=item.label,
             assigned_category_id=assigned_by_item.get(item.id),
             correct_category_id=item.category_id,
-            is_fake=item.category_id is None,
             is_correct=verdicts[item.id],
+            explanation=item.explanation,
         )
         for item in solutions
     ]
@@ -176,6 +189,8 @@ def check_assignment(quiz_ref: str, assignments: list[Assignment]) -> CheckResul
         quiz_id=quiz_id,
         score=sum(1 for result in results if result.is_correct),
         max_score=len(results),
+        difficulty=row["difficulty"],
+        source=source_of(row),
         results=results,
     )
 
@@ -191,8 +206,10 @@ def create_quiz(payload: QuizCreate) -> QuizSummary:
     return QuizSummary(**response.data[0])
 
 
-def _fetch_quiz_row(quiz_ref: str) -> dict:
-    query = get_client().table("quizzes").select(QUIZ_COLUMNS)
+def _fetch_quiz_row(quiz_ref: str, *, with_source: bool = False) -> dict:
+    """Fetch one quiz row. `with_source` is opt-in so the default is the safe one."""
+    columns = QUIZ_SOLUTION_COLUMNS if with_source else QUIZ_COLUMNS
+    query = get_client().table("quizzes").select(columns)
     query = query.eq("id", quiz_ref) if _looks_like_uuid(quiz_ref) else query.eq("slug", quiz_ref)
 
     response = query.limit(1).execute()

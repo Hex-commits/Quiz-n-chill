@@ -12,9 +12,14 @@ of the game.
 Topic:       Hauptstädte Europas
 
 Categories:  Deutschland   Frankreich   Italien   Spanien
-Answers:     Berlin  Paris  Rom  Madrid  Barcelona  München  Mailand
-                                          └──────── fakes ────────┘
+Answers:     Berlin  Paris  Rom  Madrid  Lissabon  Wien  Warschau
+                                          └──── belong nowhere ────┘
 ```
+
+The last three are **near misses, not nonsense**: real capitals that look
+exactly like the others, but no Portugal, Austria or Poland category is offered.
+That is what makes the question hard — an answer that is obviously absurd would
+be spotted instantly and waste a slot.
 
 ```
 Browser
@@ -66,7 +71,8 @@ subjects                     the quiz pool: "Geografie", "Musik"
   id, slug, name, position
 
 quizzes       -> subject_id  one Zuordnungsfrage
-  id, slug, title, description
+  id, slug, title, description, difficulty
+  source_url, source_title   where it was written from
 
 categories    -> quiz_id     the buckets: "Deutschland"
   id, label, position
@@ -231,6 +237,8 @@ correctly carry a `category_id`; everything else is `{id, label}`.
 │       ├── app/lobby/[code]/lobby-room.tsx      live multiplayer game
 │       ├── components/      shadcn/ui + app components
 │       └── lib/api.ts       the only module that calls the backend
+├── tools/ingest/          Wikipedia -> local model -> Supabase generator
+│   └── README.md          how it works, and what it rejects
 ├── supabase/
 │   ├── migrations/        forward-only SQL
 │   └── seed.sql           9 subjects x 3 German questions, all with fakes
@@ -282,12 +290,29 @@ docker compose exec web npx eslint src
 To change the schema: add a **new** file in `supabase/migrations/` and run
 `npm run db:reset`. Never edit an applied migration.
 
-**Adding a question** means adding one row to the `spec` table in
+**Generating questions** from Wikipedia — most-read articles in, validated
+Zuordnungsfragen out, with a difficulty rating and a source link. Runs entirely
+on your machine against a local model in the project's Ollama container; no API
+key, no data leaving the host:
+
+```bash
+pip install -r tools/ingest/requirements.txt
+docker compose up -d ollama                       # port 11435
+docker compose exec ollama ollama pull glm4:9b    # ~5.5 GB, once
+
+python -m tools.ingest --limit 10            # dry run + JSON report
+python -m tools.ingest --limit 10 --commit   # write to Supabase
+```
+
+Dry run is the default; see [tools/ingest/README.md](tools/ingest/README.md).
+
+**Adding a question by hand** means adding one row to the `spec` table in
 `supabase/seed.sql`:
 
 ```sql
 ('musik', 'genres-instrumente', 'Genres & Instrumente',
  'Welches Instrument prägt das Genre?',
+ 'medium', 'Musikgenre', 'https://de.wikipedia.org/wiki/Musikgenre',
  '[["Jazz", ["Saxophon"]], ["Blues", ["Mundharmonika"]]]'::jsonb,
  array['Dudelsack', 'Sitar']),        -- belong to no category: the fakes
 ```
@@ -305,6 +330,14 @@ reads whatever is there.
 > `NODE_ENV=development`, which breaks the production build in confusing ways.
 
 ## Design decisions
+
+**The source is hidden until the question is over.** `source_url` points at the
+material a question was written from, so during play it is a link straight to
+the answers. The service layer keeps two column sets — `QUIZ_COLUMNS` for
+players, `QUIZ_SOLUTION_COLUMNS` (source included) for grading — so the source
+is physically absent from every mid-game payload, the same way `category_id` is.
+It appears in the response to `/check`, and on the multiplayer scoreboard once a
+round has ended.
 
 **Solutions never reach the browser mid-game.** `schemas.py` defines `ItemPublic`
 (id + label) separately from `ItemSolution` (with `category_id`). The player
@@ -349,8 +382,10 @@ publishable key reads zero rows — including `items.category_id`.
 - **Other question types.** The schema is shaped for Zuordnungsfragen. Adding a
   second type means a `kind` column on `quizzes` and a matching branch in
   `scoring.py`; nothing in the current model blocks it.
-- **Question difficulty.** The draw balances across subjects only. There is no
-  notion of an easy or hard question, so a round's difficulty is luck.
+- **Difficulty is stored but not used to pick questions.** Every question has an
+  easy/medium/hard rating, shown in the UI, but the draw balances across
+  subjects only — so a round's difficulty is still luck. Filtering or laddering
+  by difficulty is a change to `drafting.py`.
 - **Frontend types are hand-written.** `web/src/lib/types.ts` mirrors
   `schemas.py` manually. Generate them once the shapes churn:
   `npx openapi-typescript http://localhost:8001/openapi.json -o src/lib/api-types.ts`
@@ -389,3 +424,13 @@ still sit on Vercel.
 
 Never put `SUPABASE_SERVICE_ROLE_KEY` in a `NEXT_PUBLIC_*` variable — those are
 inlined into the client bundle at build time.
+
+
+
+
+
+### CLI Commands
+
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d ollama
+
+python -m tools.ingest --limit 10 --trace

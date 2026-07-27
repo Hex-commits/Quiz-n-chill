@@ -10,7 +10,7 @@ export default function NotFound() {
         That quiz does not exist, or it has not been published yet.
       </p>
       <Button asChild>
-        <Link href="/quizzes">Browse quizzes</Link>
+        <Link href="/play">Play together</Link>
       </Button>
     </div>
   );

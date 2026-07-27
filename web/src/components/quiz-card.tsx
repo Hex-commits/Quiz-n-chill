@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LayoutGrid, Tags } from "lucide-react";
 
+import { DifficultyBadge } from "@/components/source-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +20,12 @@ export function QuizCard({ quiz }: { quiz: QuizSummary }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-lg">{quiz.title}</CardTitle>
-          {quiz.subject_name ? (
-            <Badge variant="secondary" className="shrink-0">
-              {quiz.subject_name}
-            </Badge>
-          ) : null}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {quiz.subject_name ? (
+              <Badge variant="outline">{quiz.subject_name}</Badge>
+            ) : null}
+            <DifficultyBadge difficulty={quiz.difficulty} />
+          </div>
         </div>
         {quiz.description ? (
           <CardDescription>{quiz.description}</CardDescription>

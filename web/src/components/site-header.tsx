@@ -4,10 +4,7 @@ import { BrainCircuit } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
-const links = [
-  { href: "/quizzes", label: "Topics" },
-  { href: "/play", label: "Play together" },
-];
+const links = [{ href: "/play", label: "Play together" }];
 
 export function SiteHeader() {
   return (
@@ -15,7 +12,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-6 px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <BrainCircuit className="size-5" aria-hidden />
-          <span>Quiz Quiz</span>
+          <span>Quiz &amp; Chill</span>
         </Link>
 
         <nav className="flex items-center gap-1">

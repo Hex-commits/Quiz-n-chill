@@ -206,7 +206,7 @@ export function submitTurn(
   code: string,
   playerId: string,
   itemId: string,
-  categoryId: string | null,
+  categoryId: string,
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/turns`, {
     method: "POST",
@@ -215,6 +215,14 @@ export function submitTurn(
       item_id: itemId,
       category_id: categoryId,
     }),
+  });
+}
+
+/** Host cuts the between-rounds review short. It ends on its own timer anyway. */
+export function skipReview(code: string, playerId: string): Promise<LobbyView> {
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/next-round`, {
+    method: "POST",
+    body: JSON.stringify({ player_id: playerId }),
   });
 }
 

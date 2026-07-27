@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, RotateCcw, TriangleAlert, X } from "lucide-react";
+import { Check, Loader2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,12 +16,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { DifficultyBadge, SourceLink } from "@/components/source-link";
 import { checkAssignment } from "@/lib/api";
 import type { CheckResult, Item, QuizDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** Key used in the assignment map for "the player says this is a fake". */
-const FAKE = "__fake__";
+
 
 /**
  * Interaction only. Which item belongs to which category is decided entirely by
@@ -33,7 +33,7 @@ const FAKE = "__fake__";
  * and with a keyboard for free.
  */
 export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
-  // itemId -> categoryId, or FAKE. Absent means still unplaced.
+  // itemId -> categoryId. Absent means still unplaced.
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -74,9 +74,9 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
         const target = placements[item.id];
         return {
           item_id: item.id,
-          // Unplaced and "declared fake" both send null: the player is saying
-          // this belongs to no category. The API grades them identically.
-          category_id: !target || target === FAKE ? null : target,
+          // Every answer belongs to exactly one category, so an unplaced one is
+          // simply wrong rather than a claim that it fits nowhere.
+          category_id: target ?? null,
         };
       });
       setResult(await checkAssignment(quiz.slug, assignments));
@@ -101,7 +101,7 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
     const labelFor = (categoryId: string | null) =>
       categoryId
         ? (quiz.categories.find((c) => c.id === categoryId)?.label ?? "?")
-        : "Fake";
+        : "nicht zugeordnet";
 
     return (
       <div className="mx-auto max-w-2xl space-y-6">
@@ -115,6 +115,8 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
           <CardContent className="space-y-2">
             <Progress value={percent} />
             <p className="text-muted-foreground text-sm">{percent}%</p>
+            {/* The question is over, so the source is a reference now. */}
+            <SourceLink source={result.source} className="pt-1" />
           </CardContent>
           <CardFooter className="gap-2">
             <Button onClick={reset}>
@@ -122,7 +124,7 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
               Try again
             </Button>
             <Button variant="ghost" asChild>
-              <Link href="/quizzes">Other topics</Link>
+              <Link href="/play">Play together</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -133,34 +135,41 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {result.results.map((entry) => (
-              <div
-                key={entry.item_id}
-                className="flex items-start gap-3 border-b pb-2 text-sm last:border-0"
-              >
-                {entry.is_correct ? (
-                  <Check
-                    className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-                    aria-label="Correct"
-                  />
-                ) : (
-                  <X
-                    className="text-destructive mt-0.5 size-4 shrink-0"
-                    aria-label="Incorrect"
-                  />
-                )}
-                <span className="font-medium">{entry.label}</span>
-                <span className="text-muted-foreground ml-auto text-right">
+              <div key={entry.item_id} className="border-b pb-2 text-sm last:border-0">
+                <div className="flex items-start gap-3">
                   {entry.is_correct ? (
-                    labelFor(entry.correct_category_id)
+                    <Check
+                      className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                      aria-label="Correct"
+                    />
                   ) : (
-                    <>
-                      <span className="line-through">
-                        {labelFor(entry.assigned_category_id)}
-                      </span>{" "}
-                      → {labelFor(entry.correct_category_id)}
-                    </>
+                    <X
+                      className="text-destructive mt-0.5 size-4 shrink-0"
+                      aria-label="Incorrect"
+                    />
                   )}
-                </span>
+                  <span className="font-medium">{entry.label}</span>
+                  <span className="text-muted-foreground ml-auto text-right">
+                    {entry.is_correct ? (
+                      labelFor(entry.correct_category_id)
+                    ) : (
+                      <>
+                        <span className="line-through">
+                          {labelFor(entry.assigned_category_id)}
+                        </span>{" "}
+                        → {labelFor(entry.correct_category_id)}
+                      </>
+                    )}
+                  </span>
+                </div>
+                {/* Indented to clear the icon so the eye runs straight down the
+                    answers, with the reason as a second line rather than a
+                    competing column. Absent for older questions. */}
+                {entry.explanation ? (
+                  <p className="text-muted-foreground mt-1 pl-7 text-xs">
+                    {entry.explanation}
+                  </p>
+                ) : null}
               </div>
             ))}
           </CardContent>
@@ -174,7 +183,10 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">{quiz.title}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">{quiz.title}</h1>
+          <DifficultyBadge difficulty={quiz.difficulty} />
+        </div>
         {quiz.description ? (
           <p className="text-muted-foreground">{quiz.description}</p>
         ) : null}
@@ -188,8 +200,8 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
               : "Pick an answer"}
           </CardTitle>
           <CardDescription>
-            {unplaced.length} of {quiz.items.length} left. Not every answer
-            belongs to a category — put the odd ones in “No category”.
+            {unplaced.length} of {quiz.items.length} left. Every answer belongs
+            to exactly one category.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -225,16 +237,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
             onRemove={unplace}
           />
         ))}
-
-        <DropTarget
-          title="No category"
-          description="For answers that fit nowhere"
-          icon={<TriangleAlert className="size-4" aria-hidden />}
-          items={itemsIn(FAKE)}
-          armed={selectedItemId !== null}
-          onPlace={() => place(FAKE)}
-          onRemove={unplace}
-        />
       </div>
 
       <div className="flex gap-2">

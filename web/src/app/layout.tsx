@@ -19,10 +19,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Quiz Quiz",
-    template: "%s · Quiz Quiz",
+    default: "Quiz & Chill",
+    template: "%s · Quiz & Chill",
   },
-  description: "A quiz app with a Next.js frontend and a Python backend.",
+  description: "Ordne zu, was zusammengehört — allein oder zu mehreren.",
 };
 
 export default function RootLayout({
@@ -55,7 +55,7 @@ export default function RootLayout({
             {children}
           </main>
           <footer className="text-muted-foreground border-t px-4 py-6 text-center text-xs">
-            Next.js renders · FastAPI decides · Supabase stores
+            Hier könnte ihre Werbung stehen!
           </footer>
           <Toaster />
         </ThemeProvider>

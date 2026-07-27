@@ -61,6 +61,16 @@ def submit_turn(code: str, payload: TurnSubmit) -> LobbyView:
     return service.submit_turn(code, payload.player_id, payload.item_id, payload.category_id)
 
 
+@router.post("/{code}/next-round", response_model=LobbyView)
+def skip_review(code: str, payload: PlayerAction) -> LobbyView:
+    """Host cuts the between-rounds review short.
+
+    The review ends on its own timer regardless, so this only ever shortens the
+    wait -- it is not required for the game to progress.
+    """
+    return service.skip_review(code, payload.player_id)
+
+
 @router.post("/{code}/restart", response_model=LobbyView)
 def restart(code: str, payload: PlayerAction) -> LobbyView:
     return service.reset_to_lobby(code, payload.player_id)

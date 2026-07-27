@@ -18,22 +18,31 @@ import secrets
 import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from uuid import UUID, uuid4
 
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.schemas import (
     Category,
+    FinishedRound,
     ItemPublic,
     ItemSolution,
     LastMove,
     LobbyStatus,
     LobbyView,
     PlayerPublic,
+    ResolvedPair,
     RoundView,
     SolvedItem,
+    Source,
 )
 from app.services.drafting import draw_balanced
-from app.services.quizzes import get_quiz_solution, list_subjects, pools_by_subject
+from app.services.quizzes import (
+    get_quiz_solution,
+    list_subjects,
+    pools_by_subject,
+    source_of,
+)
 from app.services.scoring import grade_item
 
 # Ambiguous characters left out so a code can be read aloud without confusion.
@@ -52,6 +61,12 @@ PRESENCE_TIMEOUT = timedelta(seconds=10)
 # dropped request, short enough that the wait before a skip is explained rather
 # than mysterious. Must stay below PRESENCE_TIMEOUT or it could never fire.
 QUIET_AFTER = timedelta(seconds=3)
+
+# How long the finished round's answers stay up before the next round starts.
+# Timed rather than host-gated so nobody can stall the table by walking away --
+# the same reasoning as PRESENCE_TIMEOUT. The host can cut it short.
+REVIEW_SECONDS = 20
+REVIEW_FOR = timedelta(seconds=REVIEW_SECONDS)
 
 
 @dataclass
@@ -82,10 +97,13 @@ class Round:
     slug: str
     title: str
     description: str | None
+    difficulty: str
+    # Held server-side for the whole round and only published once it is over.
+    source: Source | None
     categories: list[Category]
     items: list[ItemSolution]
 
-    def answer_key(self) -> dict[UUID, UUID | None]:
+    def answer_key(self) -> dict[UUID, UUID]:
         return {item.id: item.category_id for item in self.items}
 
 
@@ -103,7 +121,11 @@ class Lobby:
     current_round: Round | None = None
     solved: dict[UUID, UUID] = field(default_factory=dict)  # item_id -> player_id
     turn_cursor: int = 0
+    # When the between-rounds review stops and the next round begins. Set only
+    # while `status` is `reviewing`.
+    review_until: datetime | None = None
     last_move: LastMove | None = None
+    finished_rounds: list[FinishedRound] = field(default_factory=list)
     version: int = 0
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
@@ -192,7 +214,7 @@ def start_game(
         _refresh_presence(lobby)
         if not player.is_host:
             raise ConflictError("Only the host can start the game.")
-        if lobby.status is LobbyStatus.playing:
+        if lobby.status in (LobbyStatus.playing, LobbyStatus.reviewing):
             raise ConflictError("This game is already running.")
         if len(lobby.players) < 2:
             raise ConflictError("At least two players are needed to start.")
@@ -232,9 +254,11 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         lobby.current_round = None
         lobby.rounds = []
         lobby.subject_names = []
+        lobby.finished_rounds = []
         lobby.solved = {}
         lobby.round_index = 0
         lobby.turn_cursor = 0
+        lobby.review_until = None
         lobby.last_move = None
         for candidate in lobby.players:
             candidate.score = 0
@@ -302,6 +326,28 @@ def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
         return _view(lobby)
 
 
+def skip_review(code: str, player_id: UUID) -> LobbyView:
+    """Host cuts the between-rounds review short and starts the next round.
+
+    Only shortens the wait -- it can never skip a review that has not started,
+    so it cannot be used to rush players past a board that is still in play.
+    """
+    with _lock:
+        lobby = _require(code)
+        player = lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
+
+        if not player.is_host:
+            raise ConflictError("Only the host can start the next round.")
+        if lobby.status is not LobbyStatus.reviewing:
+            raise ConflictError("There is no review to skip.")
+
+        _end_review(lobby)
+        lobby.touch()
+        return _view(lobby)
+
+
 def mark_away(code: str, player_id: UUID) -> None:
     """Best-effort 'my tab is closing' signal.
 
@@ -331,7 +377,7 @@ def submit_turn(
     code: str,
     player_id: UUID,
     item_id: UUID,
-    category_id: UUID | None,
+    category_id: UUID,
 ) -> LobbyView:
     """Place one item, then pass the turn on -- right or wrong.
 
@@ -360,7 +406,7 @@ def submit_turn(
         answer_key = current.answer_key()
         if item_id not in answer_key:
             raise ValidationError("That answer does not belong to this topic.")
-        if category_id is not None and all(c.id != category_id for c in current.categories):
+        if all(c.id != category_id for c in current.categories):
             raise ValidationError("That category does not belong to this topic.")
 
         was_correct = grade_item(
@@ -442,7 +488,15 @@ def _resync(lobby: Lobby) -> None:
 
     Without this a disconnected player would hold the turn forever: no one
     submits, so nothing would otherwise run to move it along.
+
+    The review deadline rides on the same mechanism, and for the same reason:
+    nobody submits anything during a review, so polling is the only thing that
+    can notice it has run out.
     """
+    if lobby.status is LobbyStatus.reviewing:
+        if lobby.review_until is not None and datetime.now(UTC) >= lobby.review_until:
+            _end_review(lobby)
+        return
     if lobby.status is not LobbyStatus.playing:
         return
     if _current_player(lobby) is None:
@@ -486,6 +540,27 @@ def _current_player(lobby: Lobby) -> Player | None:
     return player if player.can_play() else None
 
 
+def _solution_of(current: Round, solved: dict[UUID, UUID]) -> list[ResolvedPair]:
+    """The finished round's answer key, in the categories' own order.
+
+    Built at the moment the round ends rather than read back later: `Round` is
+    dropped as soon as the next one begins, and this is the only record of what
+    the answers were.
+    """
+    by_category = {item.category_id: item for item in current.items}
+
+    return [
+        ResolvedPair(
+            category_label=category.label,
+            item_label=item.label,
+            explanation=item.explanation,
+            solved_by=solved.get(item.id),
+        )
+        for category in current.categories
+        if (item := by_category.get(category.id)) is not None
+    ]
+
+
 def _maybe_finish_round(lobby: Lobby) -> None:
     """End the round when every item is placed, or nobody is left to place one."""
     current = lobby.current_round
@@ -505,14 +580,37 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     if not (all_solved or nobody_can_play):
         return
 
-    next_index = lobby.round_index + 1
-    if next_index >= len(lobby.rounds):
+    lobby.finished_rounds.append(
+        FinishedRound(
+            quiz_id=current.quiz_id,
+            slug=current.slug,
+            title=current.title,
+            difficulty=current.difficulty,
+            source=current.source,
+            solution=_solution_of(current, lobby.solved),
+        )
+    )
+
+    # After the last round there is nothing to hold the screen *before*, and the
+    # final scoreboard carries every round's answers anyway -- so no review.
+    if lobby.round_index + 1 >= len(lobby.rounds):
         lobby.status = LobbyStatus.finished
         lobby.current_round = None
+        lobby.review_until = None
         return
 
-    lobby.round_index = next_index
-    _begin_round(lobby, lobby.rounds[next_index])
+    # `current_round` deliberately stays loaded: the board with its answers in
+    # place is what the explanations are shown underneath.
+    lobby.status = LobbyStatus.reviewing
+    lobby.review_until = datetime.now(UTC) + REVIEW_FOR
+
+
+def _end_review(lobby: Lobby) -> None:
+    """Leave the review and start the next round."""
+    lobby.review_until = None
+    lobby.round_index += 1
+    lobby.status = LobbyStatus.playing
+    _begin_round(lobby, lobby.rounds[lobby.round_index])
 
 
 def _subject_names(subject_slugs: list[str]) -> list[str]:
@@ -528,6 +626,8 @@ def _load_round(slug: str) -> Round:
         slug=row["slug"],
         title=row["title"],
         description=row.get("description"),
+        difficulty=row["difficulty"],
+        source=source_of(row),
         categories=categories,
         items=items,
     )
@@ -539,7 +639,10 @@ def _load_round(slug: str) -> Round:
 
 
 def _view(lobby: Lobby) -> LobbyView:
-    current_player = _current_player(lobby)
+    # Nobody is on the clock unless a round is actually running. Without this
+    # the cursor would still name a player during the between-rounds review,
+    # and their client would arm the board against a round that is over.
+    current_player = _current_player(lobby) if lobby.status is LobbyStatus.playing else None
     return LobbyView(
         current_player_quiet=_is_quiet(lobby, current_player),
         code=lobby.code,
@@ -560,11 +663,25 @@ def _view(lobby: Lobby) -> LobbyView:
         round_index=lobby.round_index,
         round_count=len(lobby.quiz_slugs),
         current_player_id=current_player.id if current_player else None,
+        review_seconds_left=_review_seconds_left(lobby),
         round_view=_round_view(lobby),
+        finished_rounds=list(lobby.finished_rounds),
         last_move=lobby.last_move,
         winner_ids=_winner_ids(lobby),
         version=lobby.version,
     )
+
+
+def _review_seconds_left(lobby: Lobby) -> int | None:
+    """Seconds until the next round starts, or None when not reviewing.
+
+    Sent as a remaining duration rather than a wall-clock deadline so a client
+    whose clock is off still counts down correctly.
+    """
+    if lobby.status is not LobbyStatus.reviewing or lobby.review_until is None:
+        return None
+    left = (lobby.review_until - datetime.now(UTC)).total_seconds()
+    return max(0, ceil(left))
 
 
 def _is_quiet(lobby: Lobby, current_player: Player | None) -> bool:
@@ -591,6 +708,7 @@ def _round_view(lobby: Lobby) -> RoundView | None:
         slug=current.slug,
         title=current.title,
         description=current.description,
+        difficulty=current.difficulty,
         categories=current.categories,
         remaining_items=[
             ItemPublic(id=item.id, label=item.label)

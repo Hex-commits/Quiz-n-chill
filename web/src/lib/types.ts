@@ -9,6 +9,18 @@
  * no way to leak it. Solutions arrive only in `CheckResult`.
  */
 
+export type Difficulty = "easy" | "medium" | "hard";
+
+/**
+ * Where a question was written from. Present only on payloads a player sees
+ * *after* answering — during play, a link to the source is a link to the
+ * answers, so the API does not send it.
+ */
+export interface Source {
+  url: string;
+  title: string | null;
+}
+
 export interface Category {
   id: string;
   label: string;
@@ -40,6 +52,7 @@ export interface QuizSummary {
   description: string | null;
   subject_slug: string | null;
   subject_name: string | null;
+  difficulty: Difficulty;
   category_count: number;
   item_count: number;
   created_at: string;
@@ -50,12 +63,13 @@ export interface QuizDetail {
   slug: string;
   title: string;
   description: string | null;
+  difficulty: Difficulty;
   created_at: string;
   categories: Category[];
   items: Item[];
 }
 
-/** `category_id: null` means the player declared the item a fake. */
+/** `category_id: null` means the player has not placed this answer yet. */
 export interface Assignment {
   item_id: string;
   category_id: string | null;
@@ -65,15 +79,23 @@ export interface ItemResult {
   item_id: string;
   label: string;
   assigned_category_id: string | null;
-  correct_category_id: string | null;
-  is_fake: boolean;
+  correct_category_id: string;
   is_correct: boolean;
+  /**
+   * One line on why this answer belongs where it does. Revealed with the
+   * grading and never before — it gives the answer away. Null for questions
+   * written before the ingest pipeline produced explanations.
+   */
+  explanation: string | null;
 }
 
 export interface CheckResult {
   quiz_id: string;
   score: number;
   max_score: number;
+  difficulty: Difficulty;
+  /** Revealed here and nowhere earlier. */
+  source: Source | null;
   results: ItemResult[];
 }
 
@@ -84,7 +106,7 @@ export interface ApiErrorBody {
 
 // --- Lobbies (ephemeral, never stored in the database) ---------------------
 
-export type LobbyStatus = "lobby" | "playing" | "finished";
+export type LobbyStatus = "lobby" | "playing" | "reviewing" | "finished";
 
 export interface PlayerPublic {
   id: string;
@@ -100,7 +122,7 @@ export interface PlayerPublic {
 export interface SolvedItem {
   item_id: string;
   label: string;
-  category_id: string | null;
+  category_id: string;
   solved_by: string;
 }
 
@@ -108,8 +130,29 @@ export interface LastMove {
   player_id: string;
   nickname: string;
   item_label: string;
-  category_id: string | null;
+  /** Where it was placed — always a real category, right or wrong. */
+  category_id: string;
   was_correct: boolean;
+}
+
+/** One category and its answer, revealed once the round is over. */
+export interface ResolvedPair {
+  category_label: string;
+  item_label: string;
+  /** Why it belongs there. Null for questions seeded before the explain step. */
+  explanation: string | null;
+  /** Who placed it, or null if the round ended with this one still open. */
+  solved_by: string | null;
+}
+
+/** A round that is over, so its source and answer key can be shown. */
+export interface FinishedRound {
+  quiz_id: string;
+  slug: string;
+  title: string;
+  difficulty: Difficulty;
+  source: Source | null;
+  solution: ResolvedPair[];
 }
 
 export interface RoundView {
@@ -117,6 +160,7 @@ export interface RoundView {
   slug: string;
   title: string;
   description: string | null;
+  difficulty: Difficulty;
   categories: Category[];
   /** Still unplaced, and carrying no hint of where they belong. */
   remaining_items: Item[];
@@ -134,7 +178,10 @@ export interface LobbyView {
   current_player_id: string | null;
   /** The player on the clock has gone silent but has not timed out yet. */
   current_player_quiet: boolean;
+  /** Seconds until the next round starts. Only set while reviewing. */
+  review_seconds_left: number | null;
   round_view: RoundView | null;
+  finished_rounds: FinishedRound[];
   last_move: LastMove | null;
   winner_ids: string[];
   /** Bumped on every mutation, so polling can skip unchanged state. */
