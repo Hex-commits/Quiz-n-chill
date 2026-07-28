@@ -41,13 +41,21 @@ import {
   submitTurn,
 } from "@/lib/api";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
+import { subscribeToLobby } from "@/lib/realtime";
 import type { LobbyView, ResolvedPair, Subject } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
 
 import { RejoinForm } from "./rejoin-form";
 
-const POLL_MS = 1500;
+// The backstop and heartbeat interval, not how changes are learned -- those
+// arrive by push. Was 1500ms when polling *was* the mechanism, which cost a
+// round trip to the shared store per player per interval and spent nearly all
+// of them answering "nothing new".
+//
+// Tied to PRESENCE_TIMEOUT on the server (30s): slow this down further and
+// players start being marked disconnected between beats.
+const POLL_MS = 10_000;
 
 const ROUND_CHOICES = [3, 5, 7, 10];
 
@@ -82,9 +90,10 @@ export function LobbyRoom({
   useEffect(() => {
     let cancelled = false;
 
-    async function poll() {
+    async function refresh() {
       try {
-        // Passing the player id makes this poll double as a heartbeat.
+        // Passing the player id makes this double as a heartbeat, which is why
+        // the interval below still runs even though changes now arrive by push.
         const view = await getLobby(code, playerId);
         if (!cancelled) {
           apply(view);
@@ -97,11 +106,26 @@ export function LobbyRoom({
       }
     }
 
-    poll();
-    const timer = setInterval(poll, POLL_MS);
+    refresh();
+
+    // Push is how a change is normally learned: the API publishes one message
+    // per actual change and this fetches once in response. The payload is
+    // ignored on purpose -- it carries only a version, and the API remains the
+    // only thing that decides what this player may see.
+    const unsubscribe = subscribeToLobby(code, () => {
+      void refresh();
+    });
+
+    // Still polling, at a fraction of the old rate, for two reasons that both
+    // survive a working socket: it is the heartbeat that keeps this player
+    // marked present, and it is the backstop if a message is missed or realtime
+    // is not configured at all.
+    const timer = setInterval(refresh, POLL_MS);
+
     return () => {
       cancelled = true;
       clearInterval(timer);
+      unsubscribe();
     };
   }, [code, playerId, apply]);
 

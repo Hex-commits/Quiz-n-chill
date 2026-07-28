@@ -256,7 +256,8 @@ def test_the_next_round_starts_on_its_own_once_the_review_runs_out():
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     finish_round_one(code, anna, ben)
 
-    lobbies._lobbies[code].review_until = datetime.now(UTC) - timedelta(seconds=1)
+    with lobbies.edit(code) as lobby:
+        lobby.review_until = datetime.now(UTC) - timedelta(seconds=1)
     view = lobbies.get_view(code, anna)
 
     assert view.status is LobbyStatus.playing
@@ -537,11 +538,11 @@ def test_a_departed_player_cannot_play():
 
 def go_silent(code, *player_ids):
     """Backdate last_seen so the player looks like a closed tab."""
-    lobby = lobbies._lobbies[code]
     stale = datetime.now(UTC) - lobbies.PRESENCE_TIMEOUT - timedelta(seconds=1)
-    for player in lobby.players:
-        if player.id in player_ids:
-            player.last_seen = stale
+    with lobbies.edit(code) as lobby:
+        for player in lobby.players:
+            if player.id in player_ids:
+                player.last_seen = stale
 
 
 def test_a_silent_client_is_reported_disconnected():
@@ -681,11 +682,11 @@ def test_any_request_counts_as_proof_of_life_even_a_rejected_one():
 
 def go_quiet(code, *player_ids):
     """Backdate last_seen past QUIET_AFTER but well inside PRESENCE_TIMEOUT."""
-    lobby = lobbies._lobbies[code]
     quiet = datetime.now(UTC) - lobbies.QUIET_AFTER - timedelta(seconds=1)
-    for player in lobby.players:
-        if player.id in player_ids:
-            player.last_seen = quiet
+    with lobbies.edit(code) as lobby:
+        for player in lobby.players:
+            if player.id in player_ids:
+                player.last_seen = quiet
 
 
 def test_a_responsive_player_is_not_flagged_as_quiet():

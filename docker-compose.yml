@@ -26,6 +26,11 @@ services:
     environment:
       ENVIRONMENT: development
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      # Lobbies live in `public.lobbies` here, so local development exercises
+      # the same path production does. Turn it off and the API keeps them in
+      # its own memory -- fine for one container, wrong for anything that
+      # scales.
+      SHARED_LOBBIES: "true"
     volumes:
       # Bind mount so uvicorn --reload picks up edits without a rebuild.
       - ./api:/app
@@ -111,6 +116,11 @@ services:
       API_URL: http://api:8000
       # The browser runs on the host, so it needs the published port.
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8001}
+      # Realtime tells the browser a lobby changed, so it can stop polling for
+      # it. Publishable key only -- every table has RLS on with no policies, so
+      # it reads nothing, and the service-role key never leaves the API.
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
       # Hot reload across the bind mount needs polling. Turbopack is configured
       # for it in web/next.config.ts (watchOptions.pollIntervalMs) -- the
       # WATCHPACK_* / CHOKIDAR_* env vars only apply to webpack and do nothing

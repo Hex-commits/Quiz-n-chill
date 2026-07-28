@@ -24,7 +24,38 @@ class Settings(BaseSettings):
     # Comma-separated list of origins allowed to call this API.
     cors_origins: str = "http://localhost:3000"
 
+    # Origins allowed by pattern rather than by name, for hosts whose URL is not
+    # known in advance. Vercel gives every preview deployment its own domain, so
+    # without this only production would be able to call the API and every
+    # preview would fail CORS.
+    #
+    # Deliberately empty by default and never a bare `.*\.vercel\.app`: that
+    # would let anyone's Vercel project call this API with credentials. Set it
+    # to your own project's prefix, e.g.
+    #     ^https://quiz-n-chill-[a-z0-9-]+\.vercel\.app$
+    cors_origin_regex: str = ""
+
     environment: str = "development"
+
+    # Where lobbies live. False means "in this process", which is right for one
+    # container and wrong for anything that scales horizontally -- serverless
+    # included, where every request may land on a fresh instance holding an
+    # empty dict. True keeps them in `public.lobbies` instead, so every instance
+    # sees the same game.
+    #
+    # Not history either way: rows carry an expiry and are swept. What is stored
+    # is a game in progress, and it goes when the game does.
+    shared_lobbies: bool = False
+
+    # Push a one-line "something changed" to Supabase Realtime after every
+    # lobby mutation, so clients can stop polling. Off by default: the test
+    # suite must not make network calls, and a single-container run works
+    # perfectly well on the slow poll alone.
+    realtime_broadcast: bool = False
+
+    @property
+    def lobbies_are_shared(self) -> bool:
+        return self.shared_lobbies
 
     # Shared secret for the /admin routes. Empty is tolerated in development
     # only; `app.security` refuses to start an unprotected admin surface in any

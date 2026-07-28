@@ -1,32 +1,41 @@
-"""Ephemeral multiplayer lobbies.
+"""Ephemeral multiplayer lobbies -- the game rules, and nothing about storage.
 
-Everything here lives in the API process and disappears on restart. That is
-deliberate: the database stores questions, never who played them. Nicknames,
-scores and turn order exist only for the lifetime of a game.
+A lobby never outlives the game it belongs to. That is deliberate: the database
+stores questions, never who played them. Nicknames, scores and turn order exist
+only for the lifetime of a game, and the store expires them on its own.
 
-Consequences worth knowing:
+Where they are kept is `lobby_store`'s problem, not this module's. Every
+read-modify-write below opens the same way:
 
-* This requires a single long-lived process. It does NOT work on Vercel's
-  serverless Python runtime, where each request may hit a different instance
-  with its own empty dict. Deploy the API to a container host to use lobbies.
+    with _mutate(code) as lobby:
+        ...
+
+which holds that lobby exclusively for the block and writes it back at the end.
+Two things follow, and both matter:
+
 * Route handlers are plain `def`, so FastAPI runs them in a threadpool and two
-  players can submit at the same instant. Every read-modify-write below is
-  therefore guarded by a lock.
+  players can submit at the same instant. The block is what keeps one from
+  overwriting the other.
+* Whatever the block changed is written back even if it then raised. That is
+  what makes a refused request still count as proof the client is alive: every
+  entry point records the heartbeat before it validates, and dropping that on
+  rejection would disconnect players for making moves the rules turned down.
+
+With the shared store behind it this works on a horizontally scaled or
+serverless host, where consecutive requests from one player land on different
+instances. With the in-process store it needs a single long-lived process.
 """
 
 import secrets
-import threading
-from dataclasses import dataclass, field
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from math import ceil
 from uuid import UUID, uuid4
 
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.errors import ConflictError, ValidationError
 from app.schemas import (
-    Category,
     FinishedRound,
     ItemPublic,
-    ItemSolution,
     LastMove,
     LobbyStatus,
     LobbyView,
@@ -34,9 +43,11 @@ from app.schemas import (
     ResolvedPair,
     RoundView,
     SolvedItem,
-    Source,
 )
 from app.services.drafting import draw_balanced
+from app.services.lobby_state import Lobby, Player, Round
+from app.services import realtime
+from app.services.lobby_store import LOBBY_TTL, build_store
 from app.services.quizzes import (
     get_quiz_solution,
     list_subjects,
@@ -45,22 +56,29 @@ from app.services.quizzes import (
 )
 from app.services.scoring import grade_item
 
+# Re-exported: callers and tests build these, and moving them was a storage
+# concern rather than a change to what a lobby is.
+__all__ = ["Lobby", "Player", "Round"]
+
 # Ambiguous characters left out so a code can be read aloud without confusion.
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 4
 MAX_PLAYERS = 10
-LOBBY_TTL = timedelta(hours=4)
 
-# A client polls every ~1.5s, and that poll is the heartbeat. This allows
-# several to be missed -- a flaky phone connection should not eject anyone --
-# while still noticing a closed tab quickly enough not to stall a game.
-PRESENCE_TIMEOUT = timedelta(seconds=10)
+# Changes now arrive by push, so the client's poll is no longer how it learns
+# what happened -- it is a backstop and, more importantly, the heartbeat. It
+# runs every ~10s (POLL_MS in the lobby room), so these are scaled to that.
+#
+# Both were three times tighter when the client polled every 1.5s. Slowing the
+# poll without slowing these would have marked everybody disconnected on the
+# first interval, which is the trap in making polling cheaper.
+PRESENCE_TIMEOUT = timedelta(seconds=30)
 
 # How long the player on the clock may be silent before the others are told
-# something is up. Two missed polls: long enough not to cry wolf over one
-# dropped request, short enough that the wait before a skip is explained rather
-# than mysterious. Must stay below PRESENCE_TIMEOUT or it could never fire.
-QUIET_AFTER = timedelta(seconds=3)
+# something is up. Long enough to survive one missed poll, short enough that the
+# wait before a skip is explained rather than mysterious. Must stay below
+# PRESENCE_TIMEOUT or it could never fire.
+QUIET_AFTER = timedelta(seconds=12)
 
 # How long the finished round's answers stay up before the next round starts.
 # Timed rather than host-gated so nobody can stall the table by walking away --
@@ -69,79 +87,69 @@ REVIEW_SECONDS = 20
 REVIEW_FOR = timedelta(seconds=REVIEW_SECONDS)
 
 
-@dataclass
-class Player:
-    id: UUID
-    nickname: str
-    is_host: bool = False
-    score: int = 0
-    # Cleared when the player answers wrongly; restored at the next round.
-    is_active: bool = True
-
-    # Presence is separate from is_active on purpose. Being knocked out is a
-    # game state that resets each round; being gone is a connection state that
-    # persists until the player comes back.
-    last_seen: datetime = field(default_factory=lambda: datetime.now(UTC))
-    marked_away: bool = False
-    is_connected: bool = True
-
-    def can_play(self) -> bool:
-        return self.is_active and self.is_connected
+# The one instance the whole API shares. Built from configuration: shared
+# lobbies live in the database and are visible to every instance, otherwise this
+# process holds them. Nothing else in this module knows the difference.
+_store = build_store()
 
 
-@dataclass
-class Round:
-    """The loaded topic for the current round, including the answer key."""
-
-    quiz_id: UUID
-    slug: str
-    title: str
-    description: str | None
-    difficulty: str
-    # Held server-side for the whole round and only published once it is over.
-    source: Source | None
-    categories: list[Category]
-    items: list[ItemSolution]
-
-    def answer_key(self) -> dict[UUID, UUID]:
-        return {item.id: item.category_id for item in self.items}
+def store():
+    """The live store. Exposed so tests can reach a lobby the same way the
+    game does, rather than reaching into a dict that may not exist."""
+    return _store
 
 
-@dataclass
-class Lobby:
-    code: str
-    players: list[Player] = field(default_factory=list)
-    quiz_slugs: list[str] = field(default_factory=list)
-    subject_names: list[str] = field(default_factory=list)
-    # Every round is loaded when the game starts, so no database call happens
-    # mid-game while the store lock is held.
-    rounds: list[Round] = field(default_factory=list)
-    status: LobbyStatus = LobbyStatus.lobby
-    round_index: int = 0
-    current_round: Round | None = None
-    solved: dict[UUID, UUID] = field(default_factory=dict)  # item_id -> player_id
-    turn_cursor: int = 0
-    # When the between-rounds review stops and the next round begins. Set only
-    # while `status` is `reviewing`.
-    review_until: datetime | None = None
-    last_move: LastMove | None = None
-    finished_rounds: list[FinishedRound] = field(default_factory=list)
-    version: int = 0
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+@contextmanager
+def _mutate(code: str):
+    """Open a lobby for writing, and tell the other players afterwards.
 
-    def player(self, player_id: UUID) -> Player:
-        for candidate in self.players:
-            if candidate.id == player_id:
-                return candidate
-        raise NotFoundError("You are not in this lobby.")
+    Wraps the store's own context manager to add one thing: if the block
+    actually changed the lobby, a notification goes out once the lobby has been
+    released.
 
-    def touch(self) -> None:
-        self.version += 1
-        self.updated_at = datetime.now(UTC)
+    Two details are deliberate.
+
+    *After* the block, not inside it. Publishing is an HTTP call; doing it while
+    still holding the lobby would make every other player queue behind an
+    unrelated network round trip.
+
+    Only when `version` moved. `touch()` is what marks a real change, and
+    polling calls `get_view` constantly without changing anything -- announcing
+    those would put back exactly the chatter this exists to remove.
+    """
+    announce: LobbyView | None = None
+    with _store.mutate(code) as lobby:
+        before = lobby.version
+        yield lobby
+        if lobby.version != before:
+            announce = _view(lobby)
+
+    if announce is not None:
+        realtime.publish(announce.code, announce.version)
 
 
-_lobbies: dict[str, Lobby] = {}
-_lock = threading.RLock()
+@contextmanager
+def _mutate_if_present(code: str):
+    """As `_mutate`, for the paths where a missing lobby is not an error."""
+    announce: LobbyView | None = None
+    with _store.mutate_if_present(code) as lobby:
+        before = lobby.version if lobby else None
+        yield lobby
+        if lobby is not None and lobby.version != before:
+            announce = _view(lobby)
+
+    if announce is not None:
+        realtime.publish(announce.code, announce.version)
+
+
+def edit(code: str):
+    """Open a lobby for modification outside the game rules.
+
+    Only tests use this -- to backdate a timestamp and simulate a player going
+    quiet, or a review running out. It goes through the store so it works
+    whichever one is in use.
+    """
+    return _store.mutate(code)
 
 
 # ---------------------------------------------------------------------------
@@ -150,12 +158,10 @@ _lock = threading.RLock()
 
 
 def create_lobby(nickname: str) -> tuple[str, UUID]:
-    with _lock:
-        _evict_stale()
-        code = _unique_code()
-        host = Player(id=uuid4(), nickname=nickname.strip(), is_host=True)
-        _lobbies[code] = Lobby(code=code, players=[host])
-        return code, host.id
+    code = _unique_code()
+    host = Player(id=uuid4(), nickname=nickname.strip(), is_host=True)
+    _store.create(Lobby(code=code, players=[host]))
+    return code, host.id
 
 
 def join_lobby(code: str, nickname: str) -> UUID:
@@ -166,8 +172,7 @@ def join_lobby(code: str, nickname: str) -> UUID:
     nickname is the only credential, which is fine for a party game but means
     anyone who knows the code and a name can take that seat.
     """
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         _refresh_presence(lobby)
         cleaned = nickname.strip()
 
@@ -207,8 +212,7 @@ def start_game(
     The host picks areas and a length, not specific questions -- which ones come
     up is decided here, spread evenly across the subjects.
     """
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         player = lobby.player(player_id)
         _heartbeat(lobby, player_id)
         _refresh_presence(lobby)
@@ -245,8 +249,7 @@ def start_game(
 
 def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
     """Send a finished game back to the waiting room, keeping the players."""
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         if not lobby.player(player_id).is_host:
             raise ConflictError("Only the host can restart.")
 
@@ -275,8 +278,7 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
     clock afterwards is therefore resolved by identity *before* the removal and
     the cursor is rebuilt from that, rather than nudged.
     """
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         player = lobby.player(player_id)
         _refresh_presence(lobby)
 
@@ -289,22 +291,32 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
         lobby.players.remove(player)
 
         if not lobby.players:
-            _lobbies.pop(lobby.code, None)
-            return None
+            emptied = True
+        else:
+            emptied = False
 
-        # The host leaving must not leave the lobby unstartable.
-        if not any(candidate.is_host for candidate in lobby.players):
-            lobby.players[0].is_host = True
+        if not emptied:
+            # The host leaving must not leave the lobby unstartable.
+            if not any(candidate.is_host for candidate in lobby.players):
+                lobby.players[0].is_host = True
 
-        if lobby.status is LobbyStatus.playing:
-            keep_id = current_id if current_id and current_id != player_id else successor_id
-            lobby.turn_cursor = _index_of(lobby, keep_id) if keep_id else 0
-            # The leaver may have been the last active player, which ends the
-            # round exactly as a wrong answer would.
-            _maybe_finish_round(lobby)
+            if lobby.status is LobbyStatus.playing:
+                keep_id = current_id if current_id and current_id != player_id else successor_id
+                lobby.turn_cursor = _index_of(lobby, keep_id) if keep_id else 0
+                # The leaver may have been the last active player, which ends
+                # the round exactly as a wrong answer would.
+                _maybe_finish_round(lobby)
 
-        lobby.touch()
-        return _view(lobby)
+            lobby.touch()
+            view = _view(lobby)
+
+    # Outside the block: the lobby has to be written back before it can be
+    # dropped, and dropping it inside would leave the store writing a lobby it
+    # had just been told to forget.
+    if emptied:
+        _store.delete(code)
+        return None
+    return view
 
 
 def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
@@ -313,8 +325,7 @@ def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
     Piggybacking presence on the poll the client already makes keeps the
     protocol to one endpoint: a tab that closes simply stops polling.
     """
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         _heartbeat(lobby, player_id)
         changed = _refresh_presence(lobby)
         before = (lobby.turn_cursor, lobby.round_index, lobby.status)
@@ -332,8 +343,7 @@ def skip_review(code: str, player_id: UUID) -> LobbyView:
     Only shortens the wait -- it can never skip a review that has not started,
     so it cannot be used to rush players past a board that is still in play.
     """
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         player = lobby.player(player_id)
         _heartbeat(lobby, player_id)
         _refresh_presence(lobby)
@@ -355,8 +365,7 @@ def mark_away(code: str, player_id: UUID) -> None:
     so `PRESENCE_TIMEOUT` remains the mechanism that actually guarantees a
     vanished player stops holding up the game.
     """
-    with _lock:
-        lobby = _lobbies.get(code.upper())
+    with _mutate_if_present(code) as lobby:
         if lobby is None:
             return
         for player in lobby.players:
@@ -383,8 +392,7 @@ def submit_turn(
 
     A wrong placement also knocks the player out for the rest of the round.
     """
-    with _lock:
-        lobby = _require(code)
+    with _mutate(code) as lobby:
         player = lobby.player(player_id)
         _heartbeat(lobby, player_id)
         _refresh_presence(lobby)
@@ -741,27 +749,13 @@ def _winner_ids(lobby: Lobby) -> list[UUID]:
 # ---------------------------------------------------------------------------
 
 
-def _require(code: str) -> Lobby:
-    lobby = _lobbies.get(code.upper())
-    if lobby is None:
-        raise NotFoundError(f"No lobby with code '{code.upper()}'.")
-    return lobby
-
-
 def _unique_code() -> str:
     for _ in range(50):
         code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LENGTH))
-        if code not in _lobbies:
+        if not _store.exists(code):
             return code
     raise ConflictError("Could not allocate a lobby code. Try again.")
 
 
-def _evict_stale() -> None:
-    cutoff = datetime.now(UTC) - LOBBY_TTL
-    for code in [c for c, lobby in _lobbies.items() if lobby.updated_at < cutoff]:
-        del _lobbies[code]
-
-
 def _reset_store_for_tests() -> None:
-    with _lock:
-        _lobbies.clear()
+    _store.clear()

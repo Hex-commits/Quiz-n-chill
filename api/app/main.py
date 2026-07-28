@@ -12,9 +12,10 @@ app = FastAPI(
     title="Quiz Quiz API",
     version="0.2.0",
     description=(
-        "Zuordnungsfragen: assign items to categories, spot the fakes. All "
-        "logic lives here; the Next.js frontend only renders what this returns. "
-        "The database stores questions only -- no players, attempts or scores."
+        "Zuordnungsfragen: every category takes exactly one answer, and every "
+        "answer belongs to exactly one category. All logic lives here; the "
+        "Next.js frontend only renders what this returns. The database stores "
+        "questions and games in progress -- never a record of who played."
     ),
     docs_url="/docs",
     openapi_url="/openapi.json",
@@ -23,6 +24,11 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    # Named origins cover production and local development; the pattern covers
+    # hosts whose URL is generated per deployment, which on Vercel is every
+    # preview. Left unset it matches nothing, so the named list is the whole
+    # policy -- no accidental widening by default.
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
