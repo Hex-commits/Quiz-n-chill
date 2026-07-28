@@ -31,6 +31,9 @@ services:
       # its own memory -- fine for one container, wrong for anything that
       # scales.
       SHARED_LOBBIES: "true"
+      # Push the "something changed" notification locally too, so development
+      # exercises the same path production does rather than a quieter one.
+      REALTIME_BROADCAST: "true"
     volumes:
       # Bind mount so uvicorn --reload picks up edits without a rebuild.
       - ./api:/app
@@ -120,6 +123,10 @@ services:
       # it. Publishable key only -- every table has RLS on with no policies, so
       # it reads nothing, and the service-role key never leaves the API.
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}
+      # From `.env`, like every other key in this project. The local stack's
+      # anon key is the same fixed demo JWT on every machine and is not a
+      # secret, but it is still a key, and one committed key is how a repo
+      # learns to accept the next one. `npm run db:start` prints it.
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
       # Hot reload across the bind mount needs polling. Turbopack is configured
       # for it in web/next.config.ts (watchOptions.pollIntervalMs) -- the

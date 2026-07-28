@@ -9,6 +9,12 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // The `*.test.ts` files are run by `node --test --experimental-strip-types`,
+    // which resolves imports the way Node does and so needs the real extension.
+    // Permitted here because `noEmit` is set: nothing is compiled from this
+    // config, so an extension TypeScript would otherwise have to rewrite never
+    // reaches an output file.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

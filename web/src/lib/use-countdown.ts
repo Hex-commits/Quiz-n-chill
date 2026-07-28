@@ -66,3 +66,36 @@ export function useCountdown(
 export function deadlineFrom(secondsLeft: number | null): number | null {
   return secondsLeft === null ? null : Date.now() + secondsLeft * 1000;
 }
+
+/**
+ * How far the server's answer may differ from the running clock before it is
+ * believed. Comfortably above the noise, comfortably below a real change.
+ *
+ * The noise is unavoidable: the server rounds up to whole seconds and its reply
+ * spent time in flight, so two consecutive answers about the same deadline
+ * routinely disagree by up to a second.
+ */
+const RESYNC_MS = 1_500;
+
+/**
+ * Decide whether an arriving deadline should replace the one already running.
+ *
+ * Adopting every answer looks worse than trusting the local clock: a poll every
+ * few seconds re-pins the deadline slightly later each time — rounding up, plus
+ * however long the reply took to arrive — so the displayed number stalls or
+ * repeats rather than counting down. The browser's own clock is the better
+ * instrument *between* syncs; the server is only needed to say when something
+ * has actually changed.
+ *
+ * So it is adopted when it means something: the clock starting, the clock
+ * stopping, a new turn or round beginning (the deadline jumps by seconds), or
+ * genuine drift worth correcting. Small disagreements are ignored.
+ */
+export function reconcileDeadline(
+  current: number | null,
+  next: number | null,
+): number | null {
+  // Starting or stopping is always news.
+  if (next === null || current === null) return next;
+  return Math.abs(next - current) > RESYNC_MS ? next : current;
+}

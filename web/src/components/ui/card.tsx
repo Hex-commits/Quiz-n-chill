@@ -12,7 +12,11 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        // A translucent pane over the page rather than an opaque rectangle on
+        // it: `bg-card/70` plus a backdrop blur lets the ambient glow behind
+        // show through, which is what gives a dark UI depth. The hairline ring
+        // is a light edge, not a border.
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card/70 py-(--card-spacing) text-sm text-card-foreground ring-1 ring-hairline backdrop-blur-xl transition-[box-shadow,transform,background-color] duration-300 ease-(--ease-soft) [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className
       )}
       {...props}

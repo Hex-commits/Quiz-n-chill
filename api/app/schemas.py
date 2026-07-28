@@ -298,6 +298,9 @@ class LobbyView(BaseModel):
     turn_seconds: int | None = None
     # Who last lost their turn to the clock. Cleared by the next real move.
     timed_out: str | None = None
+    # Every placement this round, oldest first, so the table can follow how it
+    # has gone rather than only what just happened.
+    history: list[LastMove] = []
     # True when the player on the clock has stopped checking in but has not yet
     # timed out. Lets the other screens explain the pause instead of appearing
     # to hang. Goes false by itself once the turn is handed on.

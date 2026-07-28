@@ -65,6 +65,11 @@ CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 4
 MAX_PLAYERS = 10
 
+# How many placements the round's running commentary keeps. A round cannot have
+# many more than this -- ten pairs plus a knockout each -- so it is a ceiling
+# rather than a window in practice.
+MAX_HISTORY = 20
+
 # Changes arrive by push, so the client's poll is no longer how it learns what
 # happened -- it is the heartbeat, and the backstop for anything push misses.
 # It runs every ~4s (POLL_MS in the lobby room) and these are scaled to that:
@@ -441,6 +446,13 @@ def submit_turn(
             was_correct=was_correct,
         )
 
+        # Kept so the table can see how the round has gone, not just the last
+        # thing that happened. Trimmed because the lobby is written back whole
+        # on every mutation, and an unbounded list would grow the document for
+        # the length of the game.
+        lobby.history.append(lobby.last_move)
+        del lobby.history[:-MAX_HISTORY]
+
         _advance_turn(lobby)
         _arm_turn_clock(lobby)
         # A move resets the clock, so the previous player's expiry never lands
@@ -460,6 +472,7 @@ def _begin_round(lobby: Lobby, round_: Round) -> None:
     lobby.current_round = round_
     lobby.solved = {}
     lobby.timed_out = None
+    lobby.history = []
     for player in lobby.players:
         player.is_active = True
 
@@ -731,6 +744,7 @@ def _view(lobby: Lobby) -> LobbyView:
         turn_seconds_left=_turn_seconds_left(lobby),
         turn_seconds=lobby.turn_seconds if current_player else None,
         timed_out=lobby.timed_out,
+        history=list(lobby.history),
         round_view=_round_view(lobby),
         finished_rounds=list(lobby.finished_rounds),
         last_move=lobby.last_move,

@@ -93,6 +93,10 @@ class Lobby:
     # while `status` is `reviewing`.
     review_until: datetime | None = None
     last_move: LastMove | None = None
+    # Every placement this round, oldest first. Bounded, and cleared when a
+    # round starts -- it is a running commentary for the players on screen, not
+    # a record of anything. It goes when the lobby does, like the rest of this.
+    history: list[LastMove] = field(default_factory=list)
     finished_rounds: list[FinishedRound] = field(default_factory=list)
     version: int = 0
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))

@@ -7,6 +7,7 @@ import {
   BookOpen,
   Check,
   Crown,
+  History,
   Loader2,
   LogOut,
   Timer,
@@ -17,6 +18,7 @@ import {
 import { toast } from "sonner";
 
 import { ApiErrorNotice } from "@/components/api-error-notice";
+import { SoundToggle } from "@/components/sound-toggle";
 import { DifficultyBadge, SourceLink } from "@/components/source-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,12 @@ import {
 } from "@/lib/api";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
 import { subscribeToLobby } from "@/lib/realtime";
-import { deadlineFrom, useCountdown } from "@/lib/use-countdown";
+// Aliased: this file already has a `play(categoryId)` that places an answer.
+// Both take a string, so an unaliased import shadows silently and every cue
+// becomes an attempt to place the selected item into a category called
+// "yourTurn".
+import { play as playCue, unlock } from "@/lib/sound";
+import { deadlineFrom, reconcileDeadline, useCountdown } from "@/lib/use-countdown";
 import type { LobbyView, ResolvedPair, Subject } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
@@ -100,10 +107,17 @@ export function LobbyRoom({
     if (view.version < versionRef.current) return;
     versionRef.current = view.version;
     setLobby(view);
-    // Turned into wall-clock deadlines the moment they arrive, so the
-    // countdowns can tick without asking the server again.
-    setReviewDeadline(deadlineFrom(view.review_seconds_left));
-    setTurnDeadline(deadlineFrom(view.turn_seconds_left));
+    // Turned into wall-clock deadlines so the countdowns can tick without
+    // asking again -- but only adopted when the server is saying something new.
+    // Re-pinning them on every poll makes the displayed number stall, because
+    // each answer is rounded up and arrives slightly stale. See
+    // `reconcileDeadline`.
+    setReviewDeadline((current) =>
+      reconcileDeadline(current, deadlineFrom(view.review_seconds_left)),
+    );
+    setTurnDeadline((current) =>
+      reconcileDeadline(current, deadlineFrom(view.turn_seconds_left)),
+    );
   }, []);
 
   const refresh = useCallback(async () => {
@@ -172,6 +186,60 @@ export function LobbyRoom({
   const me = lobby?.players.find((player) => player.id === playerId) ?? null;
   const isMyTurn = Boolean(playerId && lobby?.current_player_id === playerId);
 
+  // --- Sound cues ----------------------------------------------------------
+  //
+  // Fired from transitions rather than from state, so a poll that re-delivers
+  // the same lobby is silent. Everything is compared in refs: a cue is a side
+  // effect on the world, not a piece of React state, and storing it as state
+  // would re-render the room to play a note.
+  const primed = useRef(false);
+  const lastMove = useRef<string | null>(null);
+  const wasMyTurn = useRef(false);
+  const lastStatus = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!lobby) return;
+
+    const moveKey = lobby.last_move
+      ? `${lobby.version}:${lobby.last_move.item_label}`
+      : null;
+
+    // The first view is the state of the world on arrival, not a series of
+    // things that just happened -- joining a game in progress should not
+    // replay its history at you.
+    if (!primed.current) {
+      primed.current = true;
+      lastMove.current = moveKey;
+      wasMyTurn.current = isMyTurn;
+      lastStatus.current = lobby.status;
+      return;
+    }
+
+    if (moveKey && moveKey !== lastMove.current) {
+      playCue(lobby.last_move!.was_correct ? "correct" : "wrong");
+    }
+    lastMove.current = moveKey;
+
+    if (isMyTurn && !wasMyTurn.current) playCue("yourTurn");
+    wasMyTurn.current = isMyTurn;
+
+    if (lobby.status !== lastStatus.current) {
+      if (lobby.status === "reviewing") playCue("roundEnd");
+      if (lobby.status === "finished") playCue("gameEnd");
+      lastStatus.current = lobby.status;
+    }
+  }, [lobby, isMyTurn]);
+
+  // The closing seconds, and only for the player they belong to -- everyone
+  // else is watching, and a clock ticking for somebody else's turn is noise.
+  useEffect(() => {
+    if (!isMyTurn) return;
+    if (turnSecondsLeft === null || turnSecondsLeft <= 0 || turnSecondsLeft > 5) {
+      return;
+    }
+    playCue("tick");
+  }, [turnSecondsLeft, isMyTurn]);
+
   // Lets the host see when they have asked for more rounds than the chosen
   // subjects can supply, rather than silently getting a shorter game.
   const availableQuestions = subjects
@@ -179,6 +247,10 @@ export function LobbyRoom({
     .reduce((total, subject) => total + subject.quiz_count, 0);
 
   async function act(fn: () => Promise<LobbyView>) {
+    // Every path through here starts with a click, which is the only moment a
+    // browser will let an AudioContext start. Doing it here means the first cue
+    // of the game is audible rather than swallowed.
+    unlock();
     setBusy(true);
     try {
       apply(await fn());
@@ -247,36 +319,12 @@ export function LobbyRoom({
           {lobby.players.length}{" "}
           {lobby.players.length === 1 ? "player" : "players"}
         </Badge>
+        <SoundToggle />
         <Button variant="ghost" size="sm" onClick={leave} disabled={busy}>
           <LogOut className="size-4" aria-hidden />
           Leave
         </Button>
       </div>
-    </div>
-  );
-
-  const scoreboard = (
-    <div className="flex flex-wrap gap-2">
-      {[...lobby.players]
-        .sort((a, b) => b.score - a.score)
-        .map((player) => (
-          <Badge
-            key={player.id}
-            variant={player.id === lobby.current_player_id ? "default" : "outline"}
-            className={cn(
-              "gap-1.5",
-              (!player.is_active || !player.is_connected) && "opacity-50",
-            )}
-          >
-            {player.id === playerId ? `${player.nickname} (you)` : player.nickname}
-            <span className="font-mono">{player.score}</span>
-            {!player.is_connected ? (
-              <WifiOff className="size-3" aria-label="offline" />
-            ) : !player.is_active ? (
-              <X className="size-3" aria-label="out" />
-            ) : null}
-          </Badge>
-        ))}
     </div>
   );
 
@@ -572,56 +620,62 @@ export function LobbyRoom({
   const solvedIn = (categoryId: string) =>
     round.solved_items.filter((item) => item.category_id === categoryId);
 
+  // Answers already tried here and rejected. A wrong placement leaves the
+  // category open -- the right answer is still out there -- so without showing
+  // this the next player has no way of knowing the guess has been used, and the
+  // table works through the same wrong idea one at a time.
+  //
+  // Read off the round's move history rather than stored per category: the
+  // server already sends every placement with the category it went into.
+  const wrongIn = (categoryId: string) =>
+    Array.from(
+      new Set(
+        lobby.history
+          .filter((move) => !move.was_correct && move.category_id === categoryId)
+          .map((move) => move.item_label),
+      ),
+    );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {header}
 
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">{round.title}</h1>
-            <DifficultyBadge difficulty={round.difficulty} />
+      {/*
+        Two columns: the question has the room to itself, and everything that is
+        *about* the players sits beside it rather than above it. Stacks on a
+        phone, where the question still comes first.
+      */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          {/* The question, centred and large -- it is what everyone is
+              actually looking at, and it used to compete with the scoreboard
+              and the turn banner for the top of the page. */}
+          <div className="animate-quiz-rise relative isolate space-y-2 text-center">
+            {/* Lights the question from behind. Purely decorative, so it is
+                hidden from assistive tech and cannot be clicked. */}
+            <div className="quiz-ambient" aria-hidden />
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              Round {lobby.round_index + 1} of {lobby.round_count}
+            </p>
+            {/* Outfit carries weight well, and a heading at 800 with the
+                tracking pulled in is a good part of what separates a game from
+                a form. */}
+            <h1 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+              {round.title}
+            </h1>
+            {round.description ? (
+              <p className="text-muted-foreground text-base text-balance">
+                {round.description}
+              </p>
+            ) : null}
+            <div className="flex justify-center pt-1">
+              <DifficultyBadge difficulty={round.difficulty} />
+            </div>
+            <Progress
+              value={(round.solved_items.length / Math.max(total, 1)) * 100}
+              className="mt-2"
+            />
           </div>
-          <p className="text-muted-foreground text-sm">
-            Round {lobby.round_index + 1} of {lobby.round_count}
-          </p>
-        </div>
-        <Progress value={(round.solved_items.length / Math.max(total, 1)) * 100} />
-        {round.description ? (
-          <p className="text-muted-foreground text-sm">{round.description}</p>
-        ) : null}
-        {lobby.subject_names.length > 0 ? (
-          <p className="text-muted-foreground text-xs">
-            Drawn from: {lobby.subject_names.join(", ")}
-          </p>
-        ) : null}
-      </div>
-
-      {scoreboard}
-
-      {lobby.last_move ? (
-        <p
-          className={cn(
-            "flex items-center gap-2 rounded-md border px-3 py-2 text-sm",
-            lobby.last_move.was_correct
-              ? "text-emerald-700 dark:text-emerald-400"
-              : "text-destructive",
-          )}
-        >
-          {lobby.last_move.was_correct ? (
-            <Check className="size-4 shrink-0" aria-hidden />
-          ) : (
-            <X className="size-4 shrink-0" aria-hidden />
-          )}
-          <span>
-            <strong>{lobby.last_move.nickname}</strong> played{" "}
-            <strong>{lobby.last_move.item_label}</strong> —{" "}
-            {lobby.last_move.was_correct ? "correct" : "wrong, out this round"}
-          </span>
-        </p>
-      ) : null}
-
-      <Separator />
 
       {/*
         Between rounds. The board stays on screen with every answer revealed and
@@ -656,7 +710,13 @@ export function LobbyRoom({
           ) : null}
         </Card>
       ) : (
-      <Card>
+      <Card
+        className={cn(
+          // Breathing while it is your go, so a player who looked away knows
+          // the table is waiting on them without reading anything.
+          isMyTurn && "border-primary/60 animate-quiz-glow",
+        )}
+      >
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
             <span>
@@ -716,11 +776,24 @@ export function LobbyRoom({
             </p>
           ) : null}
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+        {/* The answers are the thing being read across a room, so they are
+            sized to be legible at a glance rather than packed in. */}
+        <CardContent className="flex flex-wrap justify-center gap-2">
           {round.remaining_items.map((item) => (
             <Button
               key={item.id}
-              size="sm"
+              size="lg"
+              className={cn(
+                "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-medium whitespace-normal",
+                // Lifts and grows a little under the cursor, settles under the
+                // press. The shared easing is what stops this reading as a
+                // separate widget from everything else on the board.
+                "ease-(--ease-soft) transition-all duration-200",
+                "hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
+                "active:translate-y-0 active:scale-[0.98] active:duration-75",
+                selectedItemId === item.id &&
+                  "ring-primary/50 scale-[1.03] shadow-lg ring-2",
+              )}
               variant={selectedItemId === item.id ? "default" : "outline"}
               disabled={!isMyTurn || busy}
               aria-pressed={selectedItemId === item.id}
@@ -736,7 +809,7 @@ export function LobbyRoom({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {round.categories.map((category) => {
+        {round.categories.map((category, index) => {
           const solved = solvedIn(category.id);
           // A category holds exactly one answer, so once it is filled there is
           // no legal move left into it. Arming it anyway would offer a
@@ -754,12 +827,132 @@ export function LobbyRoom({
               title={category.label}
               solved={solved}
               full={full}
+              wrong={wrongIn(category.id)}
               reveal={reveal}
               armed={isMyTurn && selectedItemId !== null && !busy && !full}
+              // Staggered so the board deals itself in rather than appearing at
+              // once. Capped, or the last card of a ten-pair round would still
+              // be arriving after the first is ready to click.
+              enterDelayMs={Math.min(index, 8) * 45}
               onPlace={() => play(category.id)}
             />
           );
         })}
+          </div>
+        </div>
+
+        {/*
+          Everything about the players, out of the way of the question. Sticky
+          so the turn and the clock stay visible while the board is scrolled.
+        */}
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex items-center gap-1.5">
+                  <Users className="size-4" aria-hidden />
+                  Players
+                </span>
+                {turnSecondsLeft !== null ? (
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 font-mono tabular-nums",
+                      turnSecondsLeft <= 5
+                        ? "text-destructive font-semibold"
+                        : "text-muted-foreground",
+                    )}
+                    aria-live={turnSecondsLeft <= 5 ? "assertive" : "off"}
+                  >
+                    <Timer className="size-3.5 shrink-0" aria-hidden />
+                    {turnSecondsLeft}s
+                  </span>
+                ) : null}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {[...lobby.players]
+                .sort((a, b) => b.score - a.score)
+                .map((player) => {
+                  const theirTurn = player.id === lobby.current_player_id;
+                  return (
+                    <div
+                      key={player.id}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+                        // Whose turn it is has to be readable without hunting.
+                        theirTurn && "bg-primary/10 ring-primary/30 ring-1",
+                        (!player.is_active || !player.is_connected) &&
+                          "opacity-50",
+                      )}
+                    >
+                      {theirTurn ? (
+                        <Timer
+                          className="text-primary size-3.5 shrink-0"
+                          aria-label="on the clock"
+                        />
+                      ) : (
+                        <span className="size-3.5 shrink-0" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate">
+                        {player.nickname}
+                        {player.id === playerId ? " (you)" : ""}
+                      </span>
+                      {player.is_host ? (
+                        <Crown
+                          className="size-3.5 shrink-0 text-amber-500"
+                          aria-label="host"
+                        />
+                      ) : null}
+                      {!player.is_connected ? (
+                        <WifiOff className="size-3.5 shrink-0" aria-label="offline" />
+                      ) : !player.is_active ? (
+                        <X className="size-3.5 shrink-0" aria-label="out" />
+                      ) : null}
+                      <span className="font-mono tabular-nums">{player.score}</span>
+                    </div>
+                  );
+                })}
+            </CardContent>
+          </Card>
+
+          {/* What has been played this round, newest first. */}
+          {lobby.history.length > 0 ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-1.5 text-sm">
+                  <History className="size-4" aria-hidden />
+                  This round
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-72 space-y-1 overflow-y-auto">
+                {[...lobby.history].reverse().map((move, index) => (
+                  <div
+                    key={`${move.item_label}-${lobby.history.length - index}`}
+                    className="flex items-start gap-2 text-sm"
+                  >
+                    {move.was_correct ? (
+                      <Check
+                        className="mt-0.5 size-3.5 shrink-0 text-success"
+                        aria-label="correct"
+                      />
+                    ) : (
+                      <X
+                        className="text-destructive mt-0.5 size-3.5 shrink-0"
+                        aria-label="wrong"
+                      />
+                    )}
+                    <span className="min-w-0">
+                      <span className="text-muted-foreground">
+                        {move.nickname}
+                      </span>{" "}
+                      <span className="font-medium">{move.item_label}</span>
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+        </aside>
       </div>
     </div>
   );
@@ -769,17 +962,27 @@ function CategoryCard({
   title,
   solved,
   full,
+  wrong,
   reveal,
   armed,
+  enterDelayMs,
   onPlace,
 }: {
   title: string;
   solved: { item_id: string; label: string }[];
   /** Already holds its one answer, so it is done for this round. */
   full: boolean;
+  /**
+   * Answers tried here and rejected. The category stays open and clickable —
+   * unlike `full`, a wrong guess costs the guesser their round but leaves the
+   * pairing unsolved for everyone else.
+   */
+  wrong: string[];
   /** Set only between rounds: the answer and why, whether or not it was found. */
   reveal: ResolvedPair | null;
   armed: boolean;
+  /** Stagger, so the board deals itself in rather than appearing all at once. */
+  enterDelayMs: number;
   onPlace: () => void;
 }) {
   const missed = reveal !== null && reveal.solved_by === null;
@@ -787,14 +990,18 @@ function CategoryCard({
   return (
     <Card
       className={cn(
-        "transition-colors",
-        armed && "border-primary cursor-pointer",
+        "animate-quiz-rise",
+        // Rises to meet the cursor only when it can actually take the answer,
+        // so the movement means something rather than decorating everything.
+        armed &&
+          "ring-primary/60 hover:ring-primary cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl",
         // Greyed out rather than hidden: the pairing so far is what players
         // reason from when placing what is left.
         full && !reveal && "bg-muted/50 opacity-60",
         // Nobody got this one, so it is the one worth looking at.
         missed && "border-amber-500/50",
       )}
+      style={{ animationDelay: `${enterDelayMs}ms` }}
       onClick={armed ? onPlace : undefined}
       aria-disabled={full || undefined}
     >
@@ -802,7 +1009,7 @@ function CategoryCard({
         <CardTitle className="flex items-center gap-2 text-base">
           {full ? (
             <Check
-              className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+              className="size-4 shrink-0 text-success"
               aria-hidden
             />
           ) : null}
@@ -816,10 +1023,19 @@ function CategoryCard({
               {reveal.item_label}
             </Badge>
           ) : solved.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Empty</p>
+            // Only "Empty" when nothing has been tried either -- a category
+            // with rejected guesses under it is not empty, it is unsolved.
+            wrong.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Empty</p>
+            ) : null
           ) : (
             solved.map((item) => (
-              <Badge key={item.item_id} variant="secondary">
+              // Pops as it mounts, which is exactly when the answer lands.
+              <Badge
+                key={item.item_id}
+                variant="secondary"
+                className="animate-quiz-pop"
+              >
                 {item.label}
               </Badge>
             ))
@@ -828,6 +1044,26 @@ function CategoryCard({
             <span className="text-muted-foreground text-xs">nobody got this</span>
           ) : null}
         </div>
+
+        {/*
+          Guesses that were tried here and rejected. Shown because a wrong
+          placement leaves the category open -- the right answer is still to
+          come -- so without this the next player cannot tell the idea has
+          already been spent, and the table burns a turn each on the same one.
+        */}
+        {wrong.length > 0 ? (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {wrong.map((label) => (
+              <span
+                key={label}
+                className="text-muted-foreground flex items-center gap-1 text-xs"
+              >
+                <X className="text-destructive size-3 shrink-0" aria-hidden />
+                <span className="line-through">{label}</span>
+              </span>
+            ))}
+          </div>
+        ) : null}
         {/*
           The reason, underneath its answer. Absent on questions seeded before
           the explain step existed, and then simply nothing is shown.

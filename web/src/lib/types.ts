@@ -189,6 +189,8 @@ export interface LobbyView {
   turn_seconds: number | null;
   /** Who last lost their turn to the clock. Cleared by the next real move. */
   timed_out: string | null;
+  /** Every placement this round, oldest first. Reset when a round starts. */
+  history: LastMove[];
   round_view: RoundView | null;
   finished_rounds: FinishedRound[];
   last_move: LastMove | null;

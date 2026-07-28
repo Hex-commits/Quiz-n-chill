@@ -7,9 +7,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Pointed at the variable `next/font` actually defines. This used to read
+     `--font-sans: var(--font-sans)`, which resolves to nothing -- so
+     `@apply font-sans` emitted an invalid declaration, the browser dropped it,
+     and the loaded font was never used. */
+  --font-sans: var(--font-outfit);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-outfit);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -27,6 +31,16 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-hairline: var(--hairline);
+  /* One easing for everything that moves. A shared curve is most of what makes
+     an interface feel like one object rather than a set of parts that each
+     animate their own way. Decelerating hard at the end reads as weight. */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -48,31 +62,53 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Amber, on a warm neutral.
+ *
+ * Three colours have to stay tellable apart at a glance, because the game says
+ * everything with them: amber is *the app*, green is right, red is wrong. Amber
+ * and red are close enough in hue to blur, so `destructive` is pulled toward
+ * crimson (h 15 rather than shadcn's 27) to widen the gap. The greys carry a
+ * trace of the same warmth -- a truly neutral grey next to amber reads as a
+ * mistake rather than a choice.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.995 0.003 80);
+  --foreground: oklch(0.16 0.012 60);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.16 0.012 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.16 0.012 60);
+  /* Dark text on amber rather than white: at the lightness that makes amber
+     look like amber, white fails contrast. */
+  --primary: oklch(0.7 0.165 62);
+  --primary-foreground: oklch(0.2 0.035 60);
+  --secondary: oklch(0.96 0.012 75);
+  --secondary-foreground: oklch(0.22 0.02 60);
+  --muted: oklch(0.965 0.01 75);
+  --muted-foreground: oklch(0.53 0.02 60);
+  --accent: oklch(0.94 0.03 72);
+  --accent-foreground: oklch(0.22 0.03 60);
+  --destructive: oklch(0.55 0.235 15);
+  --success: oklch(0.56 0.14 150);
+  --success-foreground: oklch(0.99 0.01 150);
+  --border: oklch(0.9 0.012 75);
+  --input: oklch(0.9 0.012 75);
+  --ring: oklch(0.7 0.14 62);
+  /* Surfaces are tinted translucency rather than flat fills, so a card reads as
+     a pane over the background instead of a rectangle stuck on it. This is what
+     does most of the work in making a dark UI feel deep. */
+  --surface: oklch(0.16 0.012 60 / 3%);
+  --surface-strong: oklch(0.16 0.012 60 / 6%);
+  --hairline: oklch(0.16 0.012 60 / 10%);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  /* Generous. Small radii read as "form", large ones as "surface", and this is
+     a game. */
+  --radius: 1rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -83,25 +119,33 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* The default theme, and the one the game is actually played in. Amber is
+   pushed brighter here so it still reads as a light source against a dark
+   background rather than as brown. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.16 0.012 60);
+  --foreground: oklch(0.97 0.008 80);
+  --card: oklch(0.215 0.016 62);
+  --card-foreground: oklch(0.97 0.008 80);
+  --popover: oklch(0.215 0.016 62);
+  --popover-foreground: oklch(0.97 0.008 80);
+  --primary: oklch(0.78 0.16 66);
+  --primary-foreground: oklch(0.19 0.04 58);
+  --secondary: oklch(0.28 0.018 62);
+  --secondary-foreground: oklch(0.97 0.008 80);
+  --muted: oklch(0.28 0.018 62);
+  --muted-foreground: oklch(0.72 0.02 70);
+  --accent: oklch(0.32 0.035 65);
+  --accent-foreground: oklch(0.97 0.008 80);
+  --destructive: oklch(0.68 0.2 14);
+  --success: oklch(0.72 0.16 152);
+  --success-foreground: oklch(0.18 0.03 150);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.66 0.13 64);
+  --surface: oklch(1 0 0 / 4%);
+  --surface-strong: oklch(1 0 0 / 7%);
+  --hairline: oklch(1 0 0 / 10%);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -123,8 +167,191 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* A fixed wash of the brand colour at the top of the page, so the
+       background is lit rather than flat. Fixed rather than scrolling: it is
+       the room, not part of the content. */
+    background-image: radial-gradient(
+      110% 70% at 50% -10%,
+      color-mix(in oklch, var(--primary) 14%, transparent),
+      transparent 60%
+    );
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/*
+ * Game feedback, in motion.
+ *
+ * Each of these says one thing: something landed, something was refused, it is
+ * your go. They are short because they sit between a player's click and their
+ * reading the result -- animation that outlasts the reaction it is describing
+ * gets in the way of the next turn.
+ */
+@keyframes quiz-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes quiz-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes quiz-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--ring);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 35%, transparent);
+  }
+}
+
+.animate-quiz-pop {
+  animation: quiz-pop 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.animate-quiz-shake {
+  animation: quiz-shake 380ms ease-in-out;
+}
+
+/* On the board while it is your turn: a slow breath, not a flash. It runs for
+   as long as the turn does, so anything sharper would be exhausting. */
+.animate-quiz-glow {
+  animation: quiz-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes quiz-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* `both` so a staggered delay holds the start state rather than showing the
+   element, hiding it, and showing it again. */
+.animate-quiz-rise {
+  animation: quiz-rise 420ms var(--ease-soft) both;
+}
+
+/*
+ * The ambient glow behind the question.
+ *
+ * A large, heavily blurred blob of the brand colour, drifting slowly. It is the
+ * difference between a dark background and a lit room -- flat #111 reads as
+ * "unstyled", the same colour with something glowing behind it reads as depth.
+ *
+ * Slow (12s) and low contrast on purpose: it should never be the thing you are
+ * looking at, and anything faster becomes a distraction on a page people are
+ * trying to read.
+ */
+@keyframes quiz-drift {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate3d(4%, 2%, 0) scale(1.12);
+  }
+}
+
+.quiz-ambient {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(90px);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in oklch, var(--primary) 55%, transparent),
+    transparent 68%
+  );
+  animation: quiz-drift 12s ease-in-out infinite;
+}
+
+/*
+ * A shine sweeping across a button, skewed so it reads as light passing over a
+ * surface rather than a bar sliding along. Runs once on hover.
+ */
+@keyframes quiz-shine {
+  from {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(240%) skewX(-18deg);
+  }
+}
+
+.quiz-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--primary-foreground) 28%, transparent),
+    transparent
+  );
+  transform: translateX(-140%) skewX(-18deg);
+}
+
+.quiz-shine:hover::after {
+  animation: quiz-shine 720ms var(--ease-soft);
+}
+
+/*
+ * Someone who has asked for less motion gets none of it. The information is
+ * carried by colour and text in every case above -- the movement is emphasis,
+ * so removing it costs nothing but the emphasis.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-quiz-pop,
+  .animate-quiz-shake,
+  .animate-quiz-glow,
+  .animate-quiz-rise,
+  .quiz-ambient,
+  .quiz-shine:hover::after {
+    animation: none;
+  }
+  /* The glow still lights the page, it just stops moving -- removing it
+     entirely would take the depth with it. */
+  .quiz-ambient {
+    opacity: 0.4;
   }
 }
