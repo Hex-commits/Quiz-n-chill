@@ -180,6 +180,15 @@ export interface LobbyView {
   current_player_quiet: boolean;
   /** Seconds until the next round starts. Only set while reviewing. */
   review_seconds_left: number | null;
+  /**
+   * Seconds the player on the clock has left, and how long they got. Both null
+   * when nobody is on the clock. Sent as a remaining duration, not a deadline,
+   * so a client with a wrong clock still counts down correctly.
+   */
+  turn_seconds_left: number | null;
+  turn_seconds: number | null;
+  /** Who last lost their turn to the clock. Cleared by the next real move. */
+  timed_out: string | null;
   round_view: RoundView | null;
   finished_rounds: FinishedRound[];
   last_move: LastMove | null;

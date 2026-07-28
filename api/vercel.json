@@ -1,5 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "//": [
+    "Paris, because the Supabase project is in eu-west-3 (Paris). Every lobby",
+    "mutation is two Postgres round trips -- lobby_acquire then lobby_release --",
+    "plus a Realtime publish, so the distance between this function and the",
+    "database is paid three times per move. Defaulting to iad1 put the Atlantic",
+    "in the middle of each one."
+  ],
+  "regions": ["cdg1"],
   "builds": [
     {
       "src": "index.py",

@@ -79,6 +79,16 @@ class Lobby:
     current_round: Round | None = None
     solved: dict[UUID, UUID] = field(default_factory=dict)  # item_id -> player_id
     turn_cursor: int = 0
+    # How long a player has to place one answer, chosen by the host at the
+    # start. Kept on the lobby rather than derived, so changing the default
+    # later does not alter the rules of a game already in progress.
+    turn_seconds: int = 30
+    # When the player on the clock runs out of time. Set every time the turn
+    # moves, cleared whenever nobody is on the clock.
+    turn_expires_at: datetime | None = None
+    # Who last lost their turn to the clock, so the table is told why it moved.
+    # Cleared by the next actual move.
+    timed_out: str | None = None
     # When the between-rounds review stops and the next round begins. Set only
     # while `status` is `reviewing`.
     review_until: datetime | None = None

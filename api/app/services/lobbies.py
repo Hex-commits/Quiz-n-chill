@@ -65,25 +65,27 @@ CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 4
 MAX_PLAYERS = 10
 
-# Changes now arrive by push, so the client's poll is no longer how it learns
-# what happened -- it is a backstop and, more importantly, the heartbeat. It
-# runs every ~10s (POLL_MS in the lobby room), so these are scaled to that.
+# Changes arrive by push, so the client's poll is no longer how it learns what
+# happened -- it is the heartbeat, and the backstop for anything push misses.
+# It runs every ~4s (POLL_MS in the lobby room) and these are scaled to that:
+# a player has to miss several beats before the others are told anything.
 #
-# Both were three times tighter when the client polled every 1.5s. Slowing the
-# poll without slowing these would have marked everybody disconnected on the
-# first interval, which is the trap in making polling cheaper.
-PRESENCE_TIMEOUT = timedelta(seconds=30)
+# The poll was briefly 10s, tuned against a cache that billed per command. The
+# store is Postgres now and nothing meters round trips, so the only reason to
+# poll slowly was gone -- and a slow poll is what everything unresponsive about
+# the game traced back to.
+PRESENCE_TIMEOUT = timedelta(seconds=15)
 
 # How long the player on the clock may be silent before the others are told
 # something is up. Long enough to survive one missed poll, short enough that the
 # wait before a skip is explained rather than mysterious. Must stay below
 # PRESENCE_TIMEOUT or it could never fire.
-QUIET_AFTER = timedelta(seconds=12)
+QUIET_AFTER = timedelta(seconds=6)
 
 # How long the finished round's answers stay up before the next round starts.
 # Timed rather than host-gated so nobody can stall the table by walking away --
 # the same reasoning as PRESENCE_TIMEOUT. The host can cut it short.
-REVIEW_SECONDS = 20
+REVIEW_SECONDS = 10
 REVIEW_FOR = timedelta(seconds=REVIEW_SECONDS)
 
 
@@ -206,6 +208,7 @@ def start_game(
     player_id: UUID,
     subject_slugs: list[str],
     round_count: int = 5,
+    turn_seconds: int = 30,
 ) -> LobbyView:
     """Begin a game drawn from the chosen subjects.
 
@@ -240,6 +243,7 @@ def start_game(
         lobby.status = LobbyStatus.playing
         lobby.round_index = 0
         lobby.last_move = None
+        lobby.turn_seconds = turn_seconds
         for candidate in lobby.players:
             candidate.score = 0
         _begin_round(lobby, rounds[0])
@@ -438,6 +442,10 @@ def submit_turn(
         )
 
         _advance_turn(lobby)
+        _arm_turn_clock(lobby)
+        # A move resets the clock, so the previous player's expiry never lands
+        # on the next one.
+        lobby.timed_out = None
         _maybe_finish_round(lobby)
         lobby.touch()
         return _view(lobby)
@@ -451,12 +459,55 @@ def submit_turn(
 def _begin_round(lobby: Lobby, round_: Round) -> None:
     lobby.current_round = round_
     lobby.solved = {}
+    lobby.timed_out = None
     for player in lobby.players:
         player.is_active = True
 
     # Rotate the starting player each round so the same person is not always
     # first at the easy items.
     lobby.turn_cursor = lobby.round_index % max(len(lobby.players), 1)
+    _arm_turn_clock(lobby)
+
+
+def _arm_turn_clock(lobby: Lobby) -> None:
+    """Start the clock for whoever is now on it, or stop it if nobody is.
+
+    Called after every move of the turn rather than computed on read, so the
+    deadline is a fact about the game rather than a function of when someone
+    happened to ask.
+    """
+    if lobby.status is LobbyStatus.playing and _current_player(lobby) is not None:
+        lobby.turn_expires_at = datetime.now(UTC) + timedelta(seconds=lobby.turn_seconds)
+    else:
+        lobby.turn_expires_at = None
+
+
+def _enforce_turn_deadline(lobby: Lobby) -> bool:
+    """Take the turn away from a player who has run out of time.
+
+    Timing out costs the round, exactly as a wrong answer does. That is the
+    harsher of the two options and it is deliberate: if running down the clock
+    were free, waiting would always be safer than guessing, and a table of
+    cautious players would never finish a round at all.
+
+    Distinct from the presence timeout, which is about a client that has gone
+    away. This one is for a player who is present and simply has not moved.
+    """
+    if lobby.turn_expires_at is None or datetime.now(UTC) < lobby.turn_expires_at:
+        return False
+
+    player = _current_player(lobby)
+    if player is None:
+        return False
+
+    player.is_active = False
+    # Named so the table is told why the turn moved. `last_move` cannot say it:
+    # a timeout has no item and no category, and making those optional to fit
+    # would weaken a type that is right everywhere else.
+    lobby.timed_out = player.nickname
+    _advance_turn(lobby)
+    _arm_turn_clock(lobby)
+    return True
 
 
 def _advance_turn(lobby: Lobby) -> None:
@@ -509,6 +560,11 @@ def _resync(lobby: Lobby) -> None:
         return
     if _current_player(lobby) is None:
         _advance_turn(lobby)
+        _arm_turn_clock(lobby)
+    # Nobody submits anything when a player simply stops playing, so -- like the
+    # review deadline -- a request arriving is the only thing that can notice
+    # the clock has run out.
+    _enforce_turn_deadline(lobby)
     _maybe_finish_round(lobby)
 
 
@@ -672,6 +728,9 @@ def _view(lobby: Lobby) -> LobbyView:
         round_count=len(lobby.quiz_slugs),
         current_player_id=current_player.id if current_player else None,
         review_seconds_left=_review_seconds_left(lobby),
+        turn_seconds_left=_turn_seconds_left(lobby),
+        turn_seconds=lobby.turn_seconds if current_player else None,
+        timed_out=lobby.timed_out,
         round_view=_round_view(lobby),
         finished_rounds=list(lobby.finished_rounds),
         last_move=lobby.last_move,
@@ -690,6 +749,15 @@ def _review_seconds_left(lobby: Lobby) -> int | None:
         return None
     left = (lobby.review_until - datetime.now(UTC)).total_seconds()
     return max(0, ceil(left))
+
+
+def _turn_seconds_left(lobby: Lobby) -> int | None:
+    """How long the player on the clock has left, or None if nobody is on it."""
+    if lobby.status is not LobbyStatus.playing or lobby.turn_expires_at is None:
+        return None
+    if _current_player(lobby) is None:
+        return None
+    return max(0, ceil((lobby.turn_expires_at - datetime.now(UTC)).total_seconds()))
 
 
 def _is_quiet(lobby: Lobby, current_player: Player | None) -> bool:

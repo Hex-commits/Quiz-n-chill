@@ -9,6 +9,7 @@ import {
   Crown,
   Loader2,
   LogOut,
+  Timer,
   Users,
   WifiOff,
   X,
@@ -42,22 +43,28 @@ import {
 } from "@/lib/api";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
 import { subscribeToLobby } from "@/lib/realtime";
+import { deadlineFrom, useCountdown } from "@/lib/use-countdown";
 import type { LobbyView, ResolvedPair, Subject } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
 
 import { RejoinForm } from "./rejoin-form";
 
-// The backstop and heartbeat interval, not how changes are learned -- those
-// arrive by push. Was 1500ms when polling *was* the mechanism, which cost a
-// round trip to the shared store per player per interval and spent nearly all
-// of them answering "nothing new".
+// The heartbeat, and the backstop for anything push misses -- not how changes
+// are normally learned. Was 1500ms when polling *was* the mechanism, then 10s
+// while the store was a cache that billed per command. Neither constraint
+// applies now: the store is Postgres and nothing meters round trips.
 //
-// Tied to PRESENCE_TIMEOUT on the server (30s): slow this down further and
-// players start being marked disconnected between beats.
-const POLL_MS = 10_000;
+// Tied to PRESENCE_TIMEOUT on the server (15s), which must stay comfortably
+// above this or players get marked disconnected between beats.
+const POLL_MS = 4_000;
 
 const ROUND_CHOICES = [3, 5, 7, 10];
+
+// Bounded to match `LobbyStart.turn_seconds` on the server (10–120). Below ten
+// nobody can read a board of eight pairs; above two minutes it stops being a
+// timer.
+const TURN_CHOICES = [15, 30, 45, 60];
 
 export function LobbyRoom({
   code,
@@ -76,37 +83,47 @@ export function LobbyRoom({
     subjects.slice(0, 3).map((subject) => subject.slug),
   );
   const [roundCount, setRoundCount] = useState(5);
+  const [turnSeconds, setTurnSeconds] = useState(30);
 
   // Polling and turn submission race: a poll started before a turn can land
   // after it and show pre-turn state. Applying only newer versions fixes it.
   const versionRef = useRef(-1);
 
+  // Both clocks are held as wall-clock deadlines and ticked in the browser.
+  // The server sends how many seconds are left as of the moment it answered;
+  // rendering that directly means the number only moves when a request happens,
+  // which is what made the review countdown appear frozen. See useCountdown.
+  const [reviewDeadline, setReviewDeadline] = useState<number | null>(null);
+  const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
+
   const apply = useCallback((view: LobbyView) => {
     if (view.version < versionRef.current) return;
     versionRef.current = view.version;
     setLobby(view);
+    // Turned into wall-clock deadlines the moment they arrive, so the
+    // countdowns can tick without asking the server again.
+    setReviewDeadline(deadlineFrom(view.review_seconds_left));
+    setTurnDeadline(deadlineFrom(view.turn_seconds_left));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function refresh() {
-      try {
-        // Passing the player id makes this double as a heartbeat, which is why
-        // the interval below still runs even though changes now arrive by push.
-        const view = await getLobby(code, playerId);
-        if (!cancelled) {
-          apply(view);
-          setError(null);
-        }
-      } catch (cause) {
-        if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : "Unknown error");
-        }
-      }
+  const refresh = useCallback(async () => {
+    try {
+      // Passing the player id makes this double as a heartbeat, which is why
+      // the interval below still runs even though changes now arrive by push.
+      const view = await getLobby(code, playerId);
+      apply(view);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unknown error");
     }
+  }, [code, playerId, apply]);
 
-    refresh();
+  useEffect(() => {
+    // `refresh` is async: its setState happens in a promise continuation, not
+    // synchronously in this effect body, which is the case the rule is aimed
+    // at. There is no way to express that to the linter.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
 
     // Push is how a change is normally learned: the API publishes one message
     // per actual change and this fetches once in response. The payload is
@@ -120,14 +137,25 @@ export function LobbyRoom({
     // survive a working socket: it is the heartbeat that keeps this player
     // marked present, and it is the backstop if a message is missed or realtime
     // is not configured at all.
-    const timer = setInterval(refresh, POLL_MS);
+    const timer = setInterval(() => void refresh(), POLL_MS);
 
     return () => {
-      cancelled = true;
       clearInterval(timer);
       unsubscribe();
     };
-  }, [code, playerId, apply]);
+  }, [code, refresh]);
+
+  // Reaching zero has to *do* something. The server acts on either deadline
+  // only when a request arrives and finds it passed -- nothing runs on a timer
+  // there, and on serverless nothing can. Without this poke the round would sit
+  // finished, or a stalled player keep the turn, until the next poll.
+  //
+  // Every client pokes at once and the store's lock sorts it out: one request
+  // moves the game on and the rest read the result.
+  const poke = useCallback(() => void refresh(), [refresh]);
+
+  const secondsLeft = useCountdown(reviewDeadline, poke);
+  const turnSecondsLeft = useCountdown(turnDeadline, poke);
 
   // Closing or backgrounding the tab hands the turn on immediately instead of
   // making everyone wait out the server's presence timeout. `pagehide` fires
@@ -358,13 +386,41 @@ export function LobbyRoom({
                   </p>
                 ) : null}
               </div>
+
+              <div className="space-y-2">
+                <Label>Seconds per turn</Label>
+                <div className="flex flex-wrap gap-2">
+                  {TURN_CHOICES.map((n) => (
+                    <Button
+                      key={n}
+                      type="button"
+                      size="sm"
+                      variant={turnSeconds === n ? "default" : "outline"}
+                      aria-pressed={turnSeconds === n}
+                      onClick={() => setTurnSeconds(n)}
+                    >
+                      {n}s
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Run out of time and you are out for the round, the same as a
+                  wrong answer.
+                </p>
+              </div>
             </CardContent>
             <CardFooter>
               <Button
                 onClick={() =>
                   playerId &&
                   act(() =>
-                    startGame(code, playerId, chosenSubjects, roundCount),
+                    startGame(
+                      code,
+                      playerId,
+                      chosenSubjects,
+                      roundCount,
+                      turnSeconds,
+                    ),
                   )
                 }
                 disabled={
@@ -580,8 +636,8 @@ export function LobbyRoom({
               Round over — here is why
             </CardTitle>
             <CardDescription>
-              {lobby.review_seconds_left !== null
-                ? `Next round in ${lobby.review_seconds_left}s.`
+              {secondsLeft !== null && secondsLeft > 0
+                ? `Next round in ${secondsLeft}s.`
                 : "Starting the next round…"}
             </CardDescription>
             <SourceLink source={justFinished?.source ?? null} className="pt-1" />
@@ -602,18 +658,52 @@ export function LobbyRoom({
       ) : (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            {isMyTurn
-              ? selectedItemId
-                ? "Now pick a category"
-                : "Your turn — pick an answer"
-              : `Waiting for ${currentPlayer?.nickname ?? "the next player"}…`}
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
+            <span>
+              {isMyTurn
+                ? selectedItemId
+                  ? "Now pick a category"
+                  : "Your turn — pick an answer"
+                : `Waiting for ${currentPlayer?.nickname ?? "the next player"}…`}
+            </span>
+            {/*
+              Ticked in the browser from a deadline the server set, so it moves
+              every second rather than only when a request happens. The server
+              still owns the rule -- this is the display, not the referee.
+            */}
+            {turnSecondsLeft !== null ? (
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 font-mono text-sm tabular-nums",
+                  turnSecondsLeft <= 5
+                    ? "text-destructive font-semibold"
+                    : "text-muted-foreground",
+                )}
+                // Read out only as it gets urgent, rather than every second.
+                aria-live={turnSecondsLeft <= 5 ? "assertive" : "off"}
+              >
+                <Timer className="size-4 shrink-0" aria-hidden />
+                {turnSecondsLeft}s
+              </span>
+            ) : null}
           </CardTitle>
+          {turnSecondsLeft !== null && lobby.turn_seconds ? (
+            <Progress
+              value={(turnSecondsLeft / lobby.turn_seconds) * 100}
+              className={cn("h-1", turnSecondsLeft <= 5 && "[&>*]:bg-destructive")}
+            />
+          ) : null}
           <CardDescription>
             {me && !me.is_active
               ? "You are out for this round. You are back in at the next topic."
-              : "One placement per turn. Get it wrong and you sit out the rest of the round."}
+              : "One placement per turn. Get it wrong — or run out of time — and you sit out the rest of the round."}
           </CardDescription>
+          {lobby.timed_out ? (
+            <p className="text-muted-foreground flex items-center gap-2 pt-1 text-sm">
+              <Timer className="size-4 shrink-0" aria-hidden />
+              <strong>{lobby.timed_out}</strong> ran out of time.
+            </p>
+          ) : null}
           {/*
             Only the other players ever see this: if it were you, your own
             polling would be keeping you marked responsive.

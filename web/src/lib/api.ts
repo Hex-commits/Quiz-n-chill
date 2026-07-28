@@ -201,6 +201,7 @@ export function startGame(
   playerId: string,
   subjectSlugs: string[],
   roundCount: number,
+  turnSeconds: number,
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/start`, {
     method: "POST",
@@ -208,6 +209,7 @@ export function startGame(
       player_id: playerId,
       subject_slugs: subjectSlugs,
       round_count: roundCount,
+      turn_seconds: turnSeconds,
     }),
   });
 }

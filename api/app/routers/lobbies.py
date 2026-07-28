@@ -50,7 +50,11 @@ def start_game(code: str, payload: LobbyStart) -> LobbyView:
     come up, spread evenly across those subjects.
     """
     return service.start_game(
-        code, payload.player_id, payload.subject_slugs, payload.round_count
+        code,
+        payload.player_id,
+        payload.subject_slugs,
+        payload.round_count,
+        payload.turn_seconds,
     )
 
 

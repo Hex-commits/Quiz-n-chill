@@ -41,13 +41,21 @@ class Settings(BaseSettings):
     # without this only production would be able to call the API and every
     # preview would fail CORS.
     #
-    # Anchored to this project's own preview names. Never a bare
-    # `.*\.vercel\.app`: credentials are allowed, so a loose pattern would let
-    # anyone's Vercel project call this API as the player.
+    # Preview deployments, which get a fresh hostname every time and so can
+    # never be named in the list above.
     #
-    # Overridden by CORS_ORIGIN_REGEX; set it to an empty string to allow no
-    # previews at all.
-    cors_origin_regex: str = r"^https://quiz-n-chill-web-[a-z0-9-]+\.vercel\.app$"
+    # Vercel builds them as `<project>-<hash>-<scope>.vercel.app`, e.g.
+    #     quiz-n-chill-a7th8ajbs-hex15hex.vercel.app
+    # Anchored at both ends on purpose: the project prefix and the account slug
+    # together. Matching only the slug would accept any project someone happened
+    # to name `something-hex15hex`, whose production alias is claimable by
+    # anyone; matching only the prefix would accept another account's fork.
+    #
+    # Never a bare `.*\.vercel\.app` -- credentials are allowed, so that would
+    # let any Vercel project at all call this API as the player.
+    #
+    # Overridden by CORS_ORIGIN_REGEX; set it empty to allow no previews.
+    cors_origin_regex: str = r"^https://quiz-n-chill[a-z0-9-]*-hex15hex\.vercel\.app$"
 
     environment: str = "development"
 

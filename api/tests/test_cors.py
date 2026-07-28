@@ -122,7 +122,11 @@ def default_client() -> TestClient:
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://quiz-n-chill-web.vercel.app",
-        "https://quiz-n-chill-web-git-feature-hex.vercel.app",
+        # A real preview URL, copied from a browser that this refused. Vercel
+        # names them `<project>-<hash>-<scope>`, which is not the shape the
+        # first version of the pattern guessed at.
+        "https://quiz-n-chill-a7th8ajbs-hex15hex.vercel.app",
+        "https://quiz-n-chill-web-git-main-hex15hex.vercel.app",
     ],
 )
 def test_the_shipped_defaults_allow_the_real_frontends(origin):
@@ -136,6 +140,11 @@ def test_the_shipped_defaults_allow_the_real_frontends(origin):
         "https://quiz-n-chill-web.vercel.app.evil.example",
         "http://quiz-n-chill-web.vercel.app",  # plain http
         "https://evil.example",
+        # Anchored at the front: `<anything>.vercel.app` ending in the account
+        # slug is claimable by whoever names a project that way.
+        "https://evil-hex15hex.vercel.app",
+        # Anchored at the back: another account's fork of this same project.
+        "https://quiz-n-chill-a7th8ajbs-someoneelse.vercel.app",
     ],
 )
 def test_the_shipped_defaults_refuse_everything_else(origin):

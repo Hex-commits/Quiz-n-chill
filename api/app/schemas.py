@@ -288,6 +288,16 @@ class LobbyView(BaseModel):
     current_player_id: UUID | None = None
     # Seconds until the next round starts. Only set while status is `reviewing`.
     review_seconds_left: int | None = None
+    # Seconds the player on the clock has left to place an answer, and how long
+    # they got. Both None when nobody is on the clock.
+    #
+    # Sent as a remaining duration rather than a deadline so a client whose
+    # clock is wrong still counts down correctly -- and the client ticks it
+    # locally rather than asking again, which is the whole point of sending it.
+    turn_seconds_left: int | None = None
+    turn_seconds: int | None = None
+    # Who last lost their turn to the clock. Cleared by the next real move.
+    timed_out: str | None = None
     # True when the player on the clock has stopped checking in but has not yet
     # timed out. Lets the other screens explain the pause instead of appearing
     # to hang. Goes false by itself once the turn is handed on.
@@ -323,6 +333,10 @@ class LobbyStart(BaseModel):
     # ones, spread evenly across these.
     subject_slugs: list[str] = Field(min_length=1)
     round_count: int = Field(default=5, ge=1, le=20)
+    # How long each player gets to place one answer. Bounded rather than free:
+    # below about ten seconds nobody can read a board, and above two minutes the
+    # timer stops being a timer.
+    turn_seconds: int = Field(default=30, ge=10, le=120)
 
 
 class TurnSubmit(BaseModel):
