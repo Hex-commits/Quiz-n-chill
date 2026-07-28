@@ -22,18 +22,32 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
 
     # Comma-separated list of origins allowed to call this API.
-    cors_origins: str = "http://localhost:3000"
+    #
+    # The deployed frontend is listed here rather than left to an environment
+    # variable, because it is a fact about this project and not a secret. A
+    # CORS failure is also invisible from the server side -- the API answers
+    # normally and the browser discards the response -- so the default that
+    # needs no setup is the one that should be right.
+    #
+    # Overridden by CORS_ORIGINS whenever the frontend moves.
+    cors_origins: str = (
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "https://quiz-n-chill-web.vercel.app"
+    )
 
     # Origins allowed by pattern rather than by name, for hosts whose URL is not
     # known in advance. Vercel gives every preview deployment its own domain, so
     # without this only production would be able to call the API and every
     # preview would fail CORS.
     #
-    # Deliberately empty by default and never a bare `.*\.vercel\.app`: that
-    # would let anyone's Vercel project call this API with credentials. Set it
-    # to your own project's prefix, e.g.
-    #     ^https://quiz-n-chill-[a-z0-9-]+\.vercel\.app$
-    cors_origin_regex: str = ""
+    # Anchored to this project's own preview names. Never a bare
+    # `.*\.vercel\.app`: credentials are allowed, so a loose pattern would let
+    # anyone's Vercel project call this API as the player.
+    #
+    # Overridden by CORS_ORIGIN_REGEX; set it to an empty string to allow no
+    # previews at all.
+    cors_origin_regex: str = r"^https://quiz-n-chill-web-[a-z0-9-]+\.vercel\.app$"
 
     environment: str = "development"
 

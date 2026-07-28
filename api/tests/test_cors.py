@@ -90,3 +90,53 @@ def test_no_pattern_means_the_named_list_is_the_whole_policy():
 )
 def test_the_list_is_split_and_trimmed(configured, origin):
     assert allowed(client_allowing(configured), origin)
+
+
+# -- the defaults that ship, with nothing configured ----------------------
+#
+# These are what a deploy uses when nobody sets an environment variable, and
+# getting them wrong fails only in the browser -- the API answers normally and
+# the response is discarded, with nothing in any log to say why. That happened
+# once already: production returned "400 Disallowed CORS origin" while the API
+# was otherwise perfectly healthy.
+
+
+def default_client() -> TestClient:
+    """Built from the class defaults, not from `Settings()`.
+
+    Instantiating would read the environment and `.env`, which is exactly what a
+    deploy with nothing configured does *not* have -- and locally would pick up
+    docker-compose's own CORS_ORIGINS, so the test would pass while saying
+    nothing about what ships.
+    """
+    fields = Settings.model_fields
+    return client_allowing(
+        fields["cors_origins"].default,
+        fields["cors_origin_regex"].default,
+    )
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://quiz-n-chill-web.vercel.app",
+        "https://quiz-n-chill-web-git-feature-hex.vercel.app",
+    ],
+)
+def test_the_shipped_defaults_allow_the_real_frontends(origin):
+    assert allowed(default_client(), origin)
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://someone-elses-app.vercel.app",
+        "https://quiz-n-chill-web.vercel.app.evil.example",
+        "http://quiz-n-chill-web.vercel.app",  # plain http
+        "https://evil.example",
+    ],
+)
+def test_the_shipped_defaults_refuse_everything_else(origin):
+    assert not allowed(default_client(), origin)

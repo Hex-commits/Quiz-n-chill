@@ -44,8 +44,8 @@ Docker runs `uvicorn app.main:app` directly.
 | `REALTIME_BROADCAST` | `true` | Lets clients stop polling |
 | `ENVIRONMENT` | `production` | Makes `ADMIN_TOKEN` mandatory |
 | `ADMIN_TOKEN` | a long random string | Guards the admin routes |
-| `CORS_ORIGINS` | `https://<your-web-domain>` | Production origin |
-| `CORS_ORIGIN_REGEX` | `^https://quiz-n-chill-web-[a-z0-9-]+\.vercel\.app$` | Preview origins. See §4 |
+| `CORS_ORIGINS` | *(optional)* | Defaults already allow the deployed frontend. See §4 |
+| `CORS_ORIGIN_REGEX` | *(optional)* | Defaults already allow this project's previews |
 
 ### Web project
 
@@ -101,8 +101,26 @@ server log to say why.
 ```
 
 Not `.*\.vercel\.app` — credentials are allowed, so a loose pattern would let
-**anyone's** Vercel project call your API as the player. `api/tests/test_cors.py`
-pins both halves of that.
+**anyone's** Vercel project call your API as the player.
+
+Both of these already **default** to the right values in `app/config.py`, so a
+fresh deploy needs no CORS configuration at all. They are defaults rather than
+environment variables because a CORS failure is invisible from the server: the
+API answers normally, the browser discards the response, and nothing appears in
+any log. The setup that requires no step is the one that should be correct.
+
+Set the environment variables only when the frontend moves to a different
+domain. `api/tests/test_cors.py` pins the shipped defaults — including that
+`someone-elses-app.vercel.app` and `quiz-n-chill-web.vercel.app.evil.example`
+are refused.
+
+### If a preflight fails with "Redirect is not allowed"
+
+That is not CORS. It means the request URL had a double slash — `API_URL` ending
+in `/` plus a path starting with `/` — which the server answers with a 308, and
+browsers will not follow a redirect on a preflight. `baseUrl()` in
+`web/src/lib/api.ts` strips trailing slashes so it cannot happen; the tests in
+`web/src/lib/api.test.ts` keep it that way.
 
 ---
 

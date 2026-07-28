@@ -23,10 +23,20 @@ import type {
  * "works on the server, ECONNREFUSED in the browser" bug.
  */
 function baseUrl(): string {
-  if (typeof window === "undefined") {
-    return process.env.API_URL ?? DEFAULT_API_URL;
-  }
-  return process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL;
+  const configured =
+    typeof window === "undefined"
+      ? (process.env.API_URL ?? DEFAULT_API_URL)
+      : (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL);
+
+  // Trailing slashes are stripped because every path below starts with one, and
+  // `https://api.example.com/` + `/lobbies` is `//lobbies` -- a different path,
+  // which the server answers with a redirect to the real one.
+  //
+  // That is fatal rather than untidy: a browser will not follow a redirect on a
+  // CORS *preflight*, so the request fails with "Redirect is not allowed for a
+  // preflight request" and reads as a CORS misconfiguration. It is not one, and
+  // no amount of correcting the allowed origins fixes it.
+  return configured.replace(/\/+$/, "");
 }
 
 /**
