@@ -78,6 +78,20 @@ class Lobby:
     round_index: int = 0
     current_round: Round | None = None
     solved: dict[UUID, UUID] = field(default_factory=dict)  # item_id -> player_id
+    # How many turns the rotation has owed each player across the whole game,
+    # totalled as each round starts. Deliberately *not* how many they took: a
+    # player knocked out on their first answer took fewer turns than the rest
+    # and that is the rules working, not something to compensate. This counts
+    # only what the arithmetic handed out -- board size against player count --
+    # which is the part nobody chose.
+    turn_credits: dict[UUID, int] = field(default_factory=dict)
+    # The board held back for the settling round, drawn with the others so no
+    # database call happens mid-game. None when the pool had nothing spare.
+    catch_up_round: Round | None = None
+    in_catch_up: bool = False
+    # Turns still owed to each player in the settling round, counted down as
+    # they are taken. Empty outside it.
+    catch_up_left: dict[UUID, int] = field(default_factory=dict)
     turn_cursor: int = 0
     # How long a player has to place one answer, chosen by the host at the
     # start. Kept on the lobby rather than derived, so changing the default

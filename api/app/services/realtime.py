@@ -10,16 +10,27 @@ So the API says when something happened instead. After every mutation it
 publishes one tiny message on a Supabase Realtime channel named after the lobby,
 and clients fetch only when they hear one.
 
-**The message deliberately carries no game state.** Just the version number that
-the sender has now reached. A payload that contains nothing cannot leak
-anything, and what would otherwise be in it -- the lobby -- holds
-`ItemSolution.category_id` and `explanation` for every answer, which is the
-complete solution. Clients hear "version 7 exists" and ask the API for the
-redacted view they are allowed to see, exactly as before.
+**The message carries the state.** This was a doorbell to begin with -- payload
+`{"version": 7}`, and every client answered it with a fetch. That made a socket
+the trigger for a poll rather than a replacement for one: the round trip it
+existed to remove was still there, just moved. So the new state goes in the
+message and clients render it as it arrives.
 
-That also settles who can listen. The channel name is the lobby code, and anyone
-with the code could already call the API; hearing a version number tells them
-strictly less than that.
+What goes out is `LobbyView`, not `Lobby`. The distinction is the whole safety
+argument: `Lobby` holds `ItemSolution.category_id` and `explanation` for every
+answer -- the complete solution -- while `LobbyView` is what the API already
+hands anyone who asks for the lobby, with unplaced answers redacted. It is also
+identical for every player: `_view` takes no player id, so there is no per-player
+redaction to get wrong here.
+
+That settles who can listen. The channel is named after the lobby code, and
+anyone with the code can already call the API and get exactly this. Listening
+tells them nothing extra.
+
+Oversized views fall back to the doorbell. `finished_rounds` accumulates a full
+answer key per round, so a long game's view can grow past what a broadcast
+frame should carry; past `MAX_PAYLOAD_BYTES` the version goes out alone and the
+client fetches, as it used to.
 
 Publishing is best-effort by construction. A move that succeeded must not fail
 because a notification did not go out -- clients keep a slow poll as a backstop,
@@ -28,11 +39,16 @@ so a dropped message costs latency and nothing else.
 
 from __future__ import annotations
 
+import json
 import logging
+from typing import TYPE_CHECKING
 
 import httpx
 
 from app.config import get_settings
+
+if TYPE_CHECKING:
+    from app.schemas import LobbyView
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +58,18 @@ TIMEOUT_SECONDS = 2.0
 
 EVENT = "lobby-changed"
 
+# Well under Supabase's own frame limit, and chosen as the point where sending
+# the state stops being cheaper than letting the client fetch it. A playing view
+# is a few kilobytes; only the tail of a long game approaches this.
+MAX_PAYLOAD_BYTES = 64 * 1024
+
 
 def channel_for(code: str) -> str:
     return f"lobby:{code.upper()}"
 
 
-def publish(code: str, version: int) -> bool:
-    """Announce that `code` has reached `version`. Never raises.
+def publish(view: LobbyView) -> bool:
+    """Send `view` to everyone watching its lobby. Never raises.
 
     Returns whether the message went out, which is used by tests and by nothing
     else -- no caller should change behaviour based on it.
@@ -62,6 +83,14 @@ def publish(code: str, version: int) -> bool:
     url = f"{settings.supabase_url.rstrip('/')}/realtime/v1/api/broadcast"
     key = settings.supabase_service_role_key
 
+    # `version` is outside `state` deliberately: it is the one field the client
+    # needs before it decides whether to apply anything, and it has to be there
+    # whether or not the state came along.
+    payload: dict[str, object] = {"version": view.version}
+    state = view.model_dump(mode="json")
+    if len(json.dumps(state)) <= MAX_PAYLOAD_BYTES:
+        payload["state"] = state
+
     try:
         response = httpx.post(
             url,
@@ -73,11 +102,9 @@ def publish(code: str, version: int) -> bool:
             json={
                 "messages": [
                     {
-                        "topic": channel_for(code),
+                        "topic": channel_for(view.code),
                         "event": EVENT,
-                        # The whole payload. See the module docstring: this is a
-                        # doorbell, not a delivery.
-                        "payload": {"version": version},
+                        "payload": payload,
                     }
                 ]
             },
@@ -89,5 +116,5 @@ def publish(code: str, version: int) -> bool:
         # Logged at debug rather than warning: with the slow poll still running,
         # this is a latency event, not an error, and a Realtime outage would
         # otherwise fill the log with one line per turn.
-        logger.debug("realtime broadcast for %s failed: %s", code, exc)
+        logger.debug("realtime broadcast for %s failed: %s", view.code, exc)
         return False

@@ -13,9 +13,9 @@ hand `with_structured_output` a Pydantic class instead and LangChain calls
 done. `generate.question_schema()` exists for exactly that reason.
 
 Constrained decoding guarantees the *shape*, never the *content*: the model can
-still return a category that is empty, or a "fake" that is really a correct
-answer. That is what the `check` and `review` steps are for, and why `graph.py`
-loops.
+still return a pairing that is simply wrong, or the same answer twice under
+different labels. That is what the `check` and `review` steps are for, and why
+`graph.py` loops.
 """
 
 from __future__ import annotations

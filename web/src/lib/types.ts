@@ -176,6 +176,19 @@ export interface LobbyView {
   round_index: number;
   round_count: number;
   current_player_id: string | null;
+  /**
+   * Who plays after them. Null when the turn would come straight back to the
+   * same player, which is not "next" in any useful sense.
+   */
+  next_player_id: string | null;
+  /**
+   * The short settling round after the last question, played only by whoever
+   * the rotation short-changed over the game. `round_index` means nothing
+   * while this is true — it is not one of the numbered rounds.
+   */
+  is_catch_up: boolean;
+  /** Turns still owed, by player id, during that round. Empty otherwise. */
+  catch_up_left: Record<string, number>;
   /** The player on the clock has gone silent but has not timed out yet. */
   current_player_quiet: boolean;
   /** Seconds until the next round starts. Only set while reviewing. */

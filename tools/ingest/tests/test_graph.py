@@ -20,6 +20,7 @@ from pydantic import Field
 from tools.ingest.pipeline.chains import check_step, extract_step, repair_step, review_step
 from tools.ingest.pipeline.graph import build_graph, run_article
 from tools.ingest.domain.models import GeneratedQuestion
+from tools.ingest.domain.rules import MIN_PAIRS
 from tools.ingest.sources.wikipedia import Article
 
 ARTICLE = Article(
@@ -41,7 +42,7 @@ def payload(**overrides) -> dict:
         "title": "Testfrage",
         "description": "Ordne zu.",
         "difficulty": "medium",
-        "pairs": [{"label": f"Kat{i}", "answer": f"Ant{i}"} for i in range(6)],
+        "pairs": [{"label": f"Kat{i}", "answer": f"Ant{i}"} for i in range(MIN_PAIRS)],
     }
     base.update(overrides)
     return base
@@ -49,7 +50,7 @@ def payload(**overrides) -> dict:
 
 def broken(**overrides) -> dict:
     """A payload the real validator rejects: one answer used twice."""
-    bad = [{"label": f"Kat{i}", "answer": f"Ant{i}"} for i in range(6)]
+    bad = [{"label": f"Kat{i}", "answer": f"Ant{i}"} for i in range(MIN_PAIRS)]
     bad[1]["answer"] = bad[0]["answer"]
     return payload(pairs=bad, **overrides)
 
@@ -333,7 +334,7 @@ def test_the_trace_names_the_gate_that_objected_and_what_it_said():
 def test_the_trace_summarises_what_was_extracted():
     outcome, _generator, _ = run([payload()])
 
-    assert "6 pairs" in outcome.steps[0]
+    assert f"{MIN_PAIRS} pairs" in outcome.steps[0]
 
 
 def test_on_step_reports_live():

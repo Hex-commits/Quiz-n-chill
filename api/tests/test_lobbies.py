@@ -14,11 +14,17 @@ from app.errors import ConflictError, NotFoundError, ValidationError
 from app.schemas import Category, ItemSolution, LobbyStatus, Source, TurnSubmit
 from app.services import lobbies
 
-DE, FR, ES = uuid4(), uuid4(), uuid4()
+DE, FR, ES, IT = uuid4(), uuid4(), uuid4(), uuid4()
 
 
 def make_round(slug: str):
-    """Three categories, one answer each -- a one-to-one pairing."""
+    """Four categories, one answer each -- a one-to-one pairing.
+
+    Four rather than three so the default two-player game is two whole laps of
+    the table. A round now ends on a lap boundary, so a three-pair board would
+    end after two placements and every test that plays one out would be
+    describing a rule it does not mean to.
+    """
     return lobbies.Round(
         quiz_id=uuid4(),
         slug=slug,
@@ -30,6 +36,7 @@ def make_round(slug: str):
             Category(id=DE, label="Deutschland", position=1),
             Category(id=FR, label="Frankreich", position=2),
             Category(id=ES, label="Spanien", position=3),
+            Category(id=IT, label="Italien", position=4),
         ],
         items=[
             ItemSolution(
@@ -43,6 +50,10 @@ def make_round(slug: str):
             ItemSolution(
                 id=uuid4(), label="Madrid", position=3, category_id=ES,
                 explanation="Hauptstadt Spaniens.",
+            ),
+            ItemSolution(
+                id=uuid4(), label="Rom", position=4, category_id=IT,
+                explanation="Hauptstadt Italiens.",
             ),
         ],
     )
@@ -67,10 +78,16 @@ def clean_store(monkeypatch):
     )
 
 
-def setup_game(nicknames=("Anna", "Ben"), slugs=("topic-a",)):
+def setup_game(nicknames=("Anna", "Ben"), slugs=("topic-a",), round_count=None):
+    """Start a game. `round_count` defaults to one round per slug.
+
+    Passing fewer rounds than slugs is how a test gets a settling round: the
+    game holds one drawn question back for it, so with every slug spoken for
+    there is nothing spare and no settling round can happen.
+    """
     code, host_id = lobbies.create_lobby(nicknames[0])
     ids = [host_id] + [lobbies.join_lobby(code, name) for name in nicknames[1:]]
-    lobbies.start_game(code, host_id, list(slugs), len(slugs))
+    lobbies.start_game(code, host_id, list(slugs), round_count or len(slugs))
     return code, ids
 
 
@@ -123,6 +140,28 @@ def test_a_knocked_out_player_is_skipped_and_cannot_play():
         lobbies.submit_turn(code, anna, items["Madrid"], ES)
 
 
+def test_the_view_names_who_is_up_next():
+    code, (anna, ben) = setup_game()
+
+    view = lobbies.get_view(code)
+
+    assert view.current_player_id == anna
+    assert view.next_player_id == ben
+
+
+def test_nobody_is_up_next_when_only_one_player_can_move():
+    """Ben is knocked out, so the turn comes straight back to Anna. Naming her
+    as "next" would be true and useless."""
+    code, (anna, ben) = setup_game()
+    items = items_of(code)
+
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+
+    assert view.current_player_id == anna
+    assert view.next_player_id is None
+
+
 def test_playing_out_of_turn_is_rejected():
     code, (_anna, ben) = setup_game()
     items = items_of(code)
@@ -166,7 +205,8 @@ def test_round_ends_when_every_item_is_placed():
 
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
-    view = lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    view = lobbies.submit_turn(code, ben, items["Rom"], IT)
 
     # The round pauses on its answers rather than rolling straight on.
     assert view.status is LobbyStatus.reviewing
@@ -179,6 +219,7 @@ def test_the_next_round_begins_after_the_review():
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, ben, items["Rom"], IT)
 
     view = next_round(code, anna)
 
@@ -209,7 +250,8 @@ def finish_round_one(code, anna, ben):
     items = items_of(code)
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
-    return lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    return lobbies.submit_turn(code, ben, items["Rom"], IT)
 
 
 def test_the_review_reveals_the_whole_answer_key_with_explanations():
@@ -222,6 +264,7 @@ def test_the_review_reveals_the_whole_answer_key_with_explanations():
         ("Deutschland", "Berlin"),
         ("Frankreich", "Paris"),
         ("Spanien", "Madrid"),
+        ("Italien", "Rom"),
     ]
     assert solution[0].explanation == "Hauptstadt Deutschlands seit 1990."
 
@@ -236,9 +279,9 @@ def test_the_review_includes_pairs_nobody_solved():
     view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
 
     solution = view.finished_rounds[0].solution
-    assert len(solution) == 3
+    assert len(solution) == 4
     assert all(pair.solved_by is None for pair in solution)
-    assert {pair.item_label for pair in solution} == {"Berlin", "Paris", "Madrid"}
+    assert {pair.item_label for pair in solution} == {"Berlin", "Paris", "Madrid", "Rom"}
 
 
 def test_the_review_counts_down():
@@ -327,11 +370,127 @@ def test_game_finishes_after_the_last_round_and_names_a_winner():
     lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna 1
     lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
     lobbies.submit_turn(code, anna, items["Madrid"], ES)  # Anna 2
-    view = lobbies.submit_turn(code, anna, items["Paris"], FR)  # Anna 3, all placed
+    lobbies.submit_turn(code, anna, items["Paris"], FR)  # Anna 3
+    view = lobbies.submit_turn(code, anna, items["Rom"], IT)  # Anna 4, all placed
 
     assert view.status is LobbyStatus.finished
     assert view.round_view is None
     assert view.winner_ids == [anna]
+
+
+# -- the settling round -------------------------------------------------------
+#
+# Four pairs across three players is one lap plus a remainder, so the seat the
+# rotation starts on is credited two turns and the other two are credited one.
+# That is the whole unfairness these are about: it is handed out by arithmetic
+# before anybody has played, and it is settled after the last question rather
+# than taxed out of every round.
+
+
+def play_out(code, order):
+    """Place all four pairs correctly, in the given seat order."""
+    items = items_of(code)
+    for player, (label, category) in zip(
+        order, [("Berlin", DE), ("Paris", FR), ("Madrid", ES), ("Rom", IT)]
+    ):
+        lobbies.submit_turn(code, player, items[label], category)
+
+
+def test_a_game_that_divides_evenly_has_no_settling_round():
+    """Four pairs across two players is two clean laps. Nobody is owed
+    anything, so the game ends where it always did."""
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"), round_count=1)
+
+    play_out(code, [anna, ben, anna, ben])
+    view = lobbies.get_view(code)
+
+    assert view.status is LobbyStatus.finished
+    assert not view.is_catch_up
+
+
+def test_the_short_changed_players_get_the_turns_they_were_owed():
+    code, (anna, ben, cem) = setup_game(
+        ("Anna", "Ben", "Cem"), ("topic-a", "topic-b"), round_count=1
+    )
+
+    play_out(code, [anna, ben, cem, anna])
+
+    # The last question is over, but the game is not: it pauses on the answers
+    # first, exactly as any other round does.
+    view = lobbies.get_view(code)
+    assert view.status is LobbyStatus.reviewing
+
+    view = next_round(code, anna)
+
+    assert view.is_catch_up
+    # Anna opened the round and so was credited the extra turn. Ben and Cem
+    # were each one short, and this is where they get it back.
+    assert view.catch_up_left == {ben: 1, cem: 1}
+    assert not next(p for p in view.players if p.id == anna).is_active
+    assert view.current_player_id in (ben, cem)
+
+
+def test_the_settling_round_ends_when_the_owed_turns_run_out():
+    code, (anna, ben, cem) = setup_game(
+        ("Anna", "Ben", "Cem"), ("topic-a", "topic-b"), round_count=1
+    )
+    play_out(code, [anna, ben, cem, anna])
+    view = next_round(code, anna)
+
+    items = items_of(code)
+    first = view.current_player_id
+    view = lobbies.submit_turn(code, first, items["Berlin"], DE)
+    second = view.current_player_id
+    view = lobbies.submit_turn(code, second, items["Paris"], FR)
+
+    # Two owed turns, two placements, done -- the rest of the board is not
+    # played and Anna never gets a turn in it at all.
+    assert view.status is LobbyStatus.finished
+    assert {first, second} == {ben, cem}
+
+
+def test_a_settling_turn_scores_like_any_other():
+    code, (anna, ben, cem) = setup_game(
+        ("Anna", "Ben", "Cem"), ("topic-a", "topic-b"), round_count=1
+    )
+    play_out(code, [anna, ben, cem, anna])
+    view = next_round(code, anna)
+
+    items = items_of(code)
+    first = view.current_player_id
+    view = lobbies.submit_turn(code, first, items["Berlin"], DE)
+
+    assert next(p for p in view.players if p.id == first).score == 2
+
+
+def test_being_knocked_out_earns_no_settling_turns():
+    """The distinction the whole ledger exists for. Ben answers wrongly and
+    takes no further turns that round -- but that is the rules working, not the
+    arithmetic short-changing him, so it buys him nothing at the end."""
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"), round_count=1)
+    items = items_of(code)
+
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, anna, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    view = lobbies.submit_turn(code, anna, items["Rom"], IT)
+
+    # Anna took four turns to Ben's one, and the game still ends here.
+    assert view.status is LobbyStatus.finished
+    assert not view.is_catch_up
+
+
+def test_no_settling_round_without_a_board_to_play_it_on():
+    """The spare question is drawn, not required. A pool with nothing left over
+    simply ends the game, rather than failing at the last moment."""
+    code, (anna, ben, cem) = setup_game(("Anna", "Ben", "Cem"), ("topic-a",))
+
+    play_out(code, [anna, ben, cem, anna])
+    view = lobbies.get_view(code)
+
+    assert view.status is LobbyStatus.finished
+    assert not view.is_catch_up
 
 
 def test_a_draw_reports_every_tied_player():
@@ -355,13 +514,15 @@ def test_scores_carry_across_rounds():
     lobbies.submit_turn(code, anna, first["Berlin"], DE)
     lobbies.submit_turn(code, ben, first["Paris"], FR)
     lobbies.submit_turn(code, anna, first["Madrid"], ES)
+    lobbies.submit_turn(code, ben, first["Rom"], IT)
     next_round(code, anna)
 
     second = items_of(code)
     view = lobbies.submit_turn(code, ben, second["Berlin"], DE)
 
+    # Round two starts with Ben, because the starting seat rotates.
     scores = {player.nickname: player.score for player in view.players}
-    assert scores == {"Anna": 2, "Ben": 2}
+    assert scores == {"Anna": 2, "Ben": 3}
 
 
 def test_the_lobby_view_never_leaks_an_unsolved_answer():
@@ -374,7 +535,11 @@ def test_the_lobby_view_never_leaks_an_unsolved_answer():
 
     # Berlin is solved, so its category is fair game. Paris and Madrid are not
     # placed yet and must carry nothing that hints at the answer.
-    assert [item.label for item in view.round_view.remaining_items] == ["Paris", "Madrid"]
+    assert [item.label for item in view.round_view.remaining_items] == [
+        "Paris",
+        "Madrid",
+        "Rom",
+    ]
     assert all(not hasattr(item, "category_id") for item in view.round_view.remaining_items)
     assert payload.count(str(FR)) == 1  # only as a category definition
 
@@ -763,7 +928,8 @@ def test_a_finished_round_publishes_its_source():
     items = items_of(code)
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
-    view = lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    view = lobbies.submit_turn(code, ben, items["Rom"], IT)
 
     # Round one is over, so its source is now fair game -- round two's is not.
     assert [r.slug for r in view.finished_rounds] == ["topic-a"]
@@ -781,6 +947,7 @@ def test_restarting_clears_the_published_sources():
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, ben, items["Rom"], IT)
     assert lobbies.get_view(code).finished_rounds
 
     view = lobbies.reset_to_lobby(code, anna)

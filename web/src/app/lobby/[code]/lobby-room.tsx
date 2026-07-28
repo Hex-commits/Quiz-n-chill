@@ -57,13 +57,13 @@ import { cn } from "@/lib/utils";
 
 import { RejoinForm } from "./rejoin-form";
 
-// The heartbeat, and the backstop for anything push misses -- not how changes
-// are normally learned. Was 1500ms when polling *was* the mechanism, then 10s
-// while the store was a cache that billed per command. Neither constraint
-// applies now: the store is Postgres and nothing meters round trips.
+// Not how changes are learned -- they arrive over the socket with the state in
+// them. This is the heartbeat, and the backstop for anything push misses.
 //
-// Tied to PRESENCE_TIMEOUT on the server (15s), which must stay comfortably
-// above this or players get marked disconnected between beats.
+// It is sized by the heartbeat rather than by freshness. PRESENCE_TIMEOUT on
+// the server is 15s and QUIET_AFTER is 6s, so a beat slower than that would
+// have the table told a player had gone quiet in the gap between their own
+// beats.
 const POLL_MS = 4_000;
 
 const ROUND_CHOICES = [3, 5, 7, 10];
@@ -139,25 +139,25 @@ export function LobbyRoom({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
 
-    // Push is how a change is normally learned: the API publishes one message
-    // per actual change and this fetches once in response. The payload is
-    // ignored on purpose -- it carries only a version, and the API remains the
-    // only thing that decides what this player may see.
-    const unsubscribe = subscribeToLobby(code, () => {
-      void refresh();
+    // The socket carries the state, so a change renders as it arrives rather
+    // than triggering a fetch that then renders. `view` is null only when the
+    // API judged the state too large to put in a frame, and then this falls
+    // back to asking.
+    const unsubscribe = subscribeToLobby(code, (view) => {
+      if (view) apply(view);
+      else void refresh();
     });
 
-    // Still polling, at a fraction of the old rate, for two reasons that both
-    // survive a working socket: it is the heartbeat that keeps this player
-    // marked present, and it is the backstop if a message is missed or realtime
-    // is not configured at all.
+    // Still polling, for two reasons that both survive a working socket: it is
+    // the heartbeat that keeps this player marked present, and it is the
+    // backstop if a message is missed or realtime is not configured at all.
     const timer = setInterval(() => void refresh(), POLL_MS);
 
     return () => {
       clearInterval(timer);
       unsubscribe();
     };
-  }, [code, refresh]);
+  }, [code, refresh, apply]);
 
   // Reaching zero has to *do* something. The server acts on either deadline
   // only when a request arrives and finds it passed -- nothing runs on a timer
@@ -200,8 +200,13 @@ export function LobbyRoom({
   useEffect(() => {
     if (!lobby) return;
 
+    // Keyed on the move, not on the lobby version. Version was wrong and
+    // audibly so: it moves for anything at all -- a player joining, someone
+    // reconnecting, a presence flip -- and each of those replayed the last
+    // placement's chime at the whole table. What identifies a move is where it
+    // sits in the round, so that is what this counts.
     const moveKey = lobby.last_move
-      ? `${lobby.version}:${lobby.last_move.item_label}`
+      ? `${lobby.round_index}:${lobby.history.length}:${lobby.last_move.item_label}`
       : null;
 
     // The first view is the state of the world on arrival, not a series of
@@ -611,6 +616,9 @@ export function LobbyRoom({
   const currentPlayer = lobby.players.find(
     (player) => player.id === lobby.current_player_id,
   );
+  const nextPlayer = lobby.players.find(
+    (player) => player.id === lobby.next_player_id,
+  );
   const reviewing = lobby.status === "reviewing";
   // The round that just ended is the last one appended.
   const justFinished = reviewing
@@ -645,273 +653,282 @@ export function LobbyRoom({
         *about* the players sits beside it rather than above it. Stacks on a
         phone, where the question still comes first.
       */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
         <div className="min-w-0 space-y-4">
-          {/* The question, centred and large -- it is what everyone is
-              actually looking at, and it used to compete with the scoreboard
-              and the turn banner for the top of the page. */}
-          <div className="animate-quiz-rise relative isolate space-y-2 text-center">
-            {/* Lights the question from behind. Purely decorative, so it is
-                hidden from assistive tech and cannot be clicked. */}
-            <div className="quiz-ambient" aria-hidden />
-            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Round {lobby.round_index + 1} of {lobby.round_count}
-            </p>
-            {/* Outfit carries weight well, and a heading at 800 with the
-                tracking pulled in is a good part of what separates a game from
-                a form. */}
-            <h1 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
-              {round.title}
-            </h1>
-            {round.description ? (
-              <p className="text-muted-foreground text-base text-balance">
-                {round.description}
-              </p>
-            ) : null}
-            <div className="flex justify-center pt-1">
-              <DifficultyBadge difficulty={round.difficulty} />
-            </div>
-            <Progress
-              value={(round.solved_items.length / Math.max(total, 1)) * 100}
-              className="mt-2"
+          {/*
+            Whose turn it is, at the top of the column and stuck there. It used
+            to be a line of body text inside the question card's header, which
+            is exactly where a player scanning the board does not look --
+            "hard to tell when I am up" was the complaint, and it was fair.
+
+            Sticky rather than merely first, because the board scrolls past it:
+            the answer to "am I up?" has to be on screen at every scroll
+            position, not only at the top of the page.
+          */}
+          <div className="sticky top-2 z-20">
+            <TurnBar
+              isMyTurn={isMyTurn}
+              isOut={Boolean(me && !me.is_active)}
+              isCatchUp={lobby.is_catch_up}
+              reviewing={reviewing}
+              hasSelection={selectedItemId !== null}
+              currentName={currentPlayer?.nickname ?? null}
+              nextName={nextPlayer?.nickname ?? null}
+              quiet={lobby.current_player_quiet}
+              secondsLeft={reviewing ? secondsLeft : turnSecondsLeft}
+              totalSeconds={reviewing ? null : lobby.turn_seconds}
             />
           </div>
 
-      {/*
-        Between rounds. The board stays on screen with every answer revealed and
-        its reason underneath, which is the point of the pause -- so this is a
-        banner over the board rather than a screen that replaces it.
-      */}
-      {reviewing ? (
-        <Card className="border-primary/40">
-          <CardHeader>
-            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-              <BookOpen className="size-4 shrink-0" aria-hidden />
-              Round over — here is why
-            </CardTitle>
-            <CardDescription>
-              {secondsLeft !== null && secondsLeft > 0
-                ? `Next round in ${secondsLeft}s.`
-                : "Starting the next round…"}
-            </CardDescription>
-            <SourceLink source={justFinished?.source ?? null} className="pt-1" />
-          </CardHeader>
-          {me?.is_host ? (
-            <CardFooter>
-              <Button
-                size="sm"
-                disabled={busy}
-                onClick={() => playerId && act(() => skipReview(code, playerId))}
-              >
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                Next round
-              </Button>
-            </CardFooter>
-          ) : null}
-        </Card>
-      ) : (
-      <Card
-        className={cn(
-          // Breathing while it is your go, so a player who looked away knows
-          // the table is waiting on them without reading anything.
-          isMyTurn && "border-primary/60 animate-quiz-glow",
-        )}
-      >
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
-            <span>
-              {isMyTurn
-                ? selectedItemId
-                  ? "Now pick a category"
-                  : "Your turn — pick an answer"
-                : `Waiting for ${currentPlayer?.nickname ?? "the next player"}…`}
-            </span>
-            {/*
-              Ticked in the browser from a deadline the server set, so it moves
-              every second rather than only when a request happens. The server
-              still owns the rule -- this is the display, not the referee.
-            */}
-            {turnSecondsLeft !== null ? (
-              <span
-                className={cn(
-                  "flex items-center gap-1.5 font-mono text-sm tabular-nums",
-                  turnSecondsLeft <= 5
-                    ? "text-destructive font-semibold"
-                    : "text-muted-foreground",
-                )}
-                // Read out only as it gets urgent, rather than every second.
-                aria-live={turnSecondsLeft <= 5 ? "assertive" : "off"}
-              >
-                <Timer className="size-4 shrink-0" aria-hidden />
-                {turnSecondsLeft}s
-              </span>
-            ) : null}
-          </CardTitle>
-          {turnSecondsLeft !== null && lobby.turn_seconds ? (
-            <Progress
-              value={(turnSecondsLeft / lobby.turn_seconds) * 100}
-              className={cn("h-1", turnSecondsLeft <= 5 && "[&>*]:bg-destructive")}
-            />
-          ) : null}
-          <CardDescription>
-            {me && !me.is_active
-              ? "You are out for this round. You are back in at the next topic."
-              : "One placement per turn. Get it wrong — or run out of time — and you sit out the rest of the round."}
-          </CardDescription>
-          {lobby.timed_out ? (
-            <p className="text-muted-foreground flex items-center gap-2 pt-1 text-sm">
-              <Timer className="size-4 shrink-0" aria-hidden />
-              <strong>{lobby.timed_out}</strong> ran out of time.
-            </p>
-          ) : null}
           {/*
-            Only the other players ever see this: if it were you, your own
-            polling would be keeping you marked responsive.
+            The question and the answers, in one card. They were two blocks
+            with a gap between them, which read as a heading that happened to
+            sit above an unrelated widget rather than as one thing being asked.
           */}
-          {lobby.current_player_quiet ? (
-            <p className="text-muted-foreground flex items-center gap-2 pt-1 text-sm">
-              <WifiOff className="size-4 shrink-0" aria-hidden />
-              {currentPlayer?.nickname ?? "That player"} has stopped responding
-              — their turn will be skipped shortly.
-            </p>
-          ) : null}
-        </CardHeader>
-        {/* The answers are the thing being read across a room, so they are
-            sized to be legible at a glance rather than packed in. */}
-        <CardContent className="flex flex-wrap justify-center gap-2">
-          {round.remaining_items.map((item) => (
-            <Button
-              key={item.id}
-              size="lg"
-              className={cn(
-                "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-medium whitespace-normal",
-                // Lifts and grows a little under the cursor, settles under the
-                // press. The shared easing is what stops this reading as a
-                // separate widget from everything else on the board.
-                "ease-(--ease-soft) transition-all duration-200",
-                "hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
-                "active:translate-y-0 active:scale-[0.98] active:duration-75",
-                selectedItemId === item.id &&
-                  "ring-primary/50 scale-[1.03] shadow-lg ring-2",
-              )}
-              variant={selectedItemId === item.id ? "default" : "outline"}
-              disabled={!isMyTurn || busy}
-              aria-pressed={selectedItemId === item.id}
-              onClick={() =>
-                setSelectedItemId(selectedItemId === item.id ? null : item.id)
-              }
-            >
-              {item.label}
-            </Button>
-          ))}
-        </CardContent>
-      </Card>
-      )}
+          <Card
+            className={cn(
+              "animate-quiz-rise relative isolate overflow-hidden",
+              // The board itself picks up the accent while you are on the
+              // clock, so the signal is not confined to one strip.
+              isMyTurn && !reviewing && "border-primary/50 shadow-lg",
+            )}
+          >
+            {/* Lights the question from behind. Purely decorative, so it is
+                hidden from assistive tech and cannot be clicked. */}
+            <div className="quiz-ambient" aria-hidden />
+            <CardHeader className="space-y-2 text-center">
+              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                {lobby.is_catch_up
+                  ? "Settling round"
+                  : `Round ${lobby.round_index + 1} of ${lobby.round_count}`}
+              </p>
+              {/* Outfit carries weight well, and a heading at 900 with the
+                  tracking pulled in is a good part of what separates a game
+                  from a form. Sized up again here: at 4xl it competed with the
+                  answers rather than leading them. */}
+              <h1 className="text-4xl font-black tracking-tight text-balance sm:text-5xl">
+                {round.title}
+              </h1>
+              {round.description ? (
+                <p className="text-muted-foreground mx-auto max-w-prose text-base text-balance sm:text-lg">
+                  {round.description}
+                </p>
+              ) : null}
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <DifficultyBadge difficulty={round.difficulty} />
+                <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                  {round.solved_items.length}/{total}
+                </span>
+              </div>
+              {/*
+                Said plainly, because a round where most of the table cannot
+                play and most of the board goes untouched looks broken
+                otherwise. It is short by design: only the turns the rotation
+                never handed out are played here.
+              */}
+              {lobby.is_catch_up ? (
+                <p className="text-muted-foreground mx-auto max-w-prose text-sm text-balance">
+                  Evening things up. Over the game the answers did not divide
+                  evenly between you, so whoever was asked fewer questions gets
+                  the difference back now — everyone else sits this one out.
+                </p>
+              ) : null}
+              <Progress
+                value={(round.solved_items.length / Math.max(total, 1)) * 100}
+                className="h-1.5"
+              />
+            </CardHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {round.categories.map((category, index) => {
-          const solved = solvedIn(category.id);
-          // A category holds exactly one answer, so once it is filled there is
-          // no legal move left into it. Arming it anyway would offer a
-          // placement that is always wrong and costs the player the round.
-          const full = solved.length > 0;
-          // Matched by label because the solution is built from the round that
-          // has just been dropped, so its category ids are no longer to hand.
-          const reveal =
-            justFinished?.solution.find(
-              (pair) => pair.category_label === category.label,
-            ) ?? null;
-          return (
-            <CategoryCard
-              key={category.id}
-              title={category.label}
-              solved={solved}
-              full={full}
-              wrong={wrongIn(category.id)}
-              reveal={reveal}
-              armed={isMyTurn && selectedItemId !== null && !busy && !full}
-              // Staggered so the board deals itself in rather than appearing at
-              // once. Capped, or the last card of a ten-pair round would still
-              // be arriving after the first is ready to click.
-              enterDelayMs={Math.min(index, 8) * 45}
-              onPlace={() => play(category.id)}
-            />
-          );
-        })}
+            <CardContent>
+              {reviewing ? (
+                /*
+                  Between rounds. The board below stays on screen with every
+                  answer revealed and its reason underneath, which is the point
+                  of the pause -- so this replaces the answer pool, not the
+                  page.
+                */
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <p className="flex items-center gap-2 text-base font-semibold">
+                    <BookOpen className="size-4 shrink-0" aria-hidden />
+                    Round over — the answers are below
+                  </p>
+                  <SourceLink source={justFinished?.source ?? null} />
+                  {me?.is_host ? (
+                    <Button
+                      size="sm"
+                      disabled={busy}
+                      onClick={() =>
+                        playerId && act(() => skipReview(code, playerId))
+                      }
+                    >
+                      {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                      Next round
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  {/* The answers are read across a room, so they are sized to
+                      be legible at a glance rather than packed in. */}
+                  <div className="flex flex-wrap justify-center gap-2.5">
+                    {round.remaining_items.map((item) => (
+                      <Button
+                        key={item.id}
+                        size="lg"
+                        className={cn(
+                          "quiz-shine h-auto min-h-14 px-6 py-3 text-lg font-semibold whitespace-normal",
+                          // Lifts and grows a little under the cursor, settles
+                          // under the press. The shared easing is what stops
+                          // this reading as a separate widget from everything
+                          // else on the board.
+                          "ease-(--ease-soft) transition-all duration-200",
+                          "hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
+                          "active:translate-y-0 active:scale-[0.98] active:duration-75",
+                          selectedItemId === item.id &&
+                            "ring-primary/50 scale-[1.03] shadow-lg ring-2",
+                        )}
+                        variant={selectedItemId === item.id ? "default" : "outline"}
+                        disabled={!isMyTurn || busy}
+                        aria-pressed={selectedItemId === item.id}
+                        onClick={() =>
+                          setSelectedItemId(
+                            selectedItemId === item.id ? null : item.id,
+                          )
+                        }
+                      >
+                        {item.label}
+                      </Button>
+                    ))}
+                  </div>
+                  {lobby.timed_out ? (
+                    <p className="text-muted-foreground flex items-center justify-center gap-2 pt-4 text-sm">
+                      <Timer className="size-4 shrink-0" aria-hidden />
+                      <strong>{lobby.timed_out}</strong> ran out of time.
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {round.categories.map((category, index) => {
+              const solved = solvedIn(category.id);
+              // A category holds exactly one answer, so once it is filled there
+              // is no legal move left into it. Arming it anyway would offer a
+              // placement that is always wrong and costs the player the round.
+              const full = solved.length > 0;
+              // Matched by label because the solution is built from the round
+              // that has just been dropped, so its category ids are no longer
+              // to hand.
+              const reveal =
+                justFinished?.solution.find(
+                  (pair) => pair.category_label === category.label,
+                ) ?? null;
+              return (
+                <CategoryCard
+                  key={category.id}
+                  title={category.label}
+                  solved={solved}
+                  full={full}
+                  wrong={wrongIn(category.id)}
+                  reveal={reveal}
+                  armed={isMyTurn && selectedItemId !== null && !busy && !full}
+                  // Staggered so the board deals itself in rather than
+                  // appearing at once. Capped, or the last card of a
+                  // thirteen-pair round would still be arriving after the first
+                  // is ready to click.
+                  enterDelayMs={Math.min(index, 8) * 45}
+                  onPlace={() => play(category.id)}
+                />
+              );
+            })}
           </div>
         </div>
 
         {/*
           Everything about the players, out of the way of the question. Sticky
-          so the turn and the clock stay visible while the board is scrolled.
+          so the order stays visible while the board is scrolled.
         */}
         <aside className="space-y-4 lg:sticky lg:top-20">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between gap-2 text-sm">
-                <span className="flex items-center gap-1.5">
-                  <Users className="size-4" aria-hidden />
-                  Players
-                </span>
-                {turnSecondsLeft !== null ? (
-                  <span
-                    className={cn(
-                      "flex items-center gap-1 font-mono tabular-nums",
-                      turnSecondsLeft <= 5
-                        ? "text-destructive font-semibold"
-                        : "text-muted-foreground",
-                    )}
-                    aria-live={turnSecondsLeft <= 5 ? "assertive" : "off"}
-                  >
-                    <Timer className="size-3.5 shrink-0" aria-hidden />
-                    {turnSecondsLeft}s
-                  </span>
-                ) : null}
+              <CardTitle className="flex items-center gap-1.5 text-sm">
+                <Users className="size-4" aria-hidden />
+                Turn order
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
-              {[...lobby.players]
-                .sort((a, b) => b.score - a.score)
-                .map((player) => {
-                  const theirTurn = player.id === lobby.current_player_id;
-                  return (
-                    <div
-                      key={player.id}
-                      className={cn(
-                        "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
-                        // Whose turn it is has to be readable without hunting.
-                        theirTurn && "bg-primary/10 ring-primary/30 ring-1",
-                        (!player.is_active || !player.is_connected) &&
-                          "opacity-50",
-                      )}
-                    >
-                      {theirTurn ? (
-                        <Timer
-                          className="text-primary size-3.5 shrink-0"
-                          aria-label="on the clock"
-                        />
-                      ) : (
-                        <span className="size-3.5 shrink-0" />
-                      )}
-                      <span className="min-w-0 flex-1 truncate">
-                        {player.nickname}
-                        {player.id === playerId ? " (you)" : ""}
-                      </span>
-                      {player.is_host ? (
-                        <Crown
-                          className="size-3.5 shrink-0 text-amber-500"
-                          aria-label="host"
-                        />
-                      ) : null}
-                      {!player.is_connected ? (
-                        <WifiOff className="size-3.5 shrink-0" aria-label="offline" />
-                      ) : !player.is_active ? (
-                        <X className="size-3.5 shrink-0" aria-label="out" />
-                      ) : null}
-                      <span className="font-mono tabular-nums">{player.score}</span>
-                    </div>
-                  );
-                })}
+              {/*
+                Seating order, never re-sorted. This used to rank by score,
+                which meant the list rearranged itself under the players every
+                time anyone scored -- and it is the one panel whose job is to
+                say who comes after whom. The scores are still here; the running
+                standings are on the final scoreboard, which is where a ranking
+                belongs.
+              */}
+              {lobby.players.map((player, index) => {
+                const theirTurn = player.id === lobby.current_player_id;
+                const upNext = player.id === lobby.next_player_id;
+                // Only during a settling round, where "how many turns do I
+                // still have" is the thing a player wants and the seat number
+                // tells them nothing.
+                const owed = lobby.is_catch_up
+                  ? (lobby.catch_up_left[player.id] ?? 0)
+                  : 0;
+                return (
+                  <div
+                    key={player.id}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+                      theirTurn && "bg-primary/15 ring-primary/40 font-medium ring-1",
+                      upNext && "bg-surface",
+                      (!player.is_active || !player.is_connected) && "opacity-50",
+                    )}
+                  >
+                    <span className="text-muted-foreground w-4 shrink-0 text-center font-mono text-xs">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {player.nickname}
+                      {player.id === playerId ? " (you)" : ""}
+                    </span>
+                    {owed > 0 ? (
+                      <Badge
+                        variant="secondary"
+                        className="h-5 px-1.5 text-[10px] tabular-nums"
+                        title="turns still owed"
+                      >
+                        +{owed}
+                      </Badge>
+                    ) : null}
+                    {theirTurn ? (
+                      <Badge className="h-5 px-1.5 text-[10px] tracking-wide uppercase">
+                        Now
+                      </Badge>
+                    ) : upNext ? (
+                      <Badge
+                        variant="outline"
+                        className="h-5 px-1.5 text-[10px] tracking-wide uppercase"
+                      >
+                        Next
+                      </Badge>
+                    ) : null}
+                    {player.is_host ? (
+                      <Crown
+                        className="size-3.5 shrink-0 text-amber-500"
+                        aria-label="host"
+                      />
+                    ) : null}
+                    {!player.is_connected ? (
+                      <WifiOff className="size-3.5 shrink-0" aria-label="offline" />
+                    ) : !player.is_active ? (
+                      <X className="size-3.5 shrink-0" aria-label="out" />
+                    ) : null}
+                    <span className="font-mono tabular-nums">{player.score}</span>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -932,7 +949,7 @@ export function LobbyRoom({
                   >
                     {move.was_correct ? (
                       <Check
-                        className="mt-0.5 size-3.5 shrink-0 text-success"
+                        className="text-success mt-0.5 size-3.5 shrink-0"
                         aria-label="correct"
                       />
                     ) : (
@@ -954,6 +971,139 @@ export function LobbyRoom({
           ) : null}
         </aside>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Whose turn it is, and how long they have.
+ *
+ * Its whole job is to be answerable at a glance from across a room, so it is
+ * sized and coloured well past what the information alone would justify: on
+ * your turn the bar fills with the primary colour, states it in a heading
+ * rather than a sentence, and breathes. That asymmetry is the point — every
+ * other state is deliberately quiet, so the loud one cannot be missed.
+ *
+ * The clock is ticked in the browser from a deadline the server set, so it
+ * moves every second rather than only when a request happens. The server still
+ * owns the rule; this is the display, not the referee.
+ */
+function TurnBar({
+  isMyTurn,
+  isOut,
+  isCatchUp,
+  reviewing,
+  hasSelection,
+  currentName,
+  nextName,
+  quiet,
+  secondsLeft,
+  totalSeconds,
+}: {
+  isMyTurn: boolean;
+  /** Knocked out for the rest of this round — or, in a settling round, simply
+   * not one of the players it is for. */
+  isOut: boolean;
+  isCatchUp: boolean;
+  reviewing: boolean;
+  /** An answer is picked and the board is waiting for a category. */
+  hasSelection: boolean;
+  currentName: string | null;
+  nextName: string | null;
+  /** The player on the clock has gone silent. Only ever seen by the others. */
+  quiet: boolean;
+  secondsLeft: number | null;
+  /** What the clock started from, for the bar. Null while reviewing. */
+  totalSeconds: number | null;
+}) {
+  const urgent = !reviewing && secondsLeft !== null && secondsLeft <= 5;
+
+  return (
+    <div
+      className={cn(
+        "ease-(--ease-soft) flex items-center gap-3 rounded-(--radius) border px-4 py-3 shadow-sm backdrop-blur transition-colors duration-300",
+        isMyTurn && !reviewing
+          ? "bg-primary text-primary-foreground border-primary animate-quiz-glow"
+          : "bg-surface border-hairline",
+      )}
+      // The one state worth interrupting a screen reader for is your own turn
+      // arriving; the rest is commentary it can pick up when it gets there.
+      aria-live={isMyTurn ? "assertive" : "polite"}
+    >
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            "truncate font-extrabold tracking-tight",
+            isMyTurn && !reviewing ? "text-xl sm:text-2xl" : "text-base",
+          )}
+        >
+          {reviewing
+            ? "Round over"
+            : isMyTurn
+              ? hasSelection
+                ? "Now pick a category"
+                : "Your turn"
+              : `${currentName ?? "Somebody"} is up`}
+        </p>
+        <p
+          className={cn(
+            "truncate text-xs",
+            isMyTurn && !reviewing
+              ? "text-primary-foreground/80"
+              : "text-muted-foreground",
+          )}
+        >
+          {reviewing
+            ? secondsLeft !== null && secondsLeft > 0
+              ? `Next round in ${secondsLeft}s`
+              : "Starting the next round…"
+            : isOut
+              ? isCatchUp
+                ? "You had your share of the questions — this one is for the others"
+                : "You are out this round — back in at the next topic"
+              : quiet && !isMyTurn
+                ? `${currentName ?? "That player"} has stopped responding`
+                : nextName
+                  ? `Next: ${nextName}`
+                  : "Place one answer, then it moves on"}
+        </p>
+      </div>
+
+      {secondsLeft !== null ? (
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span
+            className={cn(
+              "font-mono text-3xl leading-none font-bold tabular-nums",
+              urgent && !isMyTurn && "text-destructive",
+            )}
+          >
+            {secondsLeft}
+          </span>
+          {totalSeconds ? (
+            <span
+              className={cn(
+                "h-1 w-16 overflow-hidden rounded-full",
+                isMyTurn ? "bg-primary-foreground/25" : "bg-hairline",
+              )}
+              aria-hidden
+            >
+              <span
+                className={cn(
+                  "ease-(--ease-soft) block h-full transition-[width] duration-1000",
+                  isMyTurn
+                    ? "bg-primary-foreground"
+                    : urgent
+                      ? "bg-destructive"
+                      : "bg-primary",
+                )}
+                style={{
+                  width: `${Math.min(100, (secondsLeft / totalSeconds) * 100)}%`,
+                }}
+              />
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1040,8 +1190,13 @@ function CategoryCard({
               </Badge>
             ))
           )}
+          {/*
+            "unsolved" rather than "nobody got this": with the round ending on
+            a lap boundary, a pair here has usually not been attempted at all,
+            and claiming the table failed at it would be wrong.
+          */}
           {missed ? (
-            <span className="text-muted-foreground text-xs">nobody got this</span>
+            <span className="text-muted-foreground text-xs">unsolved</span>
           ) : null}
         </div>
 

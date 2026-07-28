@@ -129,11 +129,11 @@ Every step prints as it happens, timed, with a running tally after each article:
 
 [  1/40] Periodensystem
         127,578 chars from https://de.wikipedia.org/wiki/Periodensystem
-        extract    10.5s  5 categories, 10 real + 3 fakes
+        extract    10.5s  12 pairs
         check       0.0s  ok
         review      1.8s  ok
-        explain     7.1s  13/13 answers explained
-        ACCEPTED  19s  periodensystem-zuordnung (5 cat / 13 items, medium)
+        explain     7.1s  12/12 answers explained
+        ACCEPTED  19s  periodensystem-zuordnung (12 pairs, medium)
         -> 1/10 accepted  |  0 dropped  |  0 skipped  |  ~3m01s left  |  20s elapsed
 ```
 
@@ -154,23 +154,24 @@ Every run writes two files to `tools/ingest/out/`:
 
 | File | For |
 | --- | --- |
-| `ingest-<stamp>.md` | **Reading.** Each question laid out with its categories, answers, source link and a checklist of its fakes. Rejected articles are tabled with the reason. |
+| `ingest-<stamp>.md` | **Reading.** Each question laid out as its pairings, with the source link and each answer's explanation. Rejected articles are tabled with the reason. |
 | `ingest-<stamp>.json` | The machine record — the exact payload, for re-processing or diffing. |
 
 The Markdown is built for the one question nothing automatic can answer: **is
-each fake really a fake?** A model will happily list a genuine member of a
-category among the fakes, and that produces a question which marks a correct
-player wrong. `validate.py` cannot see it; a person with the source open can, in
-about ten seconds per question.
+each pairing actually true?** A model will happily pair a plausible answer with
+the wrong category, and the result is a question that marks a correct player
+wrong. `validate.py` cannot see it; a person with the source open can, in about
+ten seconds per question.
 
 ## Which articles it tries
 
 The goal is general knowledge worth learning, not whoever is in the news this
 week, and the default source is built for that.
 
-A Zuordnungsfrage needs several categories, each holding two or more members of
-the same kind. That single requirement is what separates a good source article
-from a bad one, and `sources/strategies.py` attacks it from four directions.
+A Zuordnungsfrage needs ten or more things of one kind, each paired with exactly
+one thing of another — countries and their capitals, elements and their symbols.
+That single requirement is what separates a good source article from a bad one,
+and `sources/strategies.py` attacks it from four directions.
 `--source` picks one:
 
 | strategy | draws from | why |
@@ -213,9 +214,9 @@ Two filters then run **before** any model call, because that is still where
 the time goes — roughly 12s per call on a GPU, minutes on CPU:
 
 - **Biographies are skipped** (`--include-people` to keep them). A matching
-  question needs several categories each holding two or more members of the same
-  kind, and a life story has no such structure — asked for one anyway, the model
-  either declines or invents categories to fill the shape. German Wikipedia
+  question needs ten or more clean pairings of the same kind, and a life story
+  has no such structure — asked for one anyway, the model either declines or
+  invents pairings to fill the shape. German Wikipedia
   files every biography under `Kategorie:Mann`/`Frau`/`Geboren`, which makes this
   a reliable test that costs no extra request. It also excludes Mozart, which is
   a real cost, not an oversight.
@@ -284,7 +285,7 @@ START ─▶ extract ─▶ check ──(clean)──▶ review ──(clean)─
 
 | node | what it does | cost |
 | --- | --- | --- |
-| `extract` | one model call: categories, items, fakes, subject, difficulty | slow |
+| `extract` | one model call: the pairings, subject, difficulty | slow |
 | `check` | `validate.py` — is it well-formed? | free |
 | `review` | second model call, fresh context — is it *true*? | slow |
 | `repair` | re-ask with the previous answer and the complaints attached | — |
@@ -326,14 +327,14 @@ per article).
 ```
 [  7/40] Kaffee
         88,932 chars from https://de.wikipedia.org/wiki/Kaffee
-        extract    11.2s  3 categories, 8 real + 3 fakes
-        check       0.0s  1 problem(s): 16 items, playable range is 8-14
+        extract    11.2s  16 pairs
+        check       0.0s  1 problem(s): 16 pairs, playable range is 10-14
         repair      0.0s  retrying, attempt 2
-        extract     9.8s  3 categories, 6 real + 2 fakes
+        extract     9.8s  11 pairs
         check       0.0s  ok
         review      2.1s  ok
-        explain     6.9s  8/8 answers explained
-        ACCEPTED   30s  kaffee-zuordnung (3 cat / 8 items, medium)
+        explain     6.9s  11/11 answers explained
+        ACCEPTED   30s  kaffee-zuordnung (11 pairs, medium)
 ```
 
 That is enough to tell a bad article from a bad prompt from a flaky model, which
@@ -348,8 +349,8 @@ is the local replacement.
 
 ## What the model is asked for
 
-One call produces the whole question — categories, items, fakes, the subject it
-belongs to, and a difficulty rating. Those are one judgement, not four.
+One call produces the whole question — the pairings, the subject it belongs to,
+and a difficulty rating. Those are one judgement, not three.
 
 Two things make a 9B model workable here:
 
@@ -370,41 +371,32 @@ The model can also decline outright: `usable: false` with a reason, for articles
 that hold no clean set of pairings. That is a verdict, not a defect, so it stops
 immediately rather than burning the remaining attempts arguing with it.
 
-## What makes a good extra answer
+## What makes a good pairing
 
-The items with no category are the whole mechanic, and what they should be is
-easy to get wrong.
-
-An extra answer is **not nonsense and not invented**. It is a genuinely correct
-answer of exactly the same kind as the real ones — from the same subject, the
-same shape, the same length — for a category that simply is not on the board:
+A question is a **one-to-one pairing**: every category holds exactly one answer,
+every answer belongs to exactly one category, and there is nothing else on the
+board.
 
 ```
-Categories:      Deutschland   Frankreich   Italien
-Real answers:    Berlin        Paris        Rom
-
-Good extra:  Madrid      ← a real capital, looks identical to the others,
-                           but there is no "Spanien" category to put it in
-Bad extra:   Erdbeere    ← nobody hesitates for a second; the slot is wasted
+Deutschland  ─  Berlin
+Frankreich   ─  Paris
+Italien      ─  Rom
+Spanien      ─  Madrid
 ```
 
-The rule the model is given: *"which answer would be correct if there were one
-more category — the one that isn't here? Use that."*
+An earlier version put extra answers on the board that belonged to no category —
+`Madrid` with no `Spanien` to put it in. It was removed. The failure was not the
+idea but the judging: telling a genuinely plausible decoy from one that secretly
+belongs to a listed category is exactly the thing a model gets wrong, and when
+it got it wrong the question marked a correct player as wrong. A strict pairing
+has no such failure mode, because there is no answer whose correct home is "none
+of these".
 
-Two ways it goes wrong, and they are different problems:
-
-| | what happens | severity | effect |
-| --- | --- | --- | --- |
-| **`bad_fake`** | secretly belongs to a listed category | breaks the game — marks a correct player wrong | **blocks** — sent round the repair loop |
-| **`weak_fake`** | obvious nonsense nobody would pick | wastes a slot, makes the question easier | reported only, for you to judge |
-
-**A weak fake does not reject the question, on purpose.** It is a quality nit,
-not a correctness defect, and glm4 judges it badly: on Photosynthese it called
-`Oxidation`, then `Phototrophie`, then `Elektronendonatoren` obvious nonsense —
-all ordinary terms from the article's own subject. Each rejection made the
-generator swap in another perfectly good extra, which the reviewer then rejected
-too. Blocking on that costs a sound question every time and never converges, so
-it is named in the Markdown report and left to you.
+What it costs is worth knowing: **the last placement of a round is forced.** Once
+every answer but one is placed, the last has one home left, and whoever the
+rotation lands on takes a point for reading what is left. That is a property of
+strict pairing, not a bug in any one question, and it is the game's problem
+rather than the ingest's.
 
 ## Two gates before writing
 
@@ -413,40 +405,26 @@ it is named in the Markdown report and left to you.
 Prompt rules are a request; this is the enforcement. Cheap, local, no model
 call. A question is rejected unless:
 
-- 2–10 categories, each with at least one item
-- **8–14 answers in total**, at least 2 of them real, 1–6 extras
-- no duplicate items or category labels (case-insensitive)
-- **no extra answer that is also listed as a real one** (plain string match —
-  the semantic version of this check is the reviewer's job)
-- no item that reuses a category label
-- items of at most 4 words
+- **10–14 pairs** — categories, answers and pairings are all the same count
+- no duplicate answers or category labels (case-insensitive)
+- no answer that reuses a category label
+- answers of at most 4 words
 - a known `subject_slug`, a valid difficulty, a URL-safe slug
 
-**8–14 answers is a design target, not a safety limit** — the one bound here
-that is. Fewer than eight and the round is over before the turn has gone round a
-lobby of five; more than fourteen and it stops fitting on a phone.
+**10–14 is a design target, not a safety limit** — the one bound here that is.
 
-The consequence matters: an article that cannot support eight well-sourced
-answers is **not** a small question, it is not a question, and the run moves on.
-The prompt says this explicitly and tells the model to answer `usable: false`
-instead — because the alternative, a model padding the board to reach the
-number, is exactly the failure this is meant to prevent. Rejecting an article is
-cheap; a question containing an invented fact is not.
+The floor is what makes a round worth playing. Turns go round the table one
+placement at a time, so at six pairs a lobby of five has barely a turn each
+before the board is empty. The ceiling is the phone, where the frontend stacks
+categories in a single column, and fourteen answers is already a lot to read at
+a glance.
 
-**The two ceilings interact.** Every category needs at least one real answer, so
-10 categories means at least 10 real answers — and with 14 the maximum, a full
-board leaves room for only 4 fakes. A JSON Schema cannot express "the sum across
-these two arrays", so the grammar can emit a 10-category question with 6 fakes
-that the validator then rejects. That is what the repair loop is for, and the
-prompt warns about it directly.
-
-The category ceiling is 10 rather than something smaller because **one-to-one
-question types can only grow sideways.** A country has exactly one capital and
-an invention one inventor, so those questions cannot be deepened by adding
-answers to a category — at a ceiling of 6 they topped out around 9 answers and
-could never reach the top of the range. The cost is real: the frontend stacks
-categories in a single column on a phone, and 10 categories also means 11 choices
-on every decision, counting "this one is a fake".
+The consequence of the floor matters: an article that cannot support ten
+well-sourced pairs is **not** a small question, it is not a question, and the run
+moves on. The prompt says this explicitly and tells the model to answer
+`usable: false` instead — because the alternative, a model padding the board to
+reach the number, is exactly the failure this is meant to prevent. Rejecting an
+article is cheap; a question containing an invented fact is not.
 
 `rules.py` holds the bounds once, shared by the JSON Schema and the validator so
 the two can never drift apart.
@@ -455,8 +433,7 @@ Slug collisions are resolved by the tool, not the model: `-2`, `-3`, and so on.
 
 ### 2. Content — `review_step`
 
-Structure says nothing about truth. Whether Chlorophyll really is a *Farbstoff*,
-or whether a listed fake is secretly a real member of one of the categories,
+Structure says nothing about truth. Whether Chlorophyll really is a *Farbstoff*
 needs reading comprehension — so a **second model call** re-reads the article
 and judges the finished question.
 
@@ -466,10 +443,9 @@ model to re-check its own transcript mostly gets you agreement with itself. That
 is enforced by the prompt's shape rather than by discipline — `REVIEW` has no
 `MessagesPlaceholder`, so there is nowhere for a transcript to be passed.
 
-It judges four things: are the real answers under the right categories; does an
-extra answer secretly belong to one of them (`bad_fakes`); is an extra answer
-obvious nonsense rather than a near-miss (`weak_fakes`); and is anything simply
-untrue.
+It judges two things: is every answer under the right category, and is anything
+simply untrue. Both are about the pairings, which since the board holds nothing
+else is the whole question.
 
 Its findings are phrased as complaints and feed the same repair loop, so a
 failed review costs another generation attempt rather than dropping the article.

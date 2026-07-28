@@ -285,7 +285,17 @@ class LobbyView(BaseModel):
     subject_names: list[str] = []
     round_index: int = 0
     round_count: int = 0
+    # The short settling round after the last question, played only by whoever
+    # the rotation short-changed over the game. `round_index` is meaningless
+    # while this is true -- it is not one of the numbered rounds.
+    is_catch_up: bool = False
+    # Turns still owed, by player, during that round. Empty otherwise.
+    catch_up_left: dict[UUID, int] = {}
     current_player_id: UUID | None = None
+    # Who plays after the current player. Sent rather than derived on the client
+    # because `players` is the seating order, not the *playing* order: whoever is
+    # knocked out or disconnected is skipped, and only the server knows which.
+    next_player_id: UUID | None = None
     # Seconds until the next round starts. Only set while status is `reviewing`.
     review_seconds_left: int | None = None
     # Seconds the player on the clock has left to place an answer, and how long

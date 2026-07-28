@@ -132,7 +132,7 @@ def _mutate(code: str):
             announce = _view(lobby)
 
     if announce is not None:
-        realtime.publish(announce.code, announce.version)
+        realtime.publish(announce)
 
 
 @contextmanager
@@ -146,7 +146,7 @@ def _mutate_if_present(code: str):
             announce = _view(lobby)
 
     if announce is not None:
-        realtime.publish(announce.code, announce.version)
+        realtime.publish(announce)
 
 
 def edit(code: str):
@@ -235,12 +235,19 @@ def start_game(
         if not pools:
             raise ConflictError("The chosen subjects contain no questions.")
 
-        quiz_slugs = draw_balanced(pools, round_count)
+        # One more than asked for: the last is held back for the settling round
+        # at the end, which is only played if the arithmetic left someone short.
+        # A pool with nothing spare simply yields no extra, and then there is no
+        # settling round -- which is why this is drawn rather than required.
+        drawn = draw_balanced(pools, round_count + 1)
+        quiz_slugs = drawn[:round_count]
+        spare_slug = drawn[round_count] if len(drawn) > round_count else None
         subject_names = _subject_names(subject_slugs)
 
         # Load every question up front, so a content problem surfaces now
         # rather than halfway through a game.
         rounds = [_load_round(slug) for slug in quiz_slugs]
+        lobby.catch_up_round = _load_round(spare_slug) if spare_slug else None
 
         lobby.subject_names = subject_names
         lobby.quiz_slugs = quiz_slugs
@@ -249,6 +256,9 @@ def start_game(
         lobby.round_index = 0
         lobby.last_move = None
         lobby.turn_seconds = turn_seconds
+        lobby.turn_credits = {}
+        lobby.in_catch_up = False
+        lobby.catch_up_left = {}
         for candidate in lobby.players:
             candidate.score = 0
         _begin_round(lobby, rounds[0])
@@ -268,6 +278,10 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         lobby.subject_names = []
         lobby.finished_rounds = []
         lobby.solved = {}
+        lobby.turn_credits = {}
+        lobby.catch_up_round = None
+        lobby.in_catch_up = False
+        lobby.catch_up_left = {}
         lobby.round_index = 0
         lobby.turn_cursor = 0
         lobby.review_until = None
@@ -453,6 +467,7 @@ def submit_turn(
         lobby.history.append(lobby.last_move)
         del lobby.history[:-MAX_HISTORY]
 
+        _spend_catch_up(lobby, player)
         _advance_turn(lobby)
         _arm_turn_clock(lobby)
         # A move resets the clock, so the previous player's expiry never lands
@@ -479,6 +494,9 @@ def _begin_round(lobby: Lobby, round_: Round) -> None:
     # Rotate the starting player each round so the same person is not always
     # first at the easy items.
     lobby.turn_cursor = lobby.round_index % max(len(lobby.players), 1)
+    # After the cursor is set, because who is owed what depends on where the
+    # rotation starts.
+    _credit_turns(lobby)
     _arm_turn_clock(lobby)
 
 
@@ -514,6 +532,11 @@ def _enforce_turn_deadline(lobby: Lobby) -> bool:
         return False
 
     player.is_active = False
+    # Spent even though the clock took it: the turn was theirs and they had it.
+    # Not doing this would leave a credit outstanding in a settling round that
+    # they can no longer play, and the round would have to end on the knockout
+    # instead -- true here, but only by accident.
+    _spend_catch_up(lobby, player)
     # Named so the table is told why the turn moved. `last_move` cannot say it:
     # a timeout has no item and no category, and making those optional to fit
     # would weaken a type that is right everywhere else.
@@ -521,6 +544,22 @@ def _enforce_turn_deadline(lobby: Lobby) -> bool:
     _advance_turn(lobby)
     _arm_turn_clock(lobby)
     return True
+
+
+def _spend_catch_up(lobby: Lobby, player: Player) -> None:
+    """Use up one of a player's owed turns, and retire them when they run out.
+
+    No-op outside a settling round. Inside one, running out is expressed as
+    being knocked out -- which is what keeps the rotation and the round-end
+    check from needing to know this round is different.
+    """
+    if not lobby.in_catch_up:
+        return
+
+    left = lobby.catch_up_left.get(player.id, 0) - 1
+    lobby.catch_up_left[player.id] = max(0, left)
+    if left <= 0:
+        player.is_active = False
 
 
 def _advance_turn(lobby: Lobby) -> None:
@@ -638,6 +677,52 @@ def _solution_of(current: Round, solved: dict[UUID, UUID]) -> list[ResolvedPair]
     ]
 
 
+def _credit_turns(lobby: Lobby) -> None:
+    """Record how many turns this round's rotation owes each seat.
+
+    Turns go round the table one placement at a time, so unless the board size
+    divides by the player count the seats at the front of the order are asked
+    more questions than the ones at the back. With eleven pairs and four
+    players the first three seats get three turns and the fourth gets two --
+    an extra scoring chance handed out by arithmetic rather than by play.
+
+    This is the ledger for that, and it is written when the round *starts*,
+    from the board and the rotation offset alone. Nothing that happens during
+    the round changes it: a player knocked out on their first answer is still
+    credited the turns the rotation had for them, because losing those was the
+    rules working. What is settled up afterwards is only ever the arithmetic.
+    """
+    current = lobby.current_round
+    count = len(lobby.players)
+    if current is None or count == 0:
+        return
+
+    base, extra = divmod(len(current.items), count)
+    for offset in range(count):
+        player = lobby.players[(lobby.turn_cursor + offset) % count]
+        owed = base + (1 if offset < extra else 0)
+        lobby.turn_credits[player.id] = lobby.turn_credits.get(player.id, 0) + owed
+
+
+def _catch_up_owed(lobby: Lobby) -> dict[UUID, int]:
+    """Turns each player is short of the best-served seat. Empty when level.
+
+    Only players still in the lobby -- someone who left is owed nothing, and
+    including them would keep a settling round open for a seat nobody is in.
+    """
+    present = {player.id for player in lobby.players}
+    credits = {
+        player_id: got
+        for player_id, got in lobby.turn_credits.items()
+        if player_id in present
+    }
+    if not credits:
+        return {}
+
+    best = max(credits.values())
+    return {pid: best - got for pid, got in credits.items() if got < best}
+
+
 def _maybe_finish_round(lobby: Lobby) -> None:
     """End the round when every item is placed, or nobody is left to place one."""
     current = lobby.current_round
@@ -668,12 +753,12 @@ def _maybe_finish_round(lobby: Lobby) -> None:
         )
     )
 
-    # After the last round there is nothing to hold the screen *before*, and the
-    # final scoreboard carries every round's answers anyway -- so no review.
-    if lobby.round_index + 1 >= len(lobby.rounds):
+    if not _has_another_round(lobby):
         lobby.status = LobbyStatus.finished
         lobby.current_round = None
         lobby.review_until = None
+        lobby.in_catch_up = False
+        lobby.catch_up_left = {}
         return
 
     # `current_round` deliberately stays loaded: the board with its answers in
@@ -682,12 +767,78 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     lobby.review_until = datetime.now(UTC) + REVIEW_FOR
 
 
+def _has_another_round(lobby: Lobby) -> bool:
+    """Is there anything to play after the one that just ended?
+
+    Either another question from the game's draw, or -- once those are gone --
+    the settling round, if the arithmetic left anybody short.
+    """
+    if lobby.round_index + 1 < len(lobby.rounds):
+        return True
+    if lobby.in_catch_up or lobby.catch_up_round is None:
+        return False
+    return bool(_catch_up_owed(lobby))
+
+
 def _end_review(lobby: Lobby) -> None:
-    """Leave the review and start the next round."""
+    """Leave the review and start whatever comes next."""
     lobby.review_until = None
-    lobby.round_index += 1
     lobby.status = LobbyStatus.playing
-    _begin_round(lobby, lobby.rounds[lobby.round_index])
+
+    if lobby.round_index + 1 < len(lobby.rounds):
+        lobby.round_index += 1
+        _begin_round(lobby, lobby.rounds[lobby.round_index])
+        return
+
+    _begin_catch_up(lobby)
+
+
+def _begin_catch_up(lobby: Lobby) -> None:
+    """Start the short settling round that evens out the turns.
+
+    Everyone the arithmetic short-changed over the game gets exactly the turns
+    they were missing, and nobody else plays. It is one board like any other,
+    but most of it goes unplayed -- with four players and five rounds the whole
+    thing is usually two or three placements.
+
+    The mechanism is deliberately the knockout flag rather than a new one.
+    Players with nothing owed are simply not active for this round, so the
+    existing rotation skips them, `_maybe_finish_round` ends the round when the
+    last owed turn is spent, and none of that machinery had to learn about
+    settling rounds at all.
+    """
+    owed = _catch_up_owed(lobby)
+    if not owed or lobby.catch_up_round is None:
+        # `_has_another_round` already refused both of these, so reaching here
+        # means the two disagree. Ending the game is the safe reading -- an
+        # `assert` would be stripped under -O and leave `current_round` None in
+        # a lobby that believes it is playing.
+        lobby.status = LobbyStatus.finished
+        lobby.current_round = None
+        lobby.in_catch_up = False
+        lobby.catch_up_left = {}
+        return
+
+    lobby.in_catch_up = True
+    lobby.catch_up_left = dict(owed)
+    lobby.current_round = lobby.catch_up_round
+    lobby.solved = {}
+    lobby.timed_out = None
+    lobby.history = []
+
+    for player in lobby.players:
+        player.is_active = owed.get(player.id, 0) > 0
+
+    # Whoever is furthest behind opens it. Any seat would do -- everyone here
+    # plays a fixed number of turns whatever the order -- but starting with the
+    # player who was short-changed most reads as the point of the round.
+    lobby.turn_cursor = 0
+    ranked = sorted(owed.items(), key=lambda pair: -pair[1])
+    if ranked:
+        lobby.turn_cursor = _index_of(lobby, ranked[0][0])
+    if _current_player(lobby) is None:
+        _advance_turn(lobby)
+    _arm_turn_clock(lobby)
 
 
 def _subject_names(subject_slugs: list[str]) -> list[str]:
@@ -720,7 +871,16 @@ def _view(lobby: Lobby) -> LobbyView:
     # the cursor would still name a player during the between-rounds review,
     # and their client would arm the board against a round that is over.
     current_player = _current_player(lobby) if lobby.status is LobbyStatus.playing else None
+    # Who is up after them, so a player can see their turn coming rather than
+    # only discovering it has arrived. None when they would be up again
+    # themselves, which is not "next" in any useful sense.
+    next_player_id = _next_active_id(lobby, exclude=None) if current_player else None
+    if next_player_id == (current_player.id if current_player else None):
+        next_player_id = None
     return LobbyView(
+        next_player_id=next_player_id,
+        is_catch_up=lobby.in_catch_up,
+        catch_up_left=dict(lobby.catch_up_left),
         current_player_quiet=_is_quiet(lobby, current_player),
         code=lobby.code,
         status=lobby.status,

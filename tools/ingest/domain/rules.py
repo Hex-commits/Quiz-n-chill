@@ -18,11 +18,14 @@ exactly one home left.
 
 # Categories, answers, and pairings are all the same count.
 #
-# 6 to 10: enough that a lobby of five each take a turn with something left to
-# play for, few enough that the categories still fit on a phone, where the
-# frontend stacks them in a single column.
-MIN_PAIRS = 6
-MAX_PAIRS = 10
+# 10 to 14. The floor is what makes a round worth playing: turns go round the
+# table one placement at a time, so at six pairs a lobby of five has barely a
+# turn each before the board is empty. The ceiling is the phone, where the
+# frontend stacks categories in a single column.
+#
+# Was 6 to 10, and 6 was too few for the size a lobby actually is.
+MIN_PAIRS = 10
+MAX_PAIRS = 14
 
 # Kept as aliases because the two read differently at their call sites -- the
 # grammar constrains a list of categories, the validator counts answers -- and

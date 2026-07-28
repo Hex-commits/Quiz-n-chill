@@ -9,6 +9,7 @@ than merely untidy.
 import pytest
 
 from tools.ingest.domain.models import GeneratedPair, GeneratedQuestion
+from tools.ingest.domain.rules import MAX_PAIRS, MIN_PAIRS
 from tools.ingest.domain.validate import slugify, validate
 
 SUBJECTS = {"geografie", "musik"}
@@ -20,11 +21,15 @@ CAPITALS = [
     ("Spanien", "Madrid"),
     ("Portugal", "Lissabon"),
     ("Österreich", "Wien"),
+    ("Niederlande", "Amsterdam"),
+    ("Belgien", "Brüssel"),
+    ("Polen", "Warschau"),
+    ("Tschechien", "Prag"),
 ]
 
 
 def question(**overrides) -> GeneratedQuestion:
-    """A valid question: six clean pairs."""
+    """A valid question: ten clean pairs, the smallest a question may be."""
     base = dict(
         usable=True,
         subject_slug="geografie",
@@ -135,26 +140,27 @@ def test_a_term_used_as_both_category_and_answer_is_rejected():
 # -- size ----------------------------------------------------------------
 
 
+def sized(n: int) -> list:
+    return pairs(*[(f"Land {i}", f"Stadt {i}") for i in range(n)])
+
+
 def test_too_few_pairs_is_rejected_and_offers_the_way_out():
-    """Five pairs is not a small question; the right answer is to decline the
-    article, and the complaint has to say so."""
-    problems = check(pairs=pairs(*CAPITALS[:5]))
+    """A question below the floor is not a small question; the right answer is
+    to decline the article, and the complaint has to say so."""
+    problems = check(pairs=sized(MIN_PAIRS - 1))
     complaint = next(p for p in problems if "playable range" in p)
 
-    assert "6-10" in complaint
+    assert f"{MIN_PAIRS}-{MAX_PAIRS}" in complaint
     assert "usable to false" in complaint
 
 
 def test_too_many_pairs_is_rejected():
-    many = [(f"Land {i}", f"Stadt {i}") for i in range(11)]
-
-    assert any("playable range" in p for p in check(pairs=pairs(*many)))
+    assert any("playable range" in p for p in check(pairs=sized(MAX_PAIRS + 1)))
 
 
-def test_ten_pairs_is_the_ceiling_and_is_allowed():
-    ten = [(f"Land {i}", f"Stadt {i}") for i in range(10)]
-
-    assert check(pairs=pairs(*ten)) == []
+def test_the_floor_and_the_ceiling_are_both_allowed():
+    assert check(pairs=sized(MIN_PAIRS)) == []
+    assert check(pairs=sized(MAX_PAIRS)) == []
 
 
 # -- answers -------------------------------------------------------------

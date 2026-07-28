@@ -20,7 +20,7 @@ from app.errors import ConflictError
 from app.schemas import LobbyStart, LobbyStatus
 from app.services import lobbies
 
-from tests.test_lobbies import DE, ES, FR, items_of, make_round  # noqa: F401
+from tests.test_lobbies import DE, ES, FR, IT, items_of, make_round  # noqa: F401
 from tests.test_lobbies import clean_store  # noqa: F401  -- the autouse fixture
 
 
@@ -171,7 +171,8 @@ def test_the_clock_does_not_run_during_a_review():
     items = items_of(code)
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
-    view = lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    view = lobbies.submit_turn(code, ben, items["Rom"], IT)
 
     assert view.status is LobbyStatus.reviewing
     assert view.turn_seconds_left is None
@@ -184,6 +185,7 @@ def test_the_new_round_starts_the_clock_again():
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, ben, items["Rom"], IT)
 
     view = lobbies.skip_review(code, anna)
 
