@@ -1,3 +1,32 @@
+# Vercel's Python builder treats any pyproject.toml as a uv project and runs
+# `uv lock`, which fails outright without a `[project]` table -- so this file
+# has to declare the dependencies even though Docker installs them from
+# requirements.txt. `test_packaging.py` asserts the two lists agree, because two
+# copies of a dependency list drift the moment nobody is checking.
+[project]
+name = "quiz-quiz-api"
+version = "0.2.0"
+description = "Zuordnungsfragen API: the only thing holding the answer key."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "pydantic>=2.8,<3.0",
+    "pydantic-settings>=2.4,<3.0",
+    "supabase>=2.6,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "ruff>=0.6,<1.0",
+]
+
+# An application, not a library. Without this uv tries to build and install it
+# as a wheel, which needs a build backend and a src layout it does not have.
+[tool.uv]
+package = false
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
