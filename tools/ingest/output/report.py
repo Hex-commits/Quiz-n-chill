@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..sources.wikimedia_images import commons_page, commons_url
+
 DIFFICULTY_MARK = {"easy": "🟢 easy", "medium": "🟡 medium", "hard": "🔴 hard"}
 
 
@@ -26,8 +28,11 @@ def render_markdown(payload: dict[str, Any], *, model: str = "", generated_at: s
 
     lines: list[str] = ["# Ingest run", ""]
 
+    pictures = sum(1 for record in accepted if record.get("images"))
+
     meta = [
-        f"- **Questions accepted:** {len(accepted)}",
+        f"- **Questions accepted:** {len(accepted)}"
+        + (f" ({pictures} with pictures)" if pictures else ""),
         f"- **Rejected:** {len(rejected)}",
         f"- **Written to the database:** {'yes' if committed else 'no (dry run)'}",
     ]
@@ -82,6 +87,8 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
     difficulty = DIFFICULTY_MARK.get(question.get("difficulty", ""), question.get("difficulty", "?"))
 
     pairs = question.get("pairs", [])
+    images = record.get("images") or {}
+    flipped = record.get("flipped", False)
 
     lines = [
         f"### {index}. {title}",
@@ -92,6 +99,9 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
         f"- **Source:** [{article.get('title', 'source')}]({article.get('url', '')})  ",
         f"- **Size:** {len(pairs)} pairs",
     ]
+    if images:
+        turned = " · pairing was flipped to put the pictures on the answers" if flipped else ""
+        lines.append(f"- **Answers:** pictures{turned}")
     if written:
         lines.append(f"- **Written:** quiz `{written.get('quiz_id', '')}`")
     lines.append("")
@@ -101,18 +111,45 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
 
     explanations = question.get("explanations") or {}
 
-    lines += ["| Category | Answer | Why |", "| --- | --- | --- |"]
-    for pair in pairs:
-        answer = pair.get("answer", "?")
-        why = explanations.get(answer, "")
-        lines.append(f"| **{pair.get('label', '?')}** | {answer} | {why} |")
-    lines.append("")
+    if images:
+        # Thumbnails, because nothing automatic can look at a photograph. The
+        # pipeline can tell you the pairing is right and cannot tell you the
+        # picture shows the thing -- so the picture has to be on the page.
+        lines += ["| Bild | Category | Answer | Licence |", "| --- | --- | --- | --- |"]
+        for pair in pairs:
+            answer = pair.get("answer", "?")
+            image = images.get(answer)
+            cell = "—"
+            if image:
+                file = image.get("file", "")
+                credit = (image.get("credit") or "—").replace("|", "/")[:34]
+                cell = (
+                    f"[![{answer}]({commons_url(file, width=200)})]({commons_page(file)})"
+                )
+                licence = f"{image.get('licence','?')}<br><sub>{credit}</sub>"
+            else:
+                licence = "—"
+            lines.append(f"| {cell} | **{pair.get('label','?')}** | {answer} | {licence} |")
+        lines.append("")
+        lines += [
+            f"- [ ] Every picture actually shows the answer beside it",
+            "- [ ] Every answer is an instance of what the question asks for",
+            f"- [ ] All {len(pairs)} pairings check out against the source",
+            "",
+        ]
+    else:
+        lines += ["| Category | Answer | Why |", "| --- | --- | --- |"]
+        for pair in pairs:
+            answer = pair.get("answer", "?")
+            why = explanations.get(answer, "")
+            lines.append(f"| **{pair.get('label', '?')}** | {answer} | {why} |")
+        lines.append("")
 
-    lines += [
-        f"- [ ] All {len(pairs)} pairings check out against the source",
-        "- [ ] No answer would fit a second category on this board",
-        "",
-    ]
+        lines += [
+            f"- [ ] All {len(pairs)} pairings check out against the source",
+            "- [ ] No answer would fit a second category on this board",
+            "",
+        ]
     lines += _render_review(record.get("review"))
     lines += _render_steps(record.get("steps"))
     lines += ["---", ""]

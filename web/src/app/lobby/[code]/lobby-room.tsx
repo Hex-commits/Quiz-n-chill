@@ -10,6 +10,7 @@ import {
   History,
   Loader2,
   LogOut,
+  RotateCcw,
   Timer,
   Users,
   WifiOff,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { CategoryPicture, ImageCredit } from "@/components/category-image";
 import { ApiErrorNotice } from "@/components/api-error-notice";
 import { SoundToggle } from "@/components/sound-toggle";
 import { DifficultyBadge, SourceLink } from "@/components/source-link";
@@ -44,14 +46,28 @@ import {
   submitTurn,
 } from "@/lib/api";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
+import { forgetPlayed, NO_PLAYED, playedSlugs, rememberPlayed } from "@/lib/played";
 import { subscribeToLobby } from "@/lib/realtime";
 // Aliased: this file already has a `play(categoryId)` that places an answer.
 // Both take a string, so an unaliased import shadows silently and every cue
 // becomes an attempt to place the selected item into a category called
 // "yourTurn".
-import { play as playCue, unlock } from "@/lib/sound";
+import {
+  HURRY_FROM,
+  play as playCue,
+  playCountdown,
+  unlock,
+} from "@/lib/sound";
 import { deadlineFrom, reconcileDeadline, useCountdown } from "@/lib/use-countdown";
-import type { LobbyView, ResolvedPair, Subject } from "@/lib/types";
+import type {
+  CategoryImage,
+  Difficulty,
+  LastMove,
+  LobbyView,
+  ResolvedPair,
+  SolvedItem,
+  Subject,
+} from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +89,14 @@ const ROUND_CHOICES = [3, 5, 7, 10];
 // timer.
 const TURN_CHOICES = [15, 30, 45, 60];
 
+// Ordered easiest first, which is the order people reason about them in --
+// `Object.keys` on the counts would follow whatever the API happened to send.
+const DIFFICULTY_CHOICES: { level: Difficulty; label: string }[] = [
+  { level: "easy", label: "Easy" },
+  { level: "medium", label: "Medium" },
+  { level: "hard", label: "Hard" },
+];
+
 export function LobbyRoom({
   code,
   subjects,
@@ -91,6 +115,14 @@ export function LobbyRoom({
   );
   const [roundCount, setRoundCount] = useState(5);
   const [turnSeconds, setTurnSeconds] = useState(30);
+  // All three to begin with, so the default game is the whole pool. Unticking
+  // the last one is refused below -- a game with no questions in it is not a
+  // choice anyone means to make, and the API rejects it anyway.
+  const [difficulties, setDifficulties] = useState<Difficulty[]>([
+    "easy",
+    "medium",
+    "hard",
+  ]);
 
   // Polling and turn submission race: a poll started before a turn can land
   // after it and show pre-turn state. Applying only newer versions fixes it.
@@ -235,21 +267,65 @@ export function LobbyRoom({
     }
   }, [lobby, isMyTurn]);
 
+  // Remember what this browser has now seen, so the next game prefers something
+  // else. Recorded from `finished_rounds` rather than from `quiz_slugs` at the
+  // start, because a game that is abandoned in round one has not "played" the
+  // four rounds it drew -- and burning them would retire the pool for nothing.
+  //
+  // Runs on every device in the lobby, not only the host's. Only the host's
+  // list is sent when starting, but any of them may host the next game.
+  useEffect(() => {
+    if (!lobby) return;
+    rememberPlayed(lobby.finished_rounds.map((round) => round.slug));
+  }, [lobby]);
+
   // The closing seconds, and only for the player they belong to -- everyone
-  // else is watching, and a clock ticking for somebody else's turn is noise.
+  // else is watching, and a clock counting down somebody else's turn is noise.
+  //
+  // The cue escalates with the number rather than repeating, so the last five
+  // seconds are heard as running out rather than as passing. See `HURRY` in
+  // lib/sound.
   useEffect(() => {
     if (!isMyTurn) return;
-    if (turnSecondsLeft === null || turnSecondsLeft <= 0 || turnSecondsLeft > 5) {
-      return;
-    }
-    playCue("tick");
+    if (turnSecondsLeft === null || turnSecondsLeft <= 0) return;
+    if (turnSecondsLeft > HURRY_FROM) return;
+    playCountdown(turnSecondsLeft);
   }, [turnSecondsLeft, isMyTurn]);
+
+  // What this browser has already seen. `useStored` takes a separate server
+  // snapshot, so SSR and hydration agree instead of flashing.
+  //
+  // It deliberately does not subscribe to localStorage, so nothing re-reads on
+  // its own. The reset button is the only thing that changes the value while
+  // the page is up, and the state bump below is what makes React look again.
+  const [, forgetTick] = useState(0);
+  const played = useStored(playedSlugs, NO_PLAYED);
+
+  // How many questions the chosen subjects hold at one rating. Shown beside each
+  // box so an empty tick is visibly empty rather than quietly shortening the
+  // game.
+  const countAt = (level: Difficulty) =>
+    subjects
+      .filter((subject) => chosenSubjects.includes(subject.slug))
+      .reduce((total, subject) => total + (subject.difficulty_counts[level] ?? 0), 0);
 
   // Lets the host see when they have asked for more rounds than the chosen
   // subjects can supply, rather than silently getting a shorter game.
+  //
+  // Counted per difficulty rather than from `quiz_count`, or ticking one box off
+  // would leave this claiming a pool the draw no longer has -- and this number
+  // is exactly what the round count is chosen against.
   const availableQuestions = subjects
     .filter((subject) => chosenSubjects.includes(subject.slug))
-    .reduce((total, subject) => total + subject.quiz_count, 0);
+    .reduce(
+      (total, subject) =>
+        total +
+        difficulties.reduce(
+          (sum, level) => sum + (subject.difficulty_counts[level] ?? 0),
+          0,
+        ),
+      0,
+    );
 
   async function act(fn: () => Promise<LobbyView>) {
     // Every path through here starts with a click, which is the only moment a
@@ -415,6 +491,53 @@ export function LobbyRoom({
 
               <Separator />
 
+              {/*
+                Which ratings may be drawn. Ticked rather than a single choice
+                because "easy and medium" is the common want and a three-way
+                radio cannot say it.
+              */}
+              <div className="space-y-2">
+                <Label>Difficulty</Label>
+                <div className="flex flex-wrap gap-x-6 gap-y-3">
+                  {DIFFICULTY_CHOICES.map(({ level, label }) => {
+                    const onlyOneLeft =
+                      difficulties.length === 1 && difficulties.includes(level);
+                    return (
+                      <div key={level} className="flex items-start gap-3">
+                        <Checkbox
+                          id={`difficulty-${level}`}
+                          checked={difficulties.includes(level)}
+                          // Refused rather than hidden: the box stays where it
+                          // is and simply will not turn off, which reads as a
+                          // rule instead of as a bug. A game with no questions
+                          // in it is not a choice worth offering.
+                          disabled={onlyOneLeft}
+                          onCheckedChange={(checked) =>
+                            setDifficulties((current) =>
+                              checked
+                                ? [...current, level]
+                                : current.filter((each) => each !== level),
+                            )
+                          }
+                        />
+                        <Label
+                          htmlFor={`difficulty-${level}`}
+                          className="font-normal"
+                        >
+                          {label}
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {countAt(level)}
+                          </span>
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="space-y-2">
                 <Label>Rounds</Label>
                 <div className="flex flex-wrap gap-2">
@@ -461,6 +584,41 @@ export function LobbyRoom({
                   wrong answer.
                 </p>
               </div>
+
+              {/*
+                Only worth showing once there is a history. A preference rather
+                than a promise, which the wording has to carry: the server falls
+                back to played questions when nothing new is left, and a big
+                question is never counted as used up because it deals a
+                different board each time.
+              */}
+              {played.length > 0 ? (
+                <div className="space-y-2">
+                  <Label>Already played</Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-muted-foreground text-sm">
+                      {played.length} question{played.length === 1 ? "" : "s"}{" "}
+                      will be kept back where possible.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        forgetPlayed();
+                        forgetTick((n) => n + 1);
+                      }}
+                    >
+                      <RotateCcw className="size-4" aria-hidden />
+                      Reset
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Remembered on this device only, and used up once nothing new
+                    is left.
+                  </p>
+                </div>
+              ) : null}
             </CardContent>
             <CardFooter>
               <Button
@@ -473,6 +631,8 @@ export function LobbyRoom({
                       chosenSubjects,
                       roundCount,
                       turnSeconds,
+                      played,
+                      difficulties,
                     ),
                   )
                 }
@@ -585,12 +745,25 @@ export function LobbyRoom({
                   <dl className="space-y-1 pl-9">
                     {finished.solution.map((pair) => (
                       <div key={pair.category_label}>
-                        <dt className="flex flex-wrap items-baseline gap-2">
+                        <dt className="flex flex-wrap items-center gap-2">
+                          {pair.image ? (
+                            <span className="size-10 shrink-0 overflow-hidden rounded-(--radius-sm)">
+                              <CategoryPicture
+                                image={pair.image}
+                                label={pair.category_label}
+                              />
+                            </span>
+                          ) : null}
                           <span className="text-muted-foreground">
                             {pair.category_label}
                           </span>
                           <span className="font-medium">{pair.item_label}</span>
                         </dt>
+                        {pair.image ? (
+                          <dd className="pl-12">
+                            <ImageCredit image={pair.image} />
+                          </dd>
+                        ) : null}
                         {pair.explanation ? (
                           <dd className="text-muted-foreground text-xs">
                             {pair.explanation}
@@ -635,14 +808,18 @@ export function LobbyRoom({
   //
   // Read off the round's move history rather than stored per category: the
   // server already sends every placement with the category it went into.
-  const wrongIn = (categoryId: string) =>
-    Array.from(
-      new Set(
-        lobby.history
-          .filter((move) => !move.was_correct && move.category_id === categoryId)
-          .map((move) => move.item_label),
-      ),
-    );
+  // Kept as whole moves rather than labels so the caller keeps the context of
+  // who guessed. De-duplicated by label: the same wrong answer tried twice on
+  // one category is one thing to show, not two.
+  const wrongIn = (categoryId: string) => {
+    const seen = new Set<string>();
+    return lobby.history.filter((move) => {
+      if (move.was_correct || move.category_id !== categoryId) return false;
+      if (seen.has(move.item_label)) return false;
+      seen.add(move.item_label);
+      return true;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -677,6 +854,7 @@ export function LobbyRoom({
               quiet={lobby.current_player_quiet}
               secondsLeft={reviewing ? secondsLeft : turnSecondsLeft}
               totalSeconds={reviewing ? null : lobby.turn_seconds}
+              deadline={reviewing ? null : turnDeadline}
             />
           </div>
 
@@ -769,7 +947,8 @@ export function LobbyRoom({
               ) : (
                 <>
                   {/* The answers are read across a room, so they are sized to
-                      be legible at a glance rather than packed in. */}
+                      be legible at a glance rather than packed in. Always words
+                      now: the photographs are the categories. */}
                   <div className="flex flex-wrap justify-center gap-2.5">
                     {round.remaining_items.map((item) => (
                       <Button
@@ -821,14 +1000,22 @@ export function LobbyRoom({
               // Matched by label because the solution is built from the round
               // that has just been dropped, so its category ids are no longer
               // to hand.
+              // Matched by label because the solution is built from the round
+              // that has just been dropped, so its category ids are no longer
+              // to hand. Guarded on a name existing: a picture round withholds
+              // them while it is being played, and `null === null` would match
+              // every card to the first pair.
               const reveal =
-                justFinished?.solution.find(
-                  (pair) => pair.category_label === category.label,
-                ) ?? null;
+                (category.label
+                  ? justFinished?.solution.find(
+                      (pair) => pair.category_label === category.label,
+                    )
+                  : null) ?? null;
               return (
                 <CategoryCard
                   key={category.id}
                   title={category.label}
+                  image={category.image}
                   solved={solved}
                   full={full}
                   wrong={wrongIn(category.id)}
@@ -958,7 +1145,7 @@ export function LobbyRoom({
                         aria-label="wrong"
                       />
                     )}
-                    <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-1.5">
                       <span className="text-muted-foreground">
                         {move.nickname}
                       </span>{" "}
@@ -988,6 +1175,78 @@ export function LobbyRoom({
  * moves every second rather than only when a request happens. The server still
  * owns the rule; this is the display, not the referee.
  */
+/**
+ * The turn clock as a bar that drains continuously.
+ *
+ * **Why it is not driven by `secondsLeft`.** That number is a whole second, so
+ * a width computed from it can only ever move in steps — which is what made
+ * this tick rather than run. Rounding it less would not help either: the
+ * component re-renders about twice a second, and anything smoother than that
+ * would mean re-rendering the whole bar on every frame to animate one number.
+ *
+ * So the browser is given the whole job instead. On a new deadline the fill is
+ * snapped to where the clock actually is, then transitioned to zero over
+ * exactly the remaining milliseconds, linearly. The compositor interpolates it
+ * at the display's refresh rate and React does not render again until the
+ * deadline changes. A backgrounded tab is handled for free: transitions run on
+ * wall-clock time, so the bar is where it should be on return rather than
+ * where it was when the timers stopped firing.
+ */
+function TimeBar({
+  deadline,
+  totalSeconds,
+  trackClass,
+  fillClass,
+}: {
+  deadline: number | null;
+  totalSeconds: number;
+  trackClass: string;
+  fillClass: string;
+}) {
+  const fill = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = fill.current;
+    if (!el) return;
+
+    // Colour is carried in the same declaration because an inline `transition`
+    // replaces the class-based one outright, and the fill has to keep fading to
+    // red under five seconds.
+    const colour = "background-color 300ms ease";
+
+    if (deadline === null) {
+      el.style.transition = colour;
+      el.style.width = "100%";
+      return;
+    }
+
+    const remaining = Math.max(0, deadline - Date.now());
+    const start = Math.min(100, (remaining / (totalSeconds * 1000)) * 100);
+
+    // Snap to the true position without animating the jump -- on a new turn
+    // that jump is from empty back to full, and transitioning it would show the
+    // bar refilling.
+    el.style.transition = "none";
+    el.style.width = `${start}%`;
+    // Forces the style above to be committed as its own value. Without it the
+    // browser coalesces both writes into one frame, sees only the final width,
+    // and there is nothing left to transition from.
+    void el.offsetWidth;
+
+    el.style.transition = `width ${remaining}ms linear, ${colour}`;
+    el.style.width = "0%";
+  }, [deadline, totalSeconds]);
+
+  return (
+    <span className={cn("h-1 w-16 overflow-hidden rounded-full", trackClass)} aria-hidden>
+      {/* No transition class: the effect owns the `transition` property, and an
+          inline one would replace whatever Tailwind put here. Colour is folded
+          into it there instead. */}
+      <span ref={fill} className={cn("block h-full w-full", fillClass)} />
+    </span>
+  );
+}
+
 function TurnBar({
   isMyTurn,
   isOut,
@@ -999,6 +1258,7 @@ function TurnBar({
   quiet,
   secondsLeft,
   totalSeconds,
+  deadline,
 }: {
   isMyTurn: boolean;
   /** Knocked out for the rest of this round — or, in a settling round, simply
@@ -1015,8 +1275,15 @@ function TurnBar({
   secondsLeft: number | null;
   /** What the clock started from, for the bar. Null while reviewing. */
   totalSeconds: number | null;
+  /**
+   * The wall-clock instant the turn ends. The bar needs this rather than
+   * `secondsLeft` — a whole number can only ever move the bar in steps.
+   */
+  deadline: number | null;
 }) {
-  const urgent = !reviewing && secondsLeft !== null && secondsLeft <= 5;
+  // Same threshold the countdown cue starts at, so what you see turning red
+  // and what you hear speeding up are one event rather than two near misses.
+  const urgent = !reviewing && secondsLeft !== null && secondsLeft <= HURRY_FROM;
 
   return (
     <div
@@ -1080,27 +1347,18 @@ function TurnBar({
             {secondsLeft}
           </span>
           {totalSeconds ? (
-            <span
-              className={cn(
-                "h-1 w-16 overflow-hidden rounded-full",
-                isMyTurn ? "bg-primary-foreground/25" : "bg-hairline",
-              )}
-              aria-hidden
-            >
-              <span
-                className={cn(
-                  "ease-(--ease-soft) block h-full transition-[width] duration-1000",
-                  isMyTurn
-                    ? "bg-primary-foreground"
-                    : urgent
-                      ? "bg-destructive"
-                      : "bg-primary",
-                )}
-                style={{
-                  width: `${Math.min(100, (secondsLeft / totalSeconds) * 100)}%`,
-                }}
-              />
-            </span>
+            <TimeBar
+              deadline={deadline}
+              totalSeconds={totalSeconds}
+              trackClass={isMyTurn ? "bg-primary-foreground/25" : "bg-hairline"}
+              fillClass={
+                isMyTurn
+                  ? "bg-primary-foreground"
+                  : urgent
+                    ? "bg-destructive"
+                    : "bg-primary"
+              }
+            />
           ) : null}
         </div>
       ) : null}
@@ -1110,6 +1368,7 @@ function TurnBar({
 
 function CategoryCard({
   title,
+  image,
   solved,
   full,
   wrong,
@@ -1118,16 +1377,19 @@ function CategoryCard({
   enterDelayMs,
   onPlace,
 }: {
-  title: string;
-  solved: { item_id: string; label: string }[];
+  /** Null while a picture round runs -- naming it answers the question. */
+  title: string | null;
+  /** The photograph, for a picture question. Null for a worded category. */
+  image: CategoryImage | null;
+  solved: SolvedItem[];
   /** Already holds its one answer, so it is done for this round. */
   full: boolean;
   /**
-   * Answers tried here and rejected. The category stays open and clickable —
-   * unlike `full`, a wrong guess costs the guesser their round but leaves the
-   * pairing unsolved for everyone else.
+   * Answers tried here and rejected, as the moves that placed them. The
+   * category stays open and clickable — unlike `full`, a wrong guess costs the
+   * guesser their round but leaves the pairing unsolved for everyone else.
    */
-  wrong: string[];
+  wrong: LastMove[];
   /** Set only between rounds: the answer and why, whether or not it was found. */
   reveal: ResolvedPair | null;
   armed: boolean;
@@ -1155,6 +1417,21 @@ function CategoryCard({
       onClick={armed ? onPlace : undefined}
       aria-disabled={full || undefined}
     >
+      {/*
+        The photograph IS the question, so it comes before anything else and
+        fills the card. `armed` is passed down because the whole card is a drop
+        target when an answer is selected -- see the note in `category-image`.
+      */}
+      {image ? (
+        <div className="px-6">
+          <CategoryPicture
+            image={image}
+            label={title ?? "Bild"}
+            armed={armed}
+            className="aspect-[4/3] w-full rounded-(--radius-sm)"
+          />
+        </div>
+      ) : null}
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           {full ? (
@@ -1163,8 +1440,17 @@ function CategoryCard({
               aria-hidden
             />
           ) : null}
-          {title}
+          {/*
+            Null while a picture round runs: naming the bridge answers the
+            question the photograph asks. The name arrives with the review.
+          */}
+          {title ?? (
+            <span className="text-muted-foreground font-normal">
+              Was ist das?
+            </span>
+          )}
         </CardTitle>
+        {image ? <ImageCredit image={image} /> : null}
       </CardHeader>
       <CardContent className="min-h-14 space-y-2">
         <div className="flex flex-wrap gap-2">
@@ -1179,8 +1465,8 @@ function CategoryCard({
               <p className="text-muted-foreground text-sm">Empty</p>
             ) : null
           ) : (
+            // Pops as it mounts, which is exactly when the answer lands.
             solved.map((item) => (
-              // Pops as it mounts, which is exactly when the answer lands.
               <Badge
                 key={item.item_id}
                 variant="secondary"
@@ -1207,14 +1493,14 @@ function CategoryCard({
           already been spent, and the table burns a turn each on the same one.
         */}
         {wrong.length > 0 ? (
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {wrong.map((label) => (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {wrong.map((move) => (
               <span
-                key={label}
+                key={move.item_label}
                 className="text-muted-foreground flex items-center gap-1 text-xs"
               >
                 <X className="text-destructive size-3 shrink-0" aria-hidden />
-                <span className="line-through">{label}</span>
+                <span className="line-through">{move.item_label}</span>
               </span>
             ))}
           </div>

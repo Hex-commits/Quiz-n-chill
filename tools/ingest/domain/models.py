@@ -179,6 +179,21 @@ def explanation_schema(answers: list[str]) -> dict:
     }
 
 
+# Bounded at decoding time rather than asked for in words. "Genau ein kurzer
+# Satz" in a prompt is a suggestion a 9B model ignores -- it returned three
+# sentences, one of them the prompt's own example pasted verbatim. A `maxLength`
+# in the grammar is not a suggestion.
+REFRAME_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["title", "description"],
+    "properties": {
+        "title": {"type": "string", "minLength": 3, "maxLength": 60},
+        "description": {"type": "string", "minLength": 3, "maxLength": 80},
+    },
+}
+
+
 REVIEW_SCHEMA = {
     "type": "object",
     "additionalProperties": False,

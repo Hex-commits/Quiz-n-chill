@@ -43,6 +43,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..domain.models import GeneratedQuestion, Review
 from ..sources.wikipedia import Article
 from .chains import skipped_review
+from .illustrate import flip, keep_illustrated
 # Aliased: `explain` is also the name of a node and of this module's
 # build_graph parameter, and the shadowing is silent until it bites.
 from .llm import explain as describe_failure
@@ -62,6 +63,11 @@ class IngestState(BaseModel):
     review: Review | None = None
     attempt: int = 1
     max_attempts: int = 3
+    # Set by `illustrate`: the pictures for this question's categories, keyed
+    # by category label, and whether the pairing was turned round to get them
+    # there. Empty means it stays a text question, which is not a failure.
+    images: dict = Field(default_factory=dict)
+    flipped: bool = False
     # Set when there is nothing left to repair -- the model declined, or the
     # transport failed. A verdict, not a defect: retrying only wastes calls.
     stop: bool = False
@@ -69,6 +75,9 @@ class IngestState(BaseModel):
     # than swallowed: the step is allowed to fail without costing the
     # question, but a silent failure hid a genuine bug once already.
     explain_error: str = ""
+    # Why illustration produced nothing, in words, for the trace.
+    illustrate_detail: str = ""
+    illustrate_error: str = ""
 
 
 class Outcome(BaseModel):
@@ -82,10 +91,18 @@ class Outcome(BaseModel):
     steps: list[str] = Field(default_factory=list)
     attempts: int = 1
     seconds: float = 0.0
+    # Pictures for the categories, keyed by category label. Empty for a text
+    # question, which is the common case and not a failure.
+    images: dict = Field(default_factory=dict)
+    flipped: bool = False
 
     @property
     def accepted(self) -> bool:
         return not self.problems
+
+    @property
+    def is_picture(self) -> bool:
+        return bool(self.images)
 
 
 def build_graph(
@@ -93,6 +110,8 @@ def build_graph(
     extract: Runnable,
     check: Runnable,
     review: Runnable | None = None,
+    illustrate: Runnable | None = None,
+    reframe: Runnable | None = None,
     explain: Runnable | None = None,
     repair: Runnable,
 ):
@@ -140,6 +159,56 @@ def build_graph(
             verdict = skipped_review(describe_failure(exc))
         return {"review": verdict, "problems": [] if verdict.ok else verdict.problems}
 
+    def illustrate_node(state: IngestState) -> dict:
+        """Decide whether this becomes a picture question. Never rejects.
+
+        A lookup failure is treated exactly like "no pictures found": the
+        question is already correct and already past both gates, so a Wikidata
+        outage must cost it its illustrations and nothing else.
+        """
+        try:
+            decision = illustrate.invoke(
+                {"question": state.question, "document": state.article}
+            )
+        except Exception as exc:  # noqa: BLE001 - decoration must not fail a question
+            return {"images": {}, "illustrate_error": describe_failure(exc)}
+
+        if not decision.is_picture:
+            return {"images": {}, "illustrate_detail": decision.detail}
+
+        question = state.question
+        if decision.flipped:
+            question = flip(question)
+        # After the flip, so the images are keyed by what is now the category.
+        question = keep_illustrated(question, decision)
+
+        # Renamed for *every* picture question, not only flipped ones. The
+        # model wrote "Ordne jedem Land seine Hauptstadt zu" for a board of
+        # words; played with photographs the player is not reading a capital,
+        # they are looking at one, and the instruction has to say so. A flip
+        # additionally makes the old title describe the wrong direction.
+        #
+        # Failing to rename is not worth losing the pictures over -- a stale
+        # title is a blemish, a lost board is not.
+        if reframe is not None:
+            try:
+                renamed = reframe.invoke({"question": question})
+                question = question.model_copy(
+                    update={
+                        "title": renamed["title"],
+                        "description": renamed["description"],
+                    }
+                )
+            except Exception:  # noqa: BLE001 - see above
+                pass
+
+        return {
+            "question": question,
+            "images": {label: image for label, image in decision.images.items()},
+            "flipped": decision.flipped,
+            "illustrate_detail": decision.detail,
+        }
+
     def explain_node(state: IngestState) -> dict:
         """One short line per answer. Never a gate.
 
@@ -171,6 +240,8 @@ def build_graph(
 
     def done(state: IngestState) -> str:
         """Where a question goes once nothing can reject it any more."""
+        if illustrate is not None:
+            return "illustrate"
         return "explain" if explain is not None else END
 
     def after_check(state: IngestState) -> str:
@@ -197,10 +268,19 @@ def build_graph(
     # question routes to `explain`, but a rejected one with no attempts left
     # goes straight to END from the same branch -- leave END out and LangGraph
     # raises `KeyError: '__end__'` on exactly that path.
-    exits = ["explain"] if explain is not None else []
+    # `illustrate` is where a clean question goes; `explain` is where it goes
+    # after that. Both are terminal decorations with one outgoing edge and no
+    # say in whether the question survives.
+    exits = []
     if explain is not None:
         builder.add_node("explain", explain_node)
         builder.add_edge("explain", END)
+    if illustrate is not None:
+        builder.add_node("illustrate", illustrate_node)
+        builder.add_edge("illustrate", "explain" if explain is not None else END)
+        exits = ["illustrate"]
+    elif explain is not None:
+        exits = ["explain"]
 
     if review is not None:
         builder.add_node("review", review_node)
@@ -283,6 +363,8 @@ def run_article(
         steps=steps,
         attempts=state.attempt,
         seconds=time.monotonic() - started,
+        images=dict(state.images),
+        flipped=state.flipped,
     )
 
 
@@ -305,6 +387,14 @@ def _describe(node: str, state: IngestState) -> str:
         if state.review is not None and state.review.skipped:
             return "skipped (reviewer unavailable)"
         return "ok" if not problems else f"{len(problems)} problem(s): {problems[0]}"
+
+    if node == "illustrate":
+        if state.illustrate_error:
+            return f"none -- {state.illustrate_error}"
+        if not state.images:
+            return state.illustrate_detail or "stays a text question"
+        kind = "flipped, " if state.flipped else ""
+        return f"{kind}{len(state.images)} categories illustrated"
 
     if node == "explain":
         if state.explain_error:

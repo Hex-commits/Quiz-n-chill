@@ -26,14 +26,19 @@ serverless host, where consecutive requests from one player land on different
 instances. With the in-process store it needs a single long-lived process.
 """
 
+import random
 import secrets
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from math import ceil
 from uuid import UUID, uuid4
 
 from app.errors import ConflictError, ValidationError
 from app.schemas import (
+    Category,
+    CategoryKind,
+    Difficulty,
     FinishedRound,
     ItemPublic,
     LastMove,
@@ -51,6 +56,7 @@ from app.services.lobby_store import LOBBY_TTL, build_store
 from app.services.quizzes import (
     get_quiz_solution,
     list_subjects,
+    pair_counts,
     pools_by_subject,
     source_of,
 )
@@ -92,6 +98,29 @@ QUIET_AFTER = timedelta(seconds=6)
 # the same reasoning as PRESENCE_TIMEOUT. The host can cut it short.
 REVIEW_SECONDS = 10
 REVIEW_FOR = timedelta(seconds=REVIEW_SECONDS)
+
+# How many pairs a round puts on the board. A question may hold many more --
+# a picture question built from a Wikidata category can easily reach thirty --
+# and dealing a random subset of them is what stops the same question being the
+# same board every time it comes up. With a pool this small that variety is
+# worth more than showing every pair.
+#
+# Ten because it fills the category grid without scrolling on a laptop, and
+# because a round of ten placements is about a minute and a half at 15s a turn.
+# A question with fewer pairs than this is dealt whole.
+BOARD_PAIRS = 10
+
+# At how many stored pairs a question stops counting as "already played".
+#
+# The board is a random subset, so a question with more pairs than it deals is
+# a different board next time. That is a matter of degree: at 11 pairs the
+# second board repeats 10 of the same 11 and the table will recognise it; at 15
+# the overlap is thin enough that it plays as a fresh question.
+#
+# One and a half boards is where that line is drawn. It also happens to sit just
+# above `MAX_PAIRS` in the ingest rules (14), so ordinary generated questions are
+# never exempt and only the big list-built ones are -- which is the intent.
+REPLAYABLE_PAIRS = BOARD_PAIRS * 3 // 2
 
 
 # The one instance the whole API shares. Built from configuration: shared
@@ -214,11 +243,23 @@ def start_game(
     subject_slugs: list[str],
     round_count: int = 5,
     turn_seconds: int = 30,
+    exclude_slugs: list[str] | None = None,
+    difficulties: list[Difficulty] | None = None,
 ) -> LobbyView:
     """Begin a game drawn from the chosen subjects.
 
     The host picks areas and a length, not specific questions -- which ones come
     up is decided here, spread evenly across the subjects.
+
+    `exclude_slugs` is what the host's browser remembers having played. The
+    server keeps no such record: it is a property of a group of friends on a
+    sofa, not of an account, and this game has no accounts. So it arrives with
+    the request, is used once, and is not stored.
+
+    It is a preference, not a filter -- see `draw_balanced`. Two things soften
+    it, because a request that cannot be satisfied must still produce a game:
+    questions big enough to deal a different board each time are never excluded,
+    and once the unplayed ones run out the played ones are used anyway.
     """
     with _mutate(code) as lobby:
         player = lobby.player(player_id)
@@ -231,15 +272,22 @@ def start_game(
         if len(lobby.players) < 2:
             raise ConflictError("At least two players are needed to start.")
 
-        pools = pools_by_subject(subject_slugs)
+        pools = pools_by_subject(subject_slugs, difficulties)
         if not pools:
-            raise ConflictError("The chosen subjects contain no questions.")
+            # Named separately because the two are fixed differently: one wants
+            # another subject, the other wants another difficulty ticked, and
+            # "no questions" leaves the host guessing which.
+            raise ConflictError(
+                "No questions at that difficulty in the chosen subjects."
+                if difficulties is not None and len(difficulties) < len(Difficulty)
+                else "The chosen subjects contain no questions."
+            )
 
         # One more than asked for: the last is held back for the settling round
         # at the end, which is only played if the arithmetic left someone short.
         # A pool with nothing spare simply yields no extra, and then there is no
         # settling round -- which is why this is drawn rather than required.
-        drawn = draw_balanced(pools, round_count + 1)
+        drawn = draw_balanced(pools, round_count + 1, avoid=_avoid(exclude_slugs))
         quiz_slugs = drawn[:round_count]
         spare_slug = drawn[round_count] if len(drawn) > round_count else None
         subject_names = _subject_names(subject_slugs)
@@ -483,7 +531,35 @@ def submit_turn(
 # ---------------------------------------------------------------------------
 
 
+def deal_board(round_: Round, rng: random.Random | None = None) -> Round:
+    """Cut a stored question down to the pairs this round will play.
+
+    Returns a new `Round` rather than mutating: the loaded question is reused
+    every time the quiz comes up, so trimming it in place would make the second
+    game a subset of the first, and the third a subset of that.
+
+    Which pairs are dropped is random, which is the point -- a thirty-pair
+    picture question is a different board every game. Categories keep their
+    written order, because `position` is how the question was meant to read and
+    sampling returns them shuffled.
+    """
+    if len(round_.categories) <= BOARD_PAIRS:
+        return round_
+
+    rng = rng or random.Random()
+    keep = {c.id for c in rng.sample(round_.categories, BOARD_PAIRS)}
+    return replace(
+        round_,
+        categories=[c for c in round_.categories if c.id in keep],
+        items=[i for i in round_.items if i.category_id in keep],
+    )
+
+
 def _begin_round(lobby: Lobby, round_: Round) -> None:
+    # Dealt before anything reads the board: `_credit_turns` below sizes the
+    # turn ledger from `len(current.items)`, so it has to see the played board
+    # rather than the stored question.
+    round_ = deal_board(round_)
     lobby.current_round = round_
     lobby.solved = {}
     lobby.timed_out = None
@@ -669,6 +745,7 @@ def _solution_of(current: Round, solved: dict[UUID, UUID]) -> list[ResolvedPair]
         ResolvedPair(
             category_label=category.label,
             item_label=item.label,
+            image=category.image,
             explanation=item.explanation,
             solved_by=solved.get(item.id),
         )
@@ -821,7 +898,7 @@ def _begin_catch_up(lobby: Lobby) -> None:
 
     lobby.in_catch_up = True
     lobby.catch_up_left = dict(owed)
-    lobby.current_round = lobby.catch_up_round
+    lobby.current_round = deal_board(lobby.catch_up_round)
     lobby.solved = {}
     lobby.timed_out = None
     lobby.history = []
@@ -841,6 +918,25 @@ def _begin_catch_up(lobby: Lobby) -> None:
     _arm_turn_clock(lobby)
 
 
+def _avoid(exclude_slugs: list[str] | None) -> frozenset[str]:
+    """Which of the caller's played questions to actually keep out of the draw.
+
+    Big questions are dropped from the exclusion rather than honoured: they deal
+    a different board every time, so treating one as used up would retire the
+    richest questions in the pool fastest -- the opposite of what a "don't repeat
+    things" rule is for.
+
+    The count query is skipped entirely when nothing was excluded, which is the
+    common case (a first game, or a browser with no history).
+    """
+    if not exclude_slugs:
+        return frozenset()
+    counts = pair_counts()
+    return frozenset(
+        slug for slug in exclude_slugs if counts.get(slug, 0) < REPLAYABLE_PAIRS
+    )
+
+
 def _subject_names(subject_slugs: list[str]) -> list[str]:
     """Display names for the chosen subjects, so the lobby can show them."""
     by_slug = {subject.slug: subject.name for subject in list_subjects()}
@@ -850,6 +946,7 @@ def _subject_names(subject_slugs: list[str]) -> list[str]:
 def _load_round(slug: str) -> Round:
     row, categories, items = get_quiz_solution(slug)
     return Round(
+        category_kind=CategoryKind(row.get("category_kind") or CategoryKind.text),
         quiz_id=UUID(row["id"]),
         slug=row["slug"],
         title=row["title"],
@@ -946,6 +1043,15 @@ def _is_quiet(lobby: Lobby, current_player: Player | None) -> bool:
     return datetime.now(UTC) - current_player.last_seen > QUIET_AFTER
 
 
+def replace_label(category: Category, label: str | None) -> Category:
+    """A copy of `category` with a different name, leaving the original alone.
+
+    The round is held for the whole game and re-read on every poll, so blanking
+    a name in place would blank it for the review as well.
+    """
+    return category.model_copy(update={"label": label})
+
+
 def _round_view(lobby: Lobby) -> RoundView | None:
     current = lobby.current_round
     if current is None:
@@ -953,13 +1059,31 @@ def _round_view(lobby: Lobby) -> RoundView | None:
 
     # Unsolved items carry no category: that is still the answer. Only items
     # already placed correctly reveal where they belong.
+    #
+    # And on a picture round the categories carry no *name* while it is being
+    # played. "Albert Bridge" printed above a photograph of the Albert Bridge
+    # answers the question the photograph was chosen to ask -- and for most
+    # picture questions it gives the paired answer away too, since the name of a
+    # bridge tends to name its city. The names come back the moment the round
+    # ends, which is the whole point of the pause.
+    #
+    # Only while `playing`: the review reads these same categories and has to
+    # show what everything was.
+    hide_names = (
+        current.category_kind is CategoryKind.image
+        and lobby.status is LobbyStatus.playing
+    )
     return RoundView(
         quiz_id=current.quiz_id,
         slug=current.slug,
         title=current.title,
         description=current.description,
         difficulty=current.difficulty,
-        categories=current.categories,
+        category_kind=current.category_kind,
+        categories=[
+            replace_label(category, None) if hide_names else category
+            for category in current.categories
+        ],
         remaining_items=[
             ItemPublic(id=item.id, label=item.label)
             for item in current.items

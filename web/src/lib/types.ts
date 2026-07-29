@@ -21,14 +21,32 @@ export interface Source {
   title: string | null;
 }
 
+/**
+ * A photograph on a category, and the credit that has to appear under it.
+ *
+ * `src` is a ready-to-load Commons URL. Credit and licence are always present:
+ * a category is the board, shown from the first frame, so there is nothing to
+ * time the attribution against — and CC BY-SA requires it wherever the work
+ * appears.
+ */
+export interface CategoryImage {
+  src: string;
+  credit: string | null;
+  licence: string | null;
+  licence_url: string | null;
+}
+
 export interface Category {
   id: string;
   label: string;
   position: number;
+  /** The photograph, for a picture question. Null for a worded category. */
+  image: CategoryImage | null;
 }
 
 export interface Item {
   id: string;
+  /** Always present. Answers are words for every kind of question. */
   label: string;
 }
 
@@ -43,6 +61,11 @@ export interface Subject {
   description: string | null;
   position: number;
   quiz_count: number;
+  /**
+   * How `quiz_count` splits by rating. Absent keys mean none at that rating, so
+   * read it with `?? 0` — the API omits empty buckets rather than sending zeros.
+   */
+  difficulty_counts: Partial<Record<Difficulty, number>>;
 }
 
 export interface QuizSummary {
@@ -129,6 +152,7 @@ export interface SolvedItem {
 export interface LastMove {
   player_id: string;
   nickname: string;
+  /** Always named: answers are words, readable in the pool either way. */
   item_label: string;
   /** Where it was placed — always a real category, right or wrong. */
   category_id: string;
@@ -139,6 +163,8 @@ export interface LastMove {
 export interface ResolvedPair {
   category_label: string;
   item_label: string;
+  /** The category's photograph, so the review shows what was being asked. */
+  image: CategoryImage | null;
   /** Why it belongs there. Null for questions seeded before the explain step. */
   explanation: string | null;
   /** Who placed it, or null if the round ended with this one still open. */
@@ -161,6 +187,8 @@ export interface RoundView {
   title: string;
   description: string | null;
   difficulty: Difficulty;
+  /** "image" means every category is a photograph. Answers are words either way. */
+  category_kind: "text" | "image";
   categories: Category[];
   /** Still unplaced, and carrying no hint of where they belong. */
   remaining_items: Item[];

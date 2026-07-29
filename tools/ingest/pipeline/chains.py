@@ -21,6 +21,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..domain.models import (
+    REFRAME_SCHEMA,
     REVIEW_SCHEMA,
     Extraction,
     GeneratedQuestion,
@@ -29,8 +30,9 @@ from ..domain.models import (
     question_schema,
 )
 from ..domain.validate import slugify, validate
+from .illustrate import Illustration, illustrate
 from .llm import structured
-from .prompts import EXPLAIN, EXTRACT, REPAIR, REVIEW
+from .prompts import EXPLAIN, EXTRACT, REFRAME, REPAIR, REVIEW
 
 # A 9B model with an 8K context degrades badly on long inputs, and the lead
 # section carries the factual pairings anyway.
@@ -268,6 +270,44 @@ def as_explanations(raw: dict, question: GeneratedQuestion) -> dict[str, str]:
         if label and why and label not in out:
             out[label] = why
     return out
+
+
+# -- illustrate ----------------------------------------------------------
+
+
+def illustrate_step(provider) -> Runnable:
+    """`{question, document}` -> `Illustration`. No model call.
+
+    The only step that reaches an `ImageProvider`, and the only one that decides
+    what *kind* of question this is. It never rejects: a question with no usable
+    pictures simply stays a text question, which is why it sits after both gates
+    rather than beside them.
+    """
+
+    def decide(state: dict) -> Illustration:
+        return illustrate(state["question"], state["document"], provider)
+
+    return RunnableLambda(decide).with_config(run_name="illustrate")
+
+
+def reframe_step(model) -> Runnable:
+    """`{question}` -> `{title, description}` for a flipped pairing.
+
+    Runs only on a flip, which is why it is the cheapest model call in the
+    pipeline by frequency. The pairs go in already reversed and come back
+    untouched -- nothing reads a pair out of this reply, so the model cannot
+    change the question by answering it badly, only name it badly.
+    """
+
+    def prepare(state: dict) -> dict:
+        return {
+            "pairs": _render_pairs(state["question"]),
+            "title": state["question"].title,
+        }
+
+    return (
+        RunnableLambda(prepare) | REFRAME | structured(model, REFRAME_SCHEMA)
+    ).with_config(run_name="reframe")
 
 
 # -- repair --------------------------------------------------------------

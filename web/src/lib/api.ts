@@ -9,6 +9,7 @@
 import type {
   Assignment,
   CheckResult,
+  Difficulty,
   LobbyIdentity,
   LobbyView,
   QuizDetail,
@@ -195,6 +196,10 @@ export function markAway(code: string, playerId: string): void {
 /**
  * Start a game. The host chooses subjects and a length; the server picks which
  * questions come up, spread evenly across those subjects.
+ *
+ * `excludeSlugs` is what this browser remembers having played. It is a
+ * preference the server applies within each subject, not a filter — see
+ * `lib/played.ts`.
  */
 export function startGame(
   code: string,
@@ -202,6 +207,8 @@ export function startGame(
   subjectSlugs: string[],
   roundCount: number,
   turnSeconds: number,
+  excludeSlugs: string[] = [],
+  difficulties: Difficulty[] = ["easy", "medium", "hard"],
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/start`, {
     method: "POST",
@@ -210,6 +217,8 @@ export function startGame(
       subject_slugs: subjectSlugs,
       round_count: roundCount,
       turn_seconds: turnSeconds,
+      exclude_slugs: excludeSlugs,
+      difficulties,
     }),
   });
 }

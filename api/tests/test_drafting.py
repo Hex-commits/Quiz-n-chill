@@ -87,3 +87,77 @@ def test_the_same_seed_reproduces_the_same_draw():
     a = draw_balanced(POOLS, 5, rng=random.Random(42))
     b = draw_balanced(POOLS, 5, rng=random.Random(42))
     assert a == b
+
+
+# -- avoiding what has already been played -----------------------------------
+#
+# A soft cap, not a filter. The client remembers what this group has played and
+# sends it along; the draw prefers anything else, but a table that has worked
+# through the pool must still get a game.
+
+
+def test_an_unplayed_question_is_preferred_over_a_played_one():
+    played = {"geo-1", "geo-2", "mus-1", "mus-2", "spo-1", "spo-2"}
+
+    drawn = draw_balanced(POOLS, 3, rng=random.Random(4), avoid=played)
+
+    assert set(drawn) == {"geo-3", "mus-3", "spo-3"}
+
+
+def test_played_questions_come_back_once_nothing_new_is_left():
+    """The soft half. Dropping them outright would leave a group that has played
+    everything with a three-round game they asked five rounds for."""
+    everything = {slug for pool in POOLS.values() for slug in pool}
+
+    drawn = draw_balanced(POOLS, 6, rng=random.Random(5), avoid=everything)
+
+    assert len(drawn) == 6
+
+
+def test_the_new_ones_are_still_used_first_when_topping_up():
+    played = {"geo-1", "geo-2", "geo-3", "mus-1", "mus-2", "spo-1"}
+    fresh = {"mus-3", "spo-2", "spo-3"}
+
+    drawn = draw_balanced(POOLS, 5, rng=random.Random(6), avoid=played)
+
+    assert len(drawn) == 5
+    assert fresh <= set(drawn)
+
+
+def test_avoiding_everything_still_spreads_across_subjects():
+    """The preference is within a subject, never across. Letting one subject
+    drop out because its questions are played would trade a repeat for a much
+    more noticeable loss of variety."""
+    everything = {slug for pool in POOLS.values() for slug in pool}
+
+    drawn = draw_balanced(POOLS, 6, rng=random.Random(7), avoid=everything)
+
+    assert set(spread(drawn)) == {"geo", "mus", "spo"}
+
+
+def test_no_question_is_drawn_twice_even_when_avoided():
+    everything = {slug for pool in POOLS.values() for slug in pool}
+
+    drawn = draw_balanced(POOLS, 9, rng=random.Random(8), avoid=everything)
+
+    assert len(set(drawn)) == 9
+
+
+def test_an_empty_avoid_set_changes_nothing():
+    seed = random.Random(9)
+    plain = draw_balanced(POOLS, 5, rng=random.Random(9))
+
+    assert draw_balanced(POOLS, 5, rng=seed, avoid=set()) == plain
+
+
+def test_the_choice_among_played_questions_is_still_random():
+    """Sorting to the back must not make the fallback deterministic, or a group
+    that has played everything sees the same game every time."""
+    everything = {slug for pool in POOLS.values() for slug in pool}
+
+    seen = {
+        tuple(draw_balanced(POOLS, 3, rng=random.Random(seed), avoid=everything))
+        for seed in range(12)
+    }
+
+    assert len(seen) > 1

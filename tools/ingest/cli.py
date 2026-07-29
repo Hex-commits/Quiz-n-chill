@@ -36,10 +36,13 @@ from .output.store import (
     subjects,
     write_question,
 )
+from .sources.wikimedia_images import WikimediaImages
 from .pipeline.chains import (
     check_step,
     explain_step,
     extract_step,
+    illustrate_step,
+    reframe_step,
     repair_step,
     review_step,
 )
@@ -159,6 +162,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--no-pictures",
+        action="store_true",
+        help=(
+            "Skip illustration. Every question stays a text question; no "
+            "Wikidata or Commons calls are made."
+        ),
+    )
+    parser.add_argument(
         "--no-review",
         action="store_true",
         help="Skip the second model pass that checks the content against the article.",
@@ -258,6 +269,7 @@ def main(argv: list[str] | None = None) -> int:
         "extract",
         "check",
         *([] if args.no_review else ["review"]),
+        *([] if args.no_pictures else ["illustrate"]),
         *([] if args.no_explain else ["explain"]),
     ]
     print("=" * 72)
@@ -280,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
         extract=extract_step(model, sorted(subject_slugs)),
         check=check_step(subject_slugs=subject_slugs, taken_slugs=taken_slugs),
         review=None if args.no_review else review_step(model),
+        illustrate=None if args.no_pictures else illustrate_step(WikimediaImages()),
+        reframe=None if args.no_pictures else reframe_step(model),
         explain=None if args.no_explain else explain_step(model),
         repair=repair_step(),
     )
@@ -369,6 +383,12 @@ def main(argv: list[str] | None = None) -> int:
                     "problems": outcome.problems,
                     "review": outcome.review.model_dump() if outcome.review else None,
                     "steps": outcome.steps,
+                    # Keyed by category label, so the report can put each picture
+                    # beside the pairing it belongs to.
+                    "images": {
+                        label: asdict(image) for label, image in outcome.images.items()
+                    },
+                    "flipped": outcome.flipped,
                 }
 
                 if outcome.problems:
@@ -379,13 +399,15 @@ def main(argv: list[str] | None = None) -> int:
                     # worker: the Supabase client is shared and the ordered
                     # insert-with-rollback is not worth making concurrent.
                     if args.commit:
-                        written = write_question(db, question, article)
+                        written = write_question(db, question, article, outcome.images)
                         record["written"] = asdict(written)
                         verb = "WRITTEN"
                         detail = f"{written.items} pairs"
                     else:
                         verb = "ACCEPTED"
                         detail = f"{len(question.pairs)} pairs"
+                    if outcome.is_picture:
+                        detail += ", pictures" + (" (flipped)" if outcome.flipped else "")
                     print(
                         f"         {verb}  {outcome.seconds:.0f}s  {question.slug} "
                         f"({detail}, {question.difficulty})"

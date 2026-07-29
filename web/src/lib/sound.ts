@@ -50,6 +50,7 @@ const TONE_HZ = 2000;
 
 /** Equal temperament, A4 = 440. Named so the chords below can be read. */
 const N = {
+  C3: 130.81,
   G3: 196.0,
   A3: 220.0,
   C4: 261.63,
@@ -63,7 +64,11 @@ const N = {
   D5: 587.33,
   E5: 659.25,
   F5: 698.46,
+  Gb5: 739.99,
   G5: 783.99,
+  Ab5: 830.61,
+  A5: 880.0,
+  Bb5: 932.33,
   C6: 1046.5,
 } as const;
 
@@ -111,13 +116,6 @@ const CUES = {
   ],
 
   /**
-   * A soft low tock, not a beep. Under 200 Hz, very quiet, gone in a tenth of
-   * a second — closer to a clock in another room than an alarm. This is the
-   * cue that plays most often, and the one the old version got most wrong.
-   */
-  tick: [{ freq: N.G3, duration: 0.09, type: "sine", gain: 0.22 }],
-
-  /**
    * A perfect cadence, V–I: G major resolving to C major. The most settled
    * ending two chords can make, which is what the end of a round wants to say.
    */
@@ -150,6 +148,70 @@ const CUES = {
 } satisfies Record<string, Note[]>;
 
 export type Cue = keyof typeof CUES;
+
+/**
+ * The last five seconds of a turn, one entry per second remaining.
+ *
+ * The cue this replaces was a single soft tock at 196 Hz — identical every
+ * second, and written to be ignorable. That is the wrong instruction: five
+ * identical sounds say "time is passing", and what the player needs to hear is
+ * "time is *running out*".
+ *
+ * So every parameter moves in the same direction as the clock, and each is a
+ * device a listener already reads as tension without any of them being harsh:
+ *
+ * * **Pitch climbs** — C5 up to Bb5. Rising pitch is the oldest urgency signal
+ *   there is, and it means the five sounds form a line rather than a repetition.
+ * * **Dissonance arrives late** — from three seconds a minor second is stacked
+ *   on top, the interval two notes make when they are too close to agree. The
+ *   module's other cues are deliberately consonant; this is the one place where
+ *   discomfort is the message.
+ * * **It gets louder and drier** — gain rises, tails shorten. A long tail is
+ *   relaxed; a clipped one is not.
+ * * **The last two seconds double-strike** — two hits inside one second, so the
+ *   pulse itself accelerates even though the clock does not. A heart rate, not
+ *   a metronome.
+ *
+ * What deliberately does *not* change is the timbre. Still triangle and sine
+ * through the same 2 kHz lowpass, because a sawtooth would be louder in the way
+ * a smoke alarm is louder, and this plays five times a turn for a whole game.
+ * Urgency here is carried by *what* the notes are, never by making them shrill.
+ */
+const HURRY: Record<number, Note[]> = {
+  5: [
+    { freq: N.C5, duration: 0.16, gain: 0.28 },
+    { freq: N.C3, duration: 0.13, type: "sine", gain: 0.3 },
+  ],
+  4: [
+    { freq: N.D5, duration: 0.15, gain: 0.34 },
+    { freq: N.C3, duration: 0.13, type: "sine", gain: 0.34 },
+  ],
+  3: [
+    { freq: N.E5, duration: 0.14, gain: 0.4 },
+    { freq: N.F5, duration: 0.12, gain: 0.16 },
+    { freq: N.C3, duration: 0.13, type: "sine", gain: 0.38 },
+  ],
+  2: [
+    { freq: N.Gb5, duration: 0.12, gain: 0.46 },
+    { freq: N.G5, duration: 0.11, gain: 0.22 },
+    { freq: N.C3, duration: 0.12, type: "sine", gain: 0.42 },
+    // The second half of the beat. Same notes, quieter, a third of a second
+    // later -- the pulse doubling rather than a new event.
+    { freq: N.Gb5, duration: 0.1, delay: 0.3, gain: 0.32 },
+    { freq: N.C3, duration: 0.1, delay: 0.3, type: "sine", gain: 0.3 },
+  ],
+  1: [
+    { freq: N.A5, duration: 0.11, gain: 0.52 },
+    { freq: N.Bb5, duration: 0.1, gain: 0.3 },
+    { freq: N.C3, duration: 0.12, type: "sine", gain: 0.5 },
+    { freq: N.A5, duration: 0.1, delay: 0.26, gain: 0.42 },
+    { freq: N.Bb5, duration: 0.09, delay: 0.26, gain: 0.24 },
+    { freq: N.C3, duration: 0.1, delay: 0.26, type: "sine", gain: 0.4 },
+  ],
+};
+
+/** How many seconds out the countdown starts. Matches the `urgent` styling. */
+export const HURRY_FROM = 5;
 
 let context: AudioContext | null = null;
 let bus: GainNode | null = null;
@@ -225,6 +287,23 @@ export function unlock(): void {
 }
 
 export function play(cue: Cue): void {
+  sound(CUES[cue] as Note[]);
+}
+
+/**
+ * The urgency cue for one second of the closing countdown.
+ *
+ * Takes the seconds remaining rather than a cue name because the sound is
+ * different every second — that escalation is the whole point, and five named
+ * cues would only be this table with worse names. Anything outside the last
+ * five seconds is silent, so the caller does not have to guard the range twice.
+ */
+export function playCountdown(secondsLeft: number): void {
+  const notes = HURRY[secondsLeft];
+  if (notes) sound(notes);
+}
+
+function sound(notes: Note[]): void {
   ensureRestored();
   if (muted || typeof window === "undefined") return;
 
@@ -232,7 +311,7 @@ export function play(cue: Cue): void {
   if (!context || !bus || context.state !== "running") return;
 
   const now = context.currentTime;
-  for (const note of CUES[cue] as Note[]) {
+  for (const note of notes) {
     voice(context, bus, note, now);
   }
 }

@@ -71,11 +71,19 @@ def clean_store(monkeypatch):
     monkeypatch.setattr(lobbies, "_load_round", make_round)
     monkeypatch.setattr(lobbies, "_subject_names", lambda slugs: [s.title() for s in slugs])
     monkeypatch.setattr(
-        lobbies, "pools_by_subject", lambda slugs: {slug: [slug] for slug in slugs}
+        lobbies,
+        "pools_by_subject",
+        lambda slugs, difficulties=None: {slug: [slug] for slug in slugs},
     )
     monkeypatch.setattr(
-        lobbies, "draw_balanced", lambda pools, count: sorted(pools)[:count]
+        lobbies,
+        "draw_balanced",
+        lambda pools, count, avoid=frozenset(): sorted(pools)[:count],
     )
+    # Only reached when a caller actually excludes something, so most tests never
+    # touch it -- but it is a database call and the point of this fixture is that
+    # none of them happen.
+    monkeypatch.setattr(lobbies, "pair_counts", dict)
 
 
 def setup_game(nicknames=("Anna", "Ben"), slugs=("topic-a",), round_count=None):
@@ -985,3 +993,158 @@ def test_leaving_frees_a_slot_in_the_waiting_room():
 
     # The nickname is available again because Ben is really gone.
     lobbies.join_lobby(code, "Ben")
+
+
+# -- not repeating what this browser has already played ----------------------
+#
+# The record lives in the client, so it arrives with the request. Two things
+# soften it, and both are the point: a question big enough to deal a different
+# board every time is never counted as used up, and once nothing new is left the
+# played ones come back rather than the game being short.
+
+
+def test_a_played_question_is_kept_out_of_the_draw(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        lobbies,
+        "pools_by_subject",
+        lambda slugs, difficulties=None: {"topic-a": ["q1", "q2", "q3"]},
+    )
+    monkeypatch.setattr(lobbies, "pair_counts", lambda: {"q1": 10, "q2": 10, "q3": 10})
+
+    def spy(pools, count, avoid=frozenset()):
+        seen["avoid"] = avoid
+        return ["q3"] * count
+
+    monkeypatch.setattr(lobbies, "draw_balanced", spy)
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    lobbies.start_game(code, anna, ["topic-a"], 1, exclude_slugs=["q1", "q2"])
+
+    assert seen["avoid"] == {"q1", "q2"}
+
+
+def test_a_big_question_is_never_counted_as_played(monkeypatch):
+    """It deals a random subset, so the next board is a different one. Retiring
+    it would spend the richest questions in the pool first -- the opposite of
+    what a "don't repeat things" rule is for."""
+    seen = {}
+    monkeypatch.setattr(
+        lobbies,
+        "pools_by_subject",
+        lambda slugs, difficulties=None: {"topic-a": ["big", "small"]},
+    )
+    monkeypatch.setattr(
+        lobbies,
+        "pair_counts",
+        lambda: {"big": lobbies.REPLAYABLE_PAIRS, "small": lobbies.REPLAYABLE_PAIRS - 1},
+    )
+
+    def spy(pools, count, avoid=frozenset()):
+        seen["avoid"] = avoid
+        return ["big"] * count
+
+    monkeypatch.setattr(lobbies, "draw_balanced", spy)
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    lobbies.start_game(code, anna, ["topic-a"], 1, exclude_slugs=["big", "small"])
+
+    assert seen["avoid"] == {"small"}
+
+
+def test_an_unknown_slug_is_simply_excluded(monkeypatch):
+    """A browser's history outlives the questions in it: a slug that has since
+    been deleted must not be treated as an enormous question and let through."""
+    seen = {}
+    monkeypatch.setattr(
+        lobbies,
+        "pools_by_subject",
+        lambda slugs, difficulties=None: {"topic-a": ["q1"]},
+    )
+    monkeypatch.setattr(lobbies, "pair_counts", dict)
+
+    def spy(pools, count, avoid=frozenset()):
+        seen["avoid"] = avoid
+        return ["q1"] * count
+
+    monkeypatch.setattr(lobbies, "draw_balanced", spy)
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    lobbies.start_game(code, anna, ["topic-a"], 1, exclude_slugs=["gone"])
+
+    assert seen["avoid"] == {"gone"}
+
+
+def test_no_exclusions_costs_no_database_call(monkeypatch):
+    """The common case -- a first game, or a browser with no history. The count
+    query is skipped entirely rather than run and discarded."""
+    def boom():
+        raise AssertionError("pair_counts must not be called with nothing excluded")
+
+    monkeypatch.setattr(lobbies, "pair_counts", boom)
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    view = lobbies.start_game(code, anna, ["topic-a"], 1)
+
+    assert view.status is LobbyStatus.playing
+
+
+# -- drawing only the difficulties the host ticked ---------------------------
+
+
+def test_the_chosen_difficulties_reach_the_pool_query(monkeypatch):
+    from app.schemas import Difficulty
+
+    seen = {}
+
+    def spy(slugs, difficulties=None):
+        seen["difficulties"] = difficulties
+        return {"topic-a": ["q1"]}
+
+    monkeypatch.setattr(lobbies, "pools_by_subject", spy)
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    lobbies.start_game(code, anna, ["topic-a"], 1, difficulties=[Difficulty.easy])
+
+    assert seen["difficulties"] == [Difficulty.easy]
+
+
+def test_a_narrowed_pool_that_is_empty_says_which_knob_to_turn(monkeypatch):
+    """"No questions" would leave the host guessing between another subject and
+    another difficulty. They are fixed differently, so they are named
+    differently."""
+    from app.schemas import Difficulty
+
+    monkeypatch.setattr(lobbies, "pools_by_subject", lambda slugs, difficulties=None: {})
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+
+    with pytest.raises(ConflictError, match="at that difficulty"):
+        lobbies.start_game(code, anna, ["topic-a"], 1, difficulties=[Difficulty.hard])
+
+
+def test_an_empty_pool_with_every_difficulty_still_blames_the_subjects(monkeypatch):
+    from app.schemas import Difficulty
+
+    monkeypatch.setattr(lobbies, "pools_by_subject", lambda slugs, difficulties=None: {})
+
+    code, anna = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+
+    with pytest.raises(ConflictError, match="contain no questions"):
+        lobbies.start_game(code, anna, ["topic-a"], 1, difficulties=list(Difficulty))
+
+
+def test_asking_for_no_difficulty_at_all_is_refused():
+    """A game with nothing in it. The UI cannot produce this -- unticking the
+    last box is refused -- so it is a client bug, and the schema says so."""
+    from app.schemas import LobbyStart
+
+    with pytest.raises(PydanticValidationError):
+        LobbyStart(player_id=uuid4(), subject_slugs=["geografie"], difficulties=[])

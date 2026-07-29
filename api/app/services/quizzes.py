@@ -8,6 +8,7 @@ grades and returns, and that is the end of it.
 """
 
 import random
+from collections import Counter
 from uuid import UUID
 
 from app.db import get_client
@@ -15,7 +16,11 @@ from app.errors import ConflictError, NotFoundError
 from app.schemas import (
     Assignment,
     Category,
+    CategoryKind,
     CheckResult,
+    Difficulty,
+    ImagePublic,
+    ImageSource,
     ItemPublic,
     ItemResult,
     ItemSolution,
@@ -25,33 +30,46 @@ from app.schemas import (
     Source,
     Subject,
 )
+from app.services.images import commons_url
 from app.services.scoring import score_assignments
 
 # Two column sets on purpose. `QUIZ_COLUMNS` is what a player may see while
 # playing; the source lives only in `QUIZ_SOLUTION_COLUMNS`, alongside the answer
 # key, because a link to the source article is a link to the answers.
-QUIZ_COLUMNS = "id, slug, title, description, difficulty, created_at"
+QUIZ_COLUMNS = "id, slug, title, description, difficulty, category_kind, created_at"
 QUIZ_SOLUTION_COLUMNS = f"{QUIZ_COLUMNS}, source_url, source_title"
 QUIZ_WITH_SUBJECT = f"{QUIZ_COLUMNS}, subjects(slug, name)"
 SUBJECT_COLUMNS = "id, slug, name, description, position"
-CATEGORY_COLUMNS = "id, label, position"
+# The picture columns are player-facing here, unlike the item columns below: a
+# category is the board, so its photograph and the credit under it are shown
+# from the first frame.
+CATEGORY_COLUMNS = (
+    "id, label, position, image_file, image_credit, image_licence, image_licence_url"
+)
 # `explanation` gives the answer away, exactly like `source_url`, so it lives
 # only in the solution column list -- never in what `get_quiz` serves.
 ITEM_SOLUTION_COLUMNS = "id, label, position, category_id, explanation"
 
 
 def list_subjects() -> list[Subject]:
+    # The ratings come back rather than a bare count, so the split by difficulty
+    # can be tallied from the same query. One row per question instead of one
+    # number per subject, which is a fair trade at this size -- the whole pool is
+    # a few dozen questions -- and would be worth revisiting at a few thousand.
     response = (
         get_client()
         .table("subjects")
-        .select(f"{SUBJECT_COLUMNS}, quizzes(count)")
+        .select(f"{SUBJECT_COLUMNS}, quizzes(difficulty)")
         .order("position")
         .execute()
     )
     return [
         Subject(
             **{k: v for k, v in row.items() if k != "quizzes"},
-            quiz_count=_embedded_count(row, "quizzes"),
+            quiz_count=len(row.get("quizzes") or []),
+            difficulty_counts=Counter(
+                quiz["difficulty"] for quiz in (row.get("quizzes") or [])
+            ),
         )
         for row in response.data
     ]
@@ -74,17 +92,33 @@ def list_quizzes(subject_slugs: list[str] | None = None) -> list[QuizSummary]:
     return [_to_summary(row) for row in response.data]
 
 
-def pools_by_subject(subject_slugs: list[str]) -> dict[str, list[str]]:
+def pools_by_subject(
+    subject_slugs: list[str],
+    difficulties: list[Difficulty] | None = None,
+) -> dict[str, list[str]]:
     """Available question slugs per subject, for the balanced draw.
 
     Subjects that exist but hold no questions are dropped; a subject slug that
     does not exist at all is reported, because silently playing a shorter game
     than the host asked for is worse than an error.
+
+    `difficulties` narrows the pool to those ratings. None means all of them --
+    distinct from an empty list, which no caller should send and which would
+    correctly yield nothing.
+
+    Filtered here in Python rather than in the query: PostgREST applies a
+    condition on an embedded resource by nulling the embed out rather than
+    dropping the parent row, so the obvious `quizzes.difficulty=in.(...)` returns
+    every subject with `quizzes: null` and an empty pool. `!inner` fixes that but
+    then also drops subjects whose questions are all filtered away -- which is
+    information the caller wants to keep, since it is the difference between
+    "that subject is empty" and "that subject has nothing at this difficulty".
+    The pool is small enough that the distinction is worth more than the bytes.
     """
     response = (
         get_client()
         .table("subjects")
-        .select("slug, quizzes(slug)")
+        .select("slug, quizzes(slug, difficulty)")
         .in_("slug", subject_slugs)
         .execute()
     )
@@ -94,11 +128,27 @@ def pools_by_subject(subject_slugs: list[str]) -> dict[str, list[str]]:
     if missing:
         raise NotFoundError(f"Unknown subject(s): {', '.join(sorted(missing))}.")
 
+    wanted = None if difficulties is None else {str(d) for d in difficulties}
     pools = {
-        row["slug"]: [quiz["slug"] for quiz in (row.get("quizzes") or [])]
+        row["slug"]: [
+            quiz["slug"]
+            for quiz in (row.get("quizzes") or [])
+            if wanted is None or quiz.get("difficulty") in wanted
+        ]
         for row in response.data
     }
     return {slug: quizzes for slug, quizzes in pools.items() if quizzes}
+
+
+def pair_counts() -> dict[str, int]:
+    """How many pairs each question holds, by slug.
+
+    Used to decide which questions are worth replaying: one holding far more
+    pairs than a board deals is a different board every time it comes up, so
+    "already played" means much less for it. See `_replayable` in `lobbies`.
+    """
+    rows = get_client().table("quizzes").select("slug, items(count)").execute().data
+    return {row["slug"]: _embedded_count(row, "items") for row in rows}
 
 
 def _to_summary(row: dict) -> QuizSummary:
@@ -122,9 +172,13 @@ def get_quiz(quiz_ref: str) -> QuizDetail:
     # give the grouping away. Shuffle before it ever leaves the server.
     random.shuffle(shuffled)
 
+    # Single-player: the same rule as a lobby round, for the same reason. There
+    # is no reveal here -- `/check` returns the answer key -- so the names come
+    # back with the result.
+    hide_names = row.get("category_kind") == CategoryKind.image
     return QuizDetail(
         **row,
-        categories=[Category(**c) for c in categories],
+        categories=[public_category(c, hide_name=hide_names) for c in categories],
         items=[ItemPublic(id=item["id"], label=item["label"]) for item in shuffled],
     )
 
@@ -137,7 +191,68 @@ def get_quiz_solution(quiz_ref: str) -> tuple[dict, list[Category], list[ItemSol
     """
     row = _fetch_quiz_row(quiz_ref, with_source=True)
     categories, items = _fetch_parts(UUID(row["id"]))
-    return row, [Category(**c) for c in categories], [ItemSolution(**i) for i in items]
+    return (
+        row,
+        [public_category(c) for c in categories],
+        [item_solution(i) for i in items],
+    )
+
+
+def public_category(row: dict, *, hide_name: bool = False) -> Category:
+    """One category, with its photograph if it has one.
+
+    The picture and the credit under it always travel together, which is what
+    the licence requires. The *name* is withheld while a picture question is
+    being played: "Albert Bridge" printed above a photograph of the Albert
+    Bridge answers the question the photograph was chosen to ask.
+    """
+    source = image_of(row)
+    return Category(
+        id=row["id"],
+        label=None if hide_name else row["label"],
+        position=row["position"],
+        image=(
+            ImagePublic(
+                src=commons_url(source.file),
+                credit=source.credit,
+                licence=source.licence,
+                licence_url=source.licence_url,
+            )
+            if source
+            else None
+        ),
+    )
+
+
+def item_solution(row: dict) -> ItemSolution:
+    """Server-side view of one answer, including the category it belongs to."""
+    return ItemSolution(
+        id=row["id"],
+        label=row["label"],
+        position=row["position"],
+        category_id=row["category_id"],
+        explanation=row.get("explanation"),
+    )
+
+
+def image_of(row: dict) -> ImageSource | None:
+    """The picture on a category row, or None when it has none.
+
+    The four columns are flat in the database and nested above it on purpose: a
+    picture without its licence cannot legally be rendered, so the two travel
+    together everywhere above this line. The table's
+    `categories_image_is_complete` constraint is the other half of that promise.
+    """
+    file = row.get("image_file")
+    licence = row.get("image_licence")
+    if not file or not licence:
+        return None
+    return ImageSource(
+        file=file,
+        credit=row.get("image_credit"),
+        licence=licence,
+        licence_url=row.get("image_licence_url"),
+    )
 
 
 def source_of(row: dict) -> Source | None:
@@ -166,7 +281,7 @@ def check_assignment(quiz_ref: str, assignments: list[Assignment]) -> CheckResul
             )
         assigned_by_item[assignment.item_id] = assignment.category_id
 
-    solutions = [ItemSolution(**item) for item in items]
+    solutions = [item_solution(item) for item in items]
     correct_by_item = {item.id: item.category_id for item in solutions}
     verdicts = score_assignments(
         correct_by_item=correct_by_item,

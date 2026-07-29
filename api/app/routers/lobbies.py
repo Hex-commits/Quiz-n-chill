@@ -55,6 +55,8 @@ def start_game(code: str, payload: LobbyStart) -> LobbyView:
         payload.subject_slugs,
         payload.round_count,
         payload.turn_seconds,
+        payload.exclude_slugs,
+        payload.difficulties,
     )
 
 

@@ -12,6 +12,7 @@ def draw_balanced(
     count: int,
     *,
     rng: random.Random | None = None,
+    avoid: frozenset[str] | set[str] = frozenset(),
 ) -> list[str]:
     """Pick `count` questions spread as evenly as possible across `pools`.
 
@@ -25,6 +26,18 @@ def draw_balanced(
 
     The order of the returned list is shuffled: dealing round-robin would
     otherwise make every game run A, B, C, A, B, C.
+
+    `avoid` holds questions this table has already played. They are *sorted to
+    the back of each pool*, not removed -- a soft cap. Removing them outright
+    would mean a group that has played most of the pool gets a short game or an
+    error, which is a worse outcome than seeing a repeat; this way every unplayed
+    question in a subject is used before any played one is, and the shortfall
+    only shows up once there is genuinely nothing new left.
+
+    Note it is a preference *within* each subject, not across them. A subject
+    whose questions are all played still contributes its share, because the
+    balance across subjects is what makes the game feel varied and giving that
+    up to avoid one repeat would be the wrong trade.
     """
     rng = rng or random.Random()
 
@@ -35,6 +48,10 @@ def draw_balanced(
     for slug in rng.sample(sorted(pools), len(pools)):
         shuffled = list(pools[slug])
         rng.shuffle(shuffled)
+        # Drawing pops from the end, so the preferred ones go last. Both halves
+        # keep the shuffle above, so the choice within each is still random.
+        if avoid:
+            shuffled.sort(key=lambda quiz: quiz not in avoid)
         remaining[slug] = shuffled
 
     drawn: list[str] = []

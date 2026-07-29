@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Quiz &amp; Chill">
+  <title>Quiz &amp; Chill</title>
+  <!--
+    A folded-ribbon Q, in two tones.
+
+    The Netflix mark gets its depth from one idea: the letterform is a strip of
+    material, and a face turned away from the light is simply a different flat
+    colour. No gradient, no bevel, no soft shadow.
+
+    So the ring is a strip that twists at the top and at the bottom. Everything
+    past the twist - the right half AND the tail - is the reverse of that strip,
+    which is why they share a colour and why the tail is not a third thing. The
+    vertical split is where the twist happens, so it has a reason to fall where
+    it does.
+
+    The tail sits wholly right of centre (its leftmost edge is at x=126), so it
+    merges into the back face and never cuts across the front one. It runs from
+    r=23 to r=96 against a band of r=35..69: it starts inside the counter and
+    exits well beyond the ring, so it crosses the band rather than butting
+    against it.
+
+    Amber is the app's own `--primary`, oklch(0.7 0.165 62), with one lighter
+    step for the lit face. Hex rather than oklch on purpose: this file is also
+    the favicon, and favicons get rendered by things that are not a current
+    browser.
+  -->
+  <rect width="256" height="256" rx="56" fill="#1A1611"/>
+
+  <g fill="none" stroke-width="34" stroke-linecap="butt">
+    <!-- Front face: the lit half of the strip. -->
+    <path d="M122 70 A 52 52 0 0 0 122 174" stroke="#FFB43C"/>
+    <!-- Back face, and the tail continuing out of it. Same colour because they
+         are the same side of the same strip. Tail last, so the join is seamless. -->
+    <path d="M122 70 A 52 52 0 0 1 122 174" stroke="#E58200"/>
+    <path d="M138 138 L190 190" stroke="#E58200"/>
+  </g>
+</svg>

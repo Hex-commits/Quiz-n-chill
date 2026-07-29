@@ -15,9 +15,17 @@ from __future__ import annotations
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 
+from ..domain.rules import MAX_ITEM_WORDS, MAX_PAIRS, MIN_PAIRS
+
 # -- extract -------------------------------------------------------------
 
-EXTRACT_SYSTEM = """\
+# Interpolated from `rules.py` rather than written out, because these numbers
+# appear in three places that must agree: the grammar Ollama decodes against,
+# the validator that rejects afterwards, and the prompt that tells the model
+# when to give up instead. The prompt was the one not bound to the source, and
+# it drifted the moment the range changed -- the model was still being told to
+# decline below six while the grammar demanded ten.
+EXTRACT_SYSTEM = f"""\
 Du erstellst Zuordnungsfragen für ein deutschsprachiges Quiz.
 
 EINE ZUORDNUNGSFRAGE IST EINE 1-ZU-1-ZUORDNUNG.
@@ -66,21 +74,22 @@ Falsch wäre zum Beispiel:
   19. Jahrhundert -> Wiener Kongress          <-- FALSCH, Kategorie doppelt
 
 GRÖSSE DER FRAGE:
-Eine Frage braucht 6 bis 10 Paare. Das ist eine feste Vorgabe.
+Eine Frage braucht {MIN_PAIRS} bis {MAX_PAIRS} Paare. Das ist eine feste
+Vorgabe.
 
-Gibt der Artikel nicht genug her, um auf mindestens 6 saubere, im Artikel
-belegte Paare zu kommen, dann setze `usable` auf false und begründe es kurz.
-Das ist die richtige Antwort und kein Fehler -- es gibt immer einen nächsten
-Artikel.
+Gibt der Artikel nicht genug her, um auf mindestens {MIN_PAIRS} saubere, im
+Artikel belegte Paare zu kommen, dann setze `usable` auf false und begründe es
+kurz. Das ist die richtige Antwort und kein Fehler -- es gibt immer einen
+nächsten Artikel.
 
-Erfinde NIEMALS Paare, nur um auf 6 zu kommen. Eine abgelehnte Frage ist weit
-besser als eine Frage mit erfundenen Fakten.
+Erfinde NIEMALS Paare, nur um auf {MIN_PAIRS} zu kommen. Eine abgelehnte Frage
+ist weit besser als eine Frage mit erfundenen Fakten.
 
 WEITERE REGELN:
 - Alle Angaben müssen aus dem gelieferten Artikel belegbar sein.
 - Die Zuordnung muss eindeutig sein: eine Antwort darf sachlich nicht zu zwei
   der angebotenen Kategorien passen. Wähle im Zweifel eine andere Kategorie.
-- Antworten sind kurze Begriffe (höchstens 4 Wörter), keine Sätze.
+- Antworten sind kurze Begriffe (höchstens {MAX_ITEM_WORDS} Wörter), keine Sätze.
 - Kein Begriff ist gleichzeitig Kategorie und Antwort.
 - Alles auf Deutsch.
 
@@ -117,18 +126,86 @@ EXTRACT = ChatPromptTemplate.from_messages(
 
 # -- repair --------------------------------------------------------------
 
+# `{{problems}}` survives the f-string as a literal `{problems}`, which is what
+# PromptTemplate then fills in. The pair count is baked in here and now.
 REPAIR = PromptTemplate.from_template(
-    """\
+    f"""\
 Deine letzte Antwort verletzt diese Regeln:
-{problems}
+{{problems}}
 
 Erstelle die Zuordnungsfrage erneut und behebe genau diese Punkte. Halte dich
 an alle übrigen Regeln.
 
 Wenn ein Paar inhaltlich falsch war oder nicht eindeutig zugeordnet werden
 kann: lass es lieber ganz weg, statt es durch etwas Erfundenes zu ersetzen.
-Fällst du dabei unter 6 Paare, setze `usable` auf false.
+Fällst du dabei unter {MIN_PAIRS} Paare, setze `usable` auf false.
 """
+)
+
+# -- reframe -------------------------------------------------------------
+#
+# Runs on every question that becomes a picture question. `extract` wrote the
+# title and the instruction for a board of words -- "Ordne jedem Land seine
+# Hauptstadt zu" -- and played with photographs the player is not reading a
+# capital, they are looking at one.
+#
+# A flipped question needs it twice over: the pairing survives a flip, because
+# `Eisen -> Fe` and `Fe -> Eisen` are the same fact, but "Elemente und ihre
+# Symbole" is simply wrong once the symbol is what you are given.
+#
+# The pairs go in already in their final direction and the model is told only to
+# rename, never to change them. It cannot: nothing downstream reads a pair back
+# out of this reply.
+
+REFRAME_SYSTEM = """\
+Du benennst eine bestehende Zuordnungsfrage um.
+
+Die Frage wird jetzt mit BILDERN gespielt: jede KATEGORIE ist ein Foto. Der
+Spieler sieht also mehrere Fotos und ordnet jedem Foto eine Antwort in Worten
+zu. Die Antworten bleiben Text.
+
+Die Paare sind unverändert und korrekt. Bei manchen Fragen wurde zusätzlich die
+Richtung gedreht -- was vorher die Antwort war, ist jetzt die Kategorie und
+damit das Bild. Verlass dich deshalb nur auf die Paare unten, nicht auf den
+bisherigen Titel.
+
+Schreibe dafür:
+- `title`: kurzer Titel der Frage, passend zu dieser Richtung.
+- `description`: EIN kurzer Satz Spielanleitung, der sagt, was zu tun ist.
+
+REGELN:
+- Deutsch.
+- Der Titel nennt beide Seiten der Zuordnung.
+- Die Anleitung ist GENAU EIN kurzer Satz, höchstens 12 Wörter. Sie spricht das
+  Bild an und fragt nach der ANTWORT -- also nach dem, was der Spieler dem Bild
+  zuordnen soll. Nimm die Wörter aus den Paaren unten, nicht aus dieser
+  Anleitung.
+- Ändere KEINE Paare. Erfinde nichts dazu.
+
+Die Beispiele hier sind NUR das Format, niemals der Inhalt:
+  Paare "Paris -> Frankreich", "Rom -> Italien"   (Bild = die Stadt)
+    title:       "Städte und ihre Länder"
+    description: "In welchem Land liegt diese Stadt?"
+  Paare "Eisen -> Fe", "Sauerstoff -> O"          (Bild = das Element)
+    title:       "Elemente und ihre Symbole"
+    description: "Welches Symbol gehört zu diesem Element?"
+"""
+
+REFRAME_HUMAN = """\
+Die Zuordnung, wie sie gespielt wird (Kategorie, die als Bild gezeigt wird ->
+Antwort in Worten):
+{pairs}
+
+Bisheriger Titel: {title}
+
+Schreibe Titel und Anleitung für diese Bilderfrage.
+"""
+
+REFRAME = ChatPromptTemplate.from_messages(
+    [
+        ("system", REFRAME_SYSTEM),
+        ("human", REFRAME_HUMAN),
+    ]
 )
 
 # -- explain -------------------------------------------------------------

@@ -19,14 +19,73 @@ class ORMModel(BaseModel):
 
 
 # --------------------------------------------------------------------------
-# Categories -- the buckets ("Deutschland")
+# Pictures -- attached to categories, for a picture question
+# --------------------------------------------------------------------------
+
+
+class CategoryKind(StrEnum):
+    """How a question's categories are presented.
+
+    A property of the whole quiz rather than of each category: a board that
+    mixed words and photographs would make the worded ones a different game,
+    which is not a difficulty setting anyone chose.
+    """
+
+    text = "text"
+    image = "image"
+
+
+class ImagePublic(BaseModel):
+    """A picture, and what has to be printed under it.
+
+    `src` is a ready-to-load Commons URL. The file name is not sent because it
+    is not what the client needs.
+
+    Credit and licence are always present here, unlike the earlier design where
+    pictures were answers and had to be shown anonymously until placed. A
+    category is on the board from the first frame, so there is nothing to time
+    the attribution against -- and CC BY-SA requires it wherever the work is
+    shown, which now costs the game nothing.
+    """
+
+    src: str
+    credit: str | None = None
+    licence: str | None = None
+    licence_url: str | None = None
+
+
+class ImageSource(ORMModel):
+    """The stored picture: server-side only.
+
+    Separate from `ImagePublic` because the API builds a URL from `file` rather
+    than sending it, and one model with an optional `file` would make it easy
+    to serialise the wrong one.
+    """
+
+    file: str
+    credit: str | None = None
+    licence: str
+    licence_url: str | None = None
+
+
+# --------------------------------------------------------------------------
+# Categories -- the buckets ("Deutschland", or a photograph of a bridge)
 # --------------------------------------------------------------------------
 
 
 class Category(ORMModel):
     id: UUID
-    label: str
+    # None while a *picture* round is being played. The label of a photographic
+    # category is the name of the thing in the photograph -- "Albert Bridge" --
+    # and printing that above the picture answers the question the picture was
+    # chosen to ask. It comes back for the review, which is where the point of
+    # the round is made.
+    label: str | None = None
     position: int
+    # The photograph itself is never withheld: a category *is* the board, so
+    # there is no moment when hiding it would mean anything. Its credit travels
+    # with it for the same reason -- see `ImagePublic`.
+    image: ImagePublic | None = None
 
 
 class CategoryCreate(BaseModel):
@@ -40,7 +99,12 @@ class CategoryCreate(BaseModel):
 
 
 class ItemPublic(ORMModel):
-    """What a player sees. Deliberately has no `category_id`."""
+    """What a player sees of an answer still in the pool.
+
+    Deliberately has no `category_id`: that field IS the answer. The label is
+    always present -- answers are words for every kind of question now that the
+    photographs live on the categories.
+    """
 
     id: UUID
     label: str
@@ -85,6 +149,11 @@ class Subject(ORMModel):
     description: str | None = None
     position: int
     quiz_count: int = 0
+    # How that total splits by rating, so the host's setup screen can say how
+    # much a difficulty filter would actually leave. Keyed by the `Difficulty`
+    # values as plain strings -- the enum is declared below this class, and a
+    # forward reference buys nothing here.
+    difficulty_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class Difficulty(StrEnum):
@@ -227,6 +296,8 @@ class LastMove(BaseModel):
 
     player_id: UUID
     nickname: str
+    # Always named. Answers are words, and a wrong one going back in the pool
+    # is a word every player can already read there.
     item_label: str
     # Where it was placed -- always a real category, right or wrong.
     category_id: UUID
@@ -242,6 +313,9 @@ class ResolvedPair(BaseModel):
 
     category_label: str
     item_label: str
+    # The category's photograph, so the review screen shows what was being
+    # asked about rather than only its name.
+    image: ImagePublic | None = None
     explanation: str | None = None
     # Who placed it, or None if the round ended with this one still open --
     # everybody knocked out, or the last player left.
@@ -272,6 +346,9 @@ class RoundView(BaseModel):
     title: str
     description: str | None = None
     difficulty: Difficulty = Difficulty.medium
+    # Tells the client to render each category as a photograph rather than a
+    # heading. The answers are words either way.
+    category_kind: CategoryKind = CategoryKind.text
     categories: list[Category] = []
     remaining_items: list[ItemPublic] = []
     solved_items: list[SolvedItem] = []
@@ -345,11 +422,26 @@ class LobbyStart(BaseModel):
     # Subjects to draw from, not specific questions -- the server picks which
     # ones, spread evenly across these.
     subject_slugs: list[str] = Field(min_length=1)
+    # Which ratings may be drawn. `min_length=1` because an empty list would ask
+    # for a game with no questions in it, which is a client bug rather than a
+    # choice -- the UI cannot get here, since unticking the last box is refused.
+    difficulties: list[Difficulty] = Field(
+        default_factory=lambda: list(Difficulty), min_length=1
+    )
     round_count: int = Field(default=5, ge=1, le=20)
     # How long each player gets to place one answer. Bounded rather than free:
     # below about ten seconds nobody can read a board, and above two minutes the
     # timer stops being a timer.
     turn_seconds: int = Field(default=30, ge=10, le=120)
+    # Questions the host's browser remembers this group having played. A
+    # preference, not a filter: the server prefers anything else first and falls
+    # back to these once nothing new is left. Nothing about it is stored -- the
+    # record lives in the browser, because "what have we played" belongs to a
+    # group of friends rather than to an account, and this game has no accounts.
+    #
+    # Bounded so a stale or tampered client cannot post a megabyte of slugs at a
+    # route that has no auth.
+    exclude_slugs: list[str] = Field(default_factory=list, max_length=500)
 
 
 class TurnSubmit(BaseModel):

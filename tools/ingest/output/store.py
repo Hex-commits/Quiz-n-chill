@@ -20,6 +20,23 @@ from ..domain.models import GeneratedQuestion
 from ..sources.wikipedia import Article
 
 
+def _image_columns(image) -> dict:
+    """The four flat columns behind one `Image`, or nulls.
+
+    Flat in the database and nested above it: `categories_image_is_complete`
+    refuses a file without a licence, so the two cannot be split by a partial
+    write.
+    """
+    if image is None:
+        return {}
+    return {
+        "image_file": image.file,
+        "image_credit": image.credit,
+        "image_licence": image.licence,
+        "image_licence_url": image.licence_url,
+    }
+
+
 @dataclass(frozen=True)
 class Written:
     quiz_id: str
@@ -55,7 +72,15 @@ def write_question(
     client: Client,
     question: GeneratedQuestion,
     article: Article,
+    images: dict | None = None,
 ) -> Written:
+    """Write one question. `images` maps category label -> `Image`.
+
+    A question with images is stored as `category_kind='image'`, which tells the
+    client to draw each category as a photograph. Setting it here rather than
+    inferring it later means the flag and the picture columns are written in the
+    same transaction, so a quiz can never claim to be one and lack the other.
+    """
     subject = (
         client.table("subjects")
         .select("id")
@@ -77,6 +102,7 @@ def write_question(
                 "difficulty": question.difficulty,
                 "source_url": article.url,
                 "source_title": article.title,
+                "category_kind": "image" if images else "text",
             }
         )
         .execute()
@@ -92,6 +118,7 @@ def write_question(
                         "quiz_id": quiz_id,
                         "label": pair.label.strip(),
                         "position": index,
+                        **_image_columns((images or {}).get(pair.label)),
                     }
                     for index, pair in enumerate(question.pairs, start=1)
                 ]

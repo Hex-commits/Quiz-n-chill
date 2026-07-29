@@ -304,7 +304,10 @@ python -m tools.ingest --limit 10            # dry run + JSON report
 python -m tools.ingest --limit 10 --commit   # write to Supabase
 ```
 
-Dry run is the default; see [tools/ingest/README.md](tools/ingest/README.md).
+Dry run is the default. **[POPULATING.md](POPULATING.md)** is the runbook —
+every command from an empty database to a playable pool, plus the verification
+queries and what to do when a run goes wrong. [tools/ingest/README.md](tools/ingest/README.md)
+explains why the pipeline is built the way it is.
 
 **Adding a question by hand** means adding one row to the `spec` table in
 `supabase/seed.sql`:

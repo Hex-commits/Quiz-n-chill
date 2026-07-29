@@ -105,8 +105,16 @@ def test_the_broadcast_never_carries_an_unplaced_answer(monkeypatch):
     # without a database and the answer key is known here.
     monkeypatch.setattr(lobbies, "_load_round", make_round)
     monkeypatch.setattr(lobbies, "_subject_names", lambda slugs: list(slugs))
-    monkeypatch.setattr(lobbies, "pools_by_subject", lambda slugs: {s: [s] for s in slugs})
-    monkeypatch.setattr(lobbies, "draw_balanced", lambda pools, count: sorted(pools)[:count])
+    monkeypatch.setattr(
+        lobbies,
+        "pools_by_subject",
+        lambda slugs, difficulties=None: {s: [s] for s in slugs},
+    )
+    monkeypatch.setattr(
+        lobbies,
+        "draw_balanced",
+        lambda pools, count, avoid=frozenset(): sorted(pools)[:count],
+    )
 
     code, anna = lobbies.create_lobby("Anna")
     ben = lobbies.join_lobby(code, "Ben")

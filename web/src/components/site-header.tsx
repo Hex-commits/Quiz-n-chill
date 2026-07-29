@@ -1,27 +1,21 @@
 import Link from "next/link";
-import { BrainCircuit } from "lucide-react";
 
+import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-
-const links = [{ href: "/play", label: "Play together" }];
 
 export function SiteHeader() {
   return (
     <header className="border-b bg-background/80 sticky top-0 z-40 backdrop-blur">
+      {/*
+        Logo left, theme toggle right, nothing between. The one nav link used to
+        be "Play together" pointing at /play -- which is where `/` redirects
+        anyway, and where the logo already goes, so it was a second button to
+        the page you were almost certainly already on.
+      */}
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-6 px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <BrainCircuit className="size-5" aria-hidden />
-          <span>Quiz &amp; Chill</span>
+        <Link href="/" className="text-base">
+          <Logo />
         </Link>
-
-        <nav className="flex items-center gap-1">
-          {links.map((link) => (
-            <Button key={link.href} variant="ghost" size="sm" asChild>
-              <Link href={link.href}>{link.label}</Link>
-            </Button>
-          ))}
-        </nav>
 
         <div className="ml-auto">
           <ThemeToggle />

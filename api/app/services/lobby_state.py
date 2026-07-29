@@ -18,6 +18,7 @@ from uuid import UUID
 
 from app.errors import NotFoundError
 from app.schemas import (
+    CategoryKind,
     Category,
     FinishedRound,
     ItemSolution,
@@ -56,10 +57,14 @@ class Round:
     title: str
     description: str | None
     difficulty: str
+    # Whether the categories are words or photographs. Only tells the client how
+    # to draw the board -- unlike the earlier picture-answer design, nothing is
+    # withheld on the strength of it.
+    category_kind: CategoryKind = CategoryKind.text
     # Held server-side for the whole round and only published once it is over.
-    source: Source | None
-    categories: list[Category]
-    items: list[ItemSolution]
+    source: Source | None = None
+    categories: list[Category] = field(default_factory=list)
+    items: list[ItemSolution] = field(default_factory=list)
 
     def answer_key(self) -> dict[UUID, UUID]:
         return {item.id: item.category_id for item in self.items}

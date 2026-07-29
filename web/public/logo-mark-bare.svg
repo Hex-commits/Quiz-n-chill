@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 48 160 160" width="160" height="160" role="img" aria-label="Quiz &amp; Chill">
+  <title>Quiz &amp; Chill</title>
+  <!--
+    The same mark without its tile, for a background the page already owns.
+    Cropped to the artwork (which spans 53..202 on both axes) so it sits
+    optically the same size as a glyph beside it rather than carrying invisible
+    padding on every edge.
+  -->
+  <g fill="none" stroke-width="34" stroke-linecap="butt">
+    <path d="M122 70 A 52 52 0 0 0 122 174" stroke="#FFB43C"/>
+    <path d="M122 70 A 52 52 0 0 1 122 174" stroke="#E58200"/>
+    <path d="M138 138 L190 190" stroke="#E58200"/>
+  </g>
+</svg>
