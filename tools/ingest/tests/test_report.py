@@ -71,7 +71,7 @@ def test_rejected_questions_are_listed_with_the_first_reason():
 
     assert "## Rejected" in out
     assert "15 items, want 10-12" in out
-    assert "+1 more" in out  # the rest are summarised, not dumped
+    assert "+1 more" in out
 
 
 def test_sections_are_not_separated_twice():

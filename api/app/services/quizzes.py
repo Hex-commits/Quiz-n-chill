@@ -33,29 +33,17 @@ from app.schemas import (
 from app.services.images import commons_url
 from app.services.scoring import score_assignments
 
-# Two column sets on purpose. `QUIZ_COLUMNS` is what a player may see while
-# playing; the source lives only in `QUIZ_SOLUTION_COLUMNS`, alongside the answer
-# key, because a link to the source article is a link to the answers.
 QUIZ_COLUMNS = "id, slug, title, description, difficulty, category_kind, created_at"
 QUIZ_SOLUTION_COLUMNS = f"{QUIZ_COLUMNS}, source_url, source_title"
 QUIZ_WITH_SUBJECT = f"{QUIZ_COLUMNS}, subjects(slug, name)"
 SUBJECT_COLUMNS = "id, slug, name, description, position"
-# The picture columns are player-facing here, unlike the item columns below: a
-# category is the board, so its photograph and the credit under it are shown
-# from the first frame.
 CATEGORY_COLUMNS = (
     "id, label, position, image_file, image_credit, image_licence, image_licence_url"
 )
-# `explanation` gives the answer away, exactly like `source_url`, so it lives
-# only in the solution column list -- never in what `get_quiz` serves.
 ITEM_SOLUTION_COLUMNS = "id, label, position, category_id, explanation"
 
 
 def list_subjects() -> list[Subject]:
-    # The ratings come back rather than a bare count, so the split by difficulty
-    # can be tallied from the same query. One row per question instead of one
-    # number per subject, which is a fair trade at this size -- the whole pool is
-    # a few dozen questions -- and would be worth revisiting at a few thousand.
     response = (
         get_client()
         .table("subjects")
@@ -76,9 +64,6 @@ def list_subjects() -> list[Subject]:
 
 
 def list_quizzes(subject_slugs: list[str] | None = None) -> list[QuizSummary]:
-    # PostgREST filters on an embedded resource by nulling the embed out, not by
-    # dropping the parent row -- so a plain `subjects.slug=in.(...)` returns every
-    # quiz with `subjects: null`. The `!inner` hint makes it a real inner join.
     embed = "subjects!inner(slug, name)" if subject_slugs else "subjects(slug, name)"
     query = (
         get_client()
@@ -168,13 +153,8 @@ def get_quiz(quiz_ref: str) -> QuizDetail:
     categories, items = _fetch_parts(UUID(row["id"]))
 
     shuffled = list(items)
-    # Seeded items are stored grouped by category, so the stored order would
-    # give the grouping away. Shuffle before it ever leaves the server.
     random.shuffle(shuffled)
 
-    # Single-player: the same rule as a lobby round, for the same reason. There
-    # is no reveal here -- `/check` returns the answer key -- so the names come
-    # back with the result.
     hide_names = row.get("category_kind") == CategoryKind.image
     return QuizDetail(
         **row,

@@ -128,12 +128,8 @@ def write_question(
         )
         by_label = {row["label"]: row["id"] for row in category_rows}
 
-        # Explanations are optional: the step that writes them can be switched
-        # off, and it never fails a question, so an absent one stores as NULL.
         explanations = question.explanations
 
-        # One row per pair, so the one-answer-per-category rule is expressed by
-        # the loop rather than merely enforced afterwards.
         client.table("items").insert(
             [
                 {
@@ -147,11 +143,9 @@ def write_question(
             ]
         ).execute()
     except Exception:
-        # Cascades to categories and items, leaving nothing half-written.
         client.table("quizzes").delete().eq("id", quiz_id).execute()
         raise
 
-    # Equal by construction now: one category and one answer per pair.
     return Written(
         quiz_id=quiz_id,
         slug=question.slug,

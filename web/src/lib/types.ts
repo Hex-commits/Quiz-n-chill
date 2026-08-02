@@ -127,8 +127,6 @@ export interface ApiErrorBody {
   detail?: string;
 }
 
-// --- Lobbies (ephemeral, never stored in the database) ---------------------
-
 export type LobbyStatus = "lobby" | "playing" | "reviewing" | "finished";
 
 export interface PlayerPublic {

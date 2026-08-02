@@ -65,10 +65,7 @@ class WikimediaImages:
         self._headers = {"User-Agent": user_agent}
         self._throttle = throttle
         self._last = 0.0
-        # Off only for tests and for sources whose documents carry no links.
         self._require_link = require_link
-
-    # -- transport ---------------------------------------------------------
 
     def _get(self, api: str, params: dict) -> dict:
         wait = self._throttle - (time.monotonic() - self._last)
@@ -90,8 +87,6 @@ class WikimediaImages:
         finally:
             self._last = time.monotonic()
 
-    # -- the protocol ------------------------------------------------------
-
     def images_for(self, labels: list[str], *, document: Document) -> dict[str, Image]:
         """Labels that can be illustrated, mapped to their picture."""
         if not labels:
@@ -112,8 +107,6 @@ class WikimediaImages:
             for label, file in files.items()
             if file in rights
         }
-
-    # -- steps -------------------------------------------------------------
 
     def _linked_titles(self, document: Document) -> set[str]:
         """Every article the source document links to, casefolded.
@@ -161,7 +154,6 @@ class WikimediaImages:
                 },
             )
             query = payload.get("query", {})
-            # title-as-resolved -> label-as-asked, walking both hops.
             back: dict[str, str] = {label: label for label in chunk}
             for hop in ("normalized", "redirects"):
                 for entry in query.get(hop) or []:
@@ -226,10 +218,6 @@ class WikimediaImages:
         return out
 
 
-# -- rendering ----------------------------------------------------------------
-
-# Wide enough to read a photograph on a laptop, small enough that ten of them
-# are not a megabyte. Commons renders and caches this size for us.
 THUMB_WIDTH = 640
 
 
@@ -249,8 +237,6 @@ def commons_page(file: str) -> str:
     quoted = urllib.parse.quote(file.replace(" ", "_"), safe="")
     return f"https://commons.wikimedia.org/wiki/File:{quoted}"
 
-
-# -- helpers ------------------------------------------------------------------
 
 
 def _chunks(values: list, size: int):

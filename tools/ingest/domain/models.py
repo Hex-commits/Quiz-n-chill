@@ -22,8 +22,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .rules import DIFFICULTIES, MAX_PAIRS, MIN_PAIRS
 
-# -- what the generator produces -----------------------------------------
-
 
 class GeneratedPair(BaseModel):
     """One category and the single answer that belongs to it."""
@@ -44,8 +42,6 @@ class GeneratedQuestion(BaseModel):
     difficulty: str = Field(default="medium", description="easy, medium oder hard")
     pairs: list[GeneratedPair] = Field(default_factory=list)
 
-    # Filled by the explain step, not by the extract grammar -- which is why it
-    # is absent from `question_schema`. Keyed by answer label.
     explanations: dict[str, str] = Field(default_factory=dict)
 
     @property
@@ -56,8 +52,6 @@ class GeneratedQuestion(BaseModel):
     def answers(self) -> list[str]:
         return [pair.answer for pair in self.pairs]
 
-    # Kept for the callers that just want "everything on the board". With no
-    # extras left, that is simply the answers.
     all_items = answers
 
 
@@ -76,24 +70,15 @@ class Extraction(BaseModel):
     error: str = ""
 
 
-# -- what the reviewer produces ------------------------------------------
-
 
 class Review(BaseModel):
     """The second pass's verdict on one question."""
 
     ok: bool = True
     problems: list[str] = Field(default_factory=list)
-    # The only content defect a pairing can have: an answer sitting beside the
-    # wrong category. With no extras on the board there is nothing else to get
-    # wrong -- which is why `bad_fakes` and `weak_fakes` are gone.
     misplaced_items: list[str] = Field(default_factory=list)
-    # True when the reviewer could not run at all. The question is kept, but the
-    # report has to say it went unchecked rather than imply it passed.
     skipped: bool = False
 
-
-# -- the grammars handed to Ollama ---------------------------------------
 
 
 def question_schema(subject_slugs: list[str]) -> dict:
@@ -119,8 +104,6 @@ def question_schema(subject_slugs: list[str]) -> dict:
             "title": {"type": "string", "minLength": 3},
             "description": {"type": "string"},
             "difficulty": {"type": "string", "enum": list(DIFFICULTIES)},
-            # One object per pairing, so the grammar itself makes "two answers
-            # in one category" unrepresentable rather than merely invalid.
             "pairs": {
                 "type": "array",
                 "minItems": MIN_PAIRS,
@@ -139,9 +122,6 @@ def question_schema(subject_slugs: list[str]) -> dict:
     }
 
 
-# Roughly one line beside the answer. Enforced at decoding time rather than
-# checked afterwards, because "keep it short" in a prompt is a suggestion and a
-# `maxLength` in the grammar is not. The database repeats it as a constraint.
 MAX_EXPLANATION_CHARS = 120
 
 
@@ -179,10 +159,6 @@ def explanation_schema(answers: list[str]) -> dict:
     }
 
 
-# Bounded at decoding time rather than asked for in words. "Genau ein kurzer
-# Satz" in a prompt is a suggestion a 9B model ignores -- it returned three
-# sentences, one of them the prompt's own example pasted verbatim. A `maxLength`
-# in the grammar is not a suggestion.
 REFRAME_SCHEMA = {
     "type": "object",
     "additionalProperties": False,

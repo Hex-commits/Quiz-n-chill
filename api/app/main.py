@@ -24,10 +24,6 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    # Named origins cover production and local development; the pattern covers
-    # hosts whose URL is generated per deployment, which on Vercel is every
-    # preview. Left unset it matches nothing, so the named list is the whole
-    # policy -- no accidental widening by default.
     allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],

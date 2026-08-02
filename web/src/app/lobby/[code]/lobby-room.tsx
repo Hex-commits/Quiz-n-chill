@@ -51,10 +51,6 @@ import { forgetPlayer, recallPlayer } from "@/lib/identity";
 import { forgetPlayed, NO_PLAYED, playedSlugs, rememberPlayed } from "@/lib/played";
 import { subscribeToLobby } from "@/lib/realtime";
 import { shuffleBySeed } from "@/lib/shuffle";
-// Aliased: this file already has a `play(categoryId)` that places an answer.
-// Both take a string, so an unaliased import shadows silently and every cue
-// becomes an attempt to place the selected item into a category called
-// "yourTurn".
 import {
   HURRY_FROM,
   play as playCue,
@@ -76,29 +72,14 @@ import { cn } from "@/lib/utils";
 
 import { RejoinForm } from "./rejoin-form";
 
-// Not how changes are learned -- they arrive over the socket with the state in
-// them. This is the heartbeat, and the backstop for anything push misses.
-//
-// It is sized by the heartbeat rather than by freshness. PRESENCE_TIMEOUT on
-// the server is 15s and QUIET_AFTER is 6s, so a beat slower than that would
-// have the table told a player had gone quiet in the gap between their own
-// beats.
 const POLL_MS = 4_000;
 
-// How long the copied state sticks on the lobby code. Longer than the wobble
-// (600ms) on purpose: the movement catches the eye, the tick that stays behind
-// is what answers "did that work?" for someone who looked a moment later.
 const COPIED_MS = 2_000;
 
 const ROUND_CHOICES = [3, 5, 7, 10];
 
-// Bounded to match `LobbyStart.turn_seconds` on the server (10–120). Below ten
-// nobody can read a board of eight pairs; above two minutes it stops being a
-// timer.
 const TURN_CHOICES = [15, 30, 45, 60];
 
-// Ordered easiest first, which is the order people reason about them in --
-// `Object.keys` on the counts would follow whatever the API happened to send.
 const DIFFICULTY_CHOICES: { level: Difficulty; label: string }[] = [
   { level: "easy", label: "Easy" },
   { level: "medium", label: "Medium" },
@@ -123,30 +104,16 @@ export function LobbyRoom({
   );
   const [roundCount, setRoundCount] = useState(5);
   const [turnSeconds, setTurnSeconds] = useState(30);
-  // All three to begin with, so the default game is the whole pool. Unticking
-  // the last one is refused below -- a game with no questions in it is not a
-  // choice anyone means to make, and the API rejects it anyway.
   const [difficulties, setDifficulties] = useState<Difficulty[]>([
     "easy",
     "medium",
     "hard",
   ]);
 
-  // Polling and turn submission race: a poll started before a turn can land
-  // after it and show pre-turn state. Applying only newer versions fixes it.
   const versionRef = useRef(-1);
 
-  // The turn clock is held as a wall-clock deadline and ticked in the browser.
-  // The server sends how many seconds are left as of the moment it answered;
-  // rendering that directly means the number only moves when a request happens,
-  // which is what made the clock appear frozen. See useCountdown.
-  //
-  // The between-rounds review has no clock of its own -- it ends when the host
-  // presses the button and at no other time.
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
 
-  // When the invite link was last copied: drives the tick on the lobby code and
-  // outlives the wobble so the confirmation is still readable after it settles.
   const [copiedAt, setCopiedAt] = useState<number | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -160,11 +127,6 @@ export function LobbyRoom({
     if (view.version < versionRef.current) return;
     versionRef.current = view.version;
     setLobby(view);
-    // Turned into a wall-clock deadline so the countdown can tick without
-    // asking again -- but only adopted when the server is saying something new.
-    // Re-pinning it on every poll makes the displayed number stall, because
-    // each answer is rounded up and arrives slightly stale. See
-    // `reconcileDeadline`.
     setTurnDeadline((current) =>
       reconcileDeadline(current, deadlineFrom(view.turn_seconds_left)),
     );
@@ -172,8 +134,6 @@ export function LobbyRoom({
 
   const refresh = useCallback(async () => {
     try {
-      // Passing the player id makes this double as a heartbeat, which is why
-      // the interval below still runs even though changes now arrive by push.
       const view = await getLobby(code, playerId);
       apply(view);
       setError(null);
@@ -183,24 +143,14 @@ export function LobbyRoom({
   }, [code, playerId, apply]);
 
   useEffect(() => {
-    // `refresh` is async: its setState happens in a promise continuation, not
-    // synchronously in this effect body, which is the case the rule is aimed
-    // at. There is no way to express that to the linter.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
 
-    // The socket carries the state, so a change renders as it arrives rather
-    // than triggering a fetch that then renders. `view` is null only when the
-    // API judged the state too large to put in a frame, and then this falls
-    // back to asking.
     const unsubscribe = subscribeToLobby(code, (view) => {
       if (view) apply(view);
       else void refresh();
     });
 
-    // Still polling, for two reasons that both survive a working socket: it is
-    // the heartbeat that keeps this player marked present, and it is the
-    // backstop if a message is missed or realtime is not configured at all.
     const timer = setInterval(() => void refresh(), POLL_MS);
 
     return () => {
@@ -209,21 +159,10 @@ export function LobbyRoom({
     };
   }, [code, refresh, apply]);
 
-  // Reaching zero has to *do* something. The server acts on the turn deadline
-  // only when a request arrives and finds it passed -- nothing runs on a timer
-  // there, and on serverless nothing can. Without this poke a stalled player
-  // would keep the turn until the next poll.
-  //
-  // Every client pokes at once and the store's lock sorts it out: one request
-  // moves the game on and the rest read the result.
   const poke = useCallback(() => void refresh(), [refresh]);
 
   const turnSecondsLeft = useCountdown(turnDeadline, poke);
 
-  // Closing or backgrounding the tab hands the turn on immediately instead of
-  // making everyone wait out the server's presence timeout. `pagehide` fires
-  // where `beforeunload` does not, notably on mobile Safari. Coming back is
-  // handled by the next poll, which re-checks the player in.
   useEffect(() => {
     if (!playerId) return;
 
@@ -235,36 +174,13 @@ export function LobbyRoom({
   const me = lobby?.players.find((player) => player.id === playerId) ?? null;
   const isMyTurn = Boolean(playerId && lobby?.current_player_id === playerId);
 
-  // Actually on the clock, as opposed to merely being next.
-  //
-  // The server advances the cursor and *then* ends the round, so through the
-  // whole review `current_player_id` already names whoever opens the next one.
-  // Reading that as "my turn" costs the cue twice over: it fires in the middle
-  // of the answers being read, and then the flag is already up when play
-  // resumes, so the moment it exists for passes in silence.
   const onTheClock = isMyTurn && lobby?.status === "playing";
 
-  // --- Sound cues ----------------------------------------------------------
-  //
-  // Fired from transitions rather than from state, so a poll that re-delivers
-  // the same lobby is silent. Everything is compared in refs: a cue is a side
-  // effect on the world, not a piece of React state, and storing it as state
-  // would re-render the room to play a note.
   const primed = useRef(false);
   const lastMove = useRef<string | null>(null);
   const wasOnTheClock = useRef(false);
   const lastStatus = useRef<string | null>(null);
 
-  // A browser holds an AudioContext suspended until the page has been
-  // interacted with, so every cue before the first click in this tab is
-  // silently dropped. `act()` unlocks on each game action, which covers a host
-  // -- they press Start -- and nobody else: a player who joined from a link and
-  // sat waiting has clicked nothing here, and the first thing that happens to
-  // them is their turn coming round. That is precisely the cue worth hearing,
-  // so it cannot be the one paying for the unlock.
-  //
-  // Capture phase, so a handler that stops propagation cannot swallow it, and
-  // `once` because there is nothing to do after the context exists.
   useEffect(() => {
     const open = () => unlock();
     const options = { capture: true, once: true, passive: true } as const;
@@ -279,18 +195,10 @@ export function LobbyRoom({
   useEffect(() => {
     if (!lobby) return;
 
-    // Keyed on the move, not on the lobby version. Version was wrong and
-    // audibly so: it moves for anything at all -- a player joining, someone
-    // reconnecting, a presence flip -- and each of those replayed the last
-    // placement's chime at the whole table. What identifies a move is where it
-    // sits in the round, so that is what this counts.
     const moveKey = lobby.last_move
       ? `${lobby.round_index}:${lobby.history.length}:${lobby.last_move.item_label}`
       : null;
 
-    // The first view is the state of the world on arrival, not a series of
-    // things that just happened -- joining a game in progress should not
-    // replay its history at you.
     if (!primed.current) {
       primed.current = true;
       lastMove.current = moveKey;
@@ -304,9 +212,6 @@ export function LobbyRoom({
     }
     lastMove.current = moveKey;
 
-    // The board lights up at the same moment -- see `lit` below. One of the two
-    // reaches a player who is looking somewhere else, and which one it is
-    // depends on whether they are wearing headphones or watching the table.
     if (onTheClock && !wasOnTheClock.current) playCue("yourTurn");
     wasOnTheClock.current = onTheClock;
 
@@ -317,24 +222,11 @@ export function LobbyRoom({
     }
   }, [lobby, onTheClock]);
 
-  // Remember what this browser has now seen, so the next game prefers something
-  // else. Recorded from `finished_rounds` rather than from `quiz_slugs` at the
-  // start, because a game that is abandoned in round one has not "played" the
-  // four rounds it drew -- and burning them would retire the pool for nothing.
-  //
-  // Runs on every device in the lobby, not only the host's. Only the host's
-  // list is sent when starting, but any of them may host the next game.
   useEffect(() => {
     if (!lobby) return;
     rememberPlayed(lobby.finished_rounds.map((round) => round.slug));
   }, [lobby]);
 
-  // The closing seconds, and only for the player they belong to -- everyone
-  // else is watching, and a clock counting down somebody else's turn is noise.
-  //
-  // The cue escalates with the number rather than repeating, so the last five
-  // seconds are heard as running out rather than as passing. See `HURRY` in
-  // lib/sound.
   useEffect(() => {
     if (!isMyTurn) return;
     if (turnSecondsLeft === null || turnSecondsLeft <= 0) return;
@@ -342,29 +234,14 @@ export function LobbyRoom({
     playCountdown(turnSecondsLeft);
   }, [turnSecondsLeft, isMyTurn]);
 
-  // What this browser has already seen. `useStored` takes a separate server
-  // snapshot, so SSR and hydration agree instead of flashing.
-  //
-  // It deliberately does not subscribe to localStorage, so nothing re-reads on
-  // its own. The reset button is the only thing that changes the value while
-  // the page is up, and the state bump below is what makes React look again.
   const [, forgetTick] = useState(0);
   const played = useStored(playedSlugs, NO_PLAYED);
 
-  // How many questions the chosen subjects hold at one rating. Shown beside each
-  // box so an empty tick is visibly empty rather than quietly shortening the
-  // game.
   const countAt = (level: Difficulty) =>
     subjects
       .filter((subject) => chosenSubjects.includes(subject.slug))
       .reduce((total, subject) => total + (subject.difficulty_counts[level] ?? 0), 0);
 
-  // Lets the host see when they have asked for more rounds than the chosen
-  // subjects can supply, rather than silently getting a shorter game.
-  //
-  // Counted per difficulty rather than from `quiz_count`, or ticking one box off
-  // would leave this claiming a pool the draw no longer has -- and this number
-  // is exactly what the round count is chosen against.
   const availableQuestions = subjects
     .filter((subject) => chosenSubjects.includes(subject.slug))
     .reduce(
@@ -378,9 +255,6 @@ export function LobbyRoom({
     );
 
   async function act(fn: () => Promise<LobbyView>) {
-    // Every path through here starts with a click, which is the only moment a
-    // browser will let an AudioContext start. Doing it here means the first cue
-    // of the game is audible rather than swallowed.
     unlock();
     setBusy(true);
     try {
@@ -398,9 +272,6 @@ export function LobbyRoom({
     try {
       await leaveLobby(code, playerId);
     } catch {
-      // Leaving is best-effort: if the call fails the lobby may already be
-      // gone. Either way this browser is done with it, so drop the identity
-      // rather than trapping the player on a dead screen.
     } finally {
       forgetPlayer(code);
       router.push("/play");
@@ -415,8 +286,6 @@ export function LobbyRoom({
   }
 
   async function copyInvite() {
-    // The room's own URL is the invite: someone opening it without an identity
-    // in this browser gets the join form. No separate landing page to point at.
     const link = `${window.location.origin}/lobby/${code}`;
     if (!(await copyText(link))) {
       toast.error("Could not copy -- the code is right there to type in.");
@@ -424,22 +293,13 @@ export function LobbyRoom({
     }
 
     toast.success("Invite link copied.");
-    // Timestamped rather than a boolean because it doubles as the key on the
-    // code below. Clicking again while the wobble is still running has to
-    // restart it, and re-applying a class that is already there does not
-    // re-trigger the animation -- a new key remounts the element, which does.
     setCopiedAt(Date.now());
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
     copiedTimer.current = setTimeout(() => setCopiedAt(null), COPIED_MS);
   }
 
-  // --- Guards --------------------------------------------------------------
-
   if (error && !lobby) return <ApiErrorNotice message={error} />;
 
-  // Loading is checked before identity on purpose: `playerId` reads null during
-  // the server render, so testing it first would flash "not in this lobby"
-  // before hydration supplies the real value.
   if (!lobby) {
     return (
       <p className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
@@ -449,11 +309,7 @@ export function LobbyRoom({
     );
   }
 
-  // No identity in this browser: either a newcomer or someone returning on a
-  // different device. Both are handled by rejoining with a nickname.
   if (!playerId) return <RejoinForm code={code} />;
-
-  // --- Shared header -------------------------------------------------------
 
   const header = (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -478,8 +334,6 @@ export function LobbyRoom({
           {copiedAt !== null ? (
             <Check className="text-success size-4" aria-hidden />
           ) : (
-            // Dimmed until hover, because the code is what people are reading
-            // here -- the icon only has to say that the thing is clickable.
             <Copy
               className="text-muted-foreground/60 size-4 transition-colors group-hover:text-foreground"
               aria-hidden
@@ -501,8 +355,6 @@ export function LobbyRoom({
       </div>
     </div>
   );
-
-  // --- Waiting room --------------------------------------------------------
 
   if (lobby.status === "lobby") {
     return (
@@ -585,11 +437,6 @@ export function LobbyRoom({
 
               <Separator />
 
-              {/*
-                Which ratings may be drawn. Ticked rather than a single choice
-                because "easy and medium" is the common want and a three-way
-                radio cannot say it.
-              */}
               <div className="space-y-2">
                 <Label>Difficulty</Label>
                 <div className="flex flex-wrap gap-x-6 gap-y-3">
@@ -601,10 +448,6 @@ export function LobbyRoom({
                         <Checkbox
                           id={`difficulty-${level}`}
                           checked={difficulties.includes(level)}
-                          // Refused rather than hidden: the box stays where it
-                          // is and simply will not turn off, which reads as a
-                          // rule instead of as a bug. A game with no questions
-                          // in it is not a choice worth offering.
                           disabled={onlyOneLeft}
                           onCheckedChange={(checked) =>
                             setDifficulties((current) =>
@@ -680,13 +523,6 @@ export function LobbyRoom({
                 </p>
               </div>
 
-              {/*
-                Only worth showing once there is a history. A preference rather
-                than a promise, which the wording has to carry: the server falls
-                back to played questions when nothing new is left, and a big
-                question is never counted as used up because it deals a
-                different board each time.
-              */}
               {played.length > 0 ? (
                 <div className="space-y-2">
                   <Label>Already played</Label>
@@ -755,8 +591,6 @@ export function LobbyRoom({
     );
   }
 
-  // --- Finished ------------------------------------------------------------
-
   if (lobby.status === "finished") {
     const ranked = [...lobby.players].sort((a, b) => b.score - a.score);
     const winners = lobby.players.filter((player) =>
@@ -806,10 +640,6 @@ export function LobbyRoom({
           </CardFooter>
         </Card>
 
-        {/*
-          Every question has now been answered, so the material each was written
-          from can be published for players to check against.
-        */}
         {lobby.finished_rounds.length > 0 ? (
           <Card>
             <CardHeader>
@@ -832,11 +662,6 @@ export function LobbyRoom({
                     <DifficultyBadge difficulty={finished.difficulty} />
                     <SourceLink source={finished.source} className="ml-auto" />
                   </div>
-                  {/*
-                    The last round never gets a between-rounds review -- there is
-                    no next round to pause before -- so this is the only place
-                    its answers can be read.
-                  */}
                   <dl className="space-y-1 pl-9">
                     {finished.solution.map((pair) => (
                       <div key={pair.category_label}>
@@ -876,8 +701,6 @@ export function LobbyRoom({
     );
   }
 
-  // --- Playing -------------------------------------------------------------
-
   const round = lobby.round_view;
   if (!round) return null;
 
@@ -887,19 +710,10 @@ export function LobbyRoom({
   const nextPlayer = lobby.players.find(
     (player) => player.id === lobby.next_player_id,
   );
-  // Named on every other screen so a review reads as waiting for a person
-  // rather than as the game having hung.
   const hostName = lobby.players.find((player) => player.is_host)?.nickname ?? null;
   const reviewing = lobby.status === "reviewing";
-  // The room, the board and the question's own greys all key off the same flag
-  // as the cue above, so they can only ever light up together.
   const lit = onTheClock;
-  // The question's supporting text sits directly over the glow, and amber is
-  // light: at the strength the glow reaches on your turn, `muted-foreground`
-  // falls to about 2.2:1 against it. Brightened rather than the glow being held
-  // back -- see `.quiz-ambient--yours` in globals.css, which has the numbers.
   const overGlow = lit ? "text-foreground" : "text-muted-foreground";
-  // The round that just ended is the last one appended.
   const justFinished = reviewing
     ? (lobby.finished_rounds[lobby.finished_rounds.length - 1] ?? null)
     : null;
@@ -907,15 +721,6 @@ export function LobbyRoom({
   const solvedIn = (categoryId: string) =>
     round.solved_items.filter((item) => item.category_id === categoryId);
 
-  // The API hands both lists over in the order the question was written, which
-  // pairs them off by position: first answer, first category, and so on down
-  // the board. Read once, that is the whole round.
-  //
-  // Seeded on the round rather than drawn fresh, so the board holds still
-  // between polls and reads the same way for everyone at the table -- see
-  // `shuffleBySeed`. The round index is in the seed because a question can come
-  // round again in a later game, and a board that always deals itself the same
-  // way is the leak back in a slower form.
   const boardSeed = `${round.quiz_id}:${lobby.round_index}`;
   const categories = shuffleBySeed(round.categories, boardSeed, (c) => c.id);
   const remainingItems = shuffleBySeed(
@@ -924,16 +729,6 @@ export function LobbyRoom({
     (item) => item.id,
   );
 
-  // Answers already tried here and rejected. A wrong placement leaves the
-  // category open -- the right answer is still out there -- so without showing
-  // this the next player has no way of knowing the guess has been used, and the
-  // table works through the same wrong idea one at a time.
-  //
-  // Read off the round's move history rather than stored per category: the
-  // server already sends every placement with the category it went into.
-  // Kept as whole moves rather than labels so the caller keeps the context of
-  // who guessed. De-duplicated by label: the same wrong answer tried twice on
-  // one category is one thing to show, not two.
   const wrongIn = (categoryId: string) => {
     const seen = new Set<string>();
     return lobby.history.filter((move) => {
@@ -946,13 +741,6 @@ export function LobbyRoom({
 
   return (
     <>
-      {/*
-        The room lights up when the turn comes to you -- the one cue that works
-        on someone who is looking at the table rather than at their screen.
-        Outside the column below because it is fixed to the viewport: as a child
-        of a `space-y` stack it would collect a margin and hang a gap along the
-        top of the wash.
-      */}
       <div
         className={cn(
           "quiz-room-glow",
@@ -963,27 +751,8 @@ export function LobbyRoom({
       <div className="space-y-4">
         {header}
 
-        {/*
-          Two columns: the question has the room to itself, and everything that
-          is *about* the players sits beside it rather than above it. Stacks on
-          a phone, where the question still comes first.
-        */}
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
           <div className="min-w-0 space-y-4">
-            {/*
-              Whose turn it is, at the top of the column and stuck there. It used
-              to be a line of body text inside the question card's header, which
-              is exactly where a player scanning the board does not look --
-              "hard to tell when I am up" was the complaint, and it was fair.
-
-              Sticky rather than merely first, because the board scrolls past it:
-              the answer to "am I up?" has to be on screen at every scroll
-              position, not only at the top of the page.
-            */}
-            {/* Pinned *below* the site header, which is itself sticky and paints
-                on top. At a smaller offset this slid under it and only its lower
-                half stayed readable -- worst on a phone, where the bar is the
-                tallest thing on screen and the header eats most of it. */}
             <div className="sticky top-(--sticky-top) z-20">
               <TurnBar
                 isMyTurn={isMyTurn}
@@ -996,36 +765,21 @@ export function LobbyRoom({
                 quiet={lobby.current_player_quiet}
                 hostName={hostName}
                 isHost={Boolean(me?.is_host)}
-                // Nothing is on the clock during a review, so the whole readout
-                // goes away rather than showing a stopped one.
                 secondsLeft={reviewing ? null : turnSecondsLeft}
                 totalSeconds={reviewing ? null : lobby.turn_seconds}
                 deadline={reviewing ? null : turnDeadline}
               />
             </div>
 
-            {/*
-              The question and the answers, in one card. They were two blocks
-              with a gap between them, which read as a heading that happened to
-              sit above an unrelated widget rather than as one thing being asked.
-            */}
             <Card
               className={cn(
                 "animate-quiz-rise relative isolate overflow-hidden",
-                // The board itself picks up the accent while you are on the
-                // clock, so the signal is not confined to one strip.
                 lit && "border-primary/50 shadow-lg",
               )}
             >
-              {/* Lights the question from behind. Purely decorative, so it is
-                  hidden from assistive tech and cannot be clicked -- what it
-                  signals is said in words by the bar above it. */}
               <div
                 className={cn(
                   "quiz-ambient",
-                  // Turned right up while the turn is yours. Same condition as the
-                  // card's border above, so the whole board brightens as one
-                  // thing rather than lighting up in pieces.
                   lit && "quiz-ambient--yours",
                 )}
                 aria-hidden
@@ -1041,10 +795,6 @@ export function LobbyRoom({
                     ? "Settling round"
                     : `Round ${lobby.round_index + 1} of ${lobby.round_count}`}
                 </p>
-                {/* Outfit carries weight well, and a heading at 900 with the
-                    tracking pulled in is a good part of what separates a game
-                    from a form. Sized up again here: at 4xl it competed with the
-                    answers rather than leading them. */}
                 <h1 className="text-4xl font-black tracking-tight text-balance sm:text-5xl">
                   {round.title}
                 </h1>
@@ -1064,12 +814,6 @@ export function LobbyRoom({
                     {round.solved_items.length}/{total}
                   </span>
                 </div>
-                {/*
-                  Said plainly, because a round where most of the table cannot
-                  play and most of the board goes untouched looks broken
-                  otherwise. It is short by design: only the turns the rotation
-                  never handed out are played here.
-                */}
                 {lobby.is_catch_up ? (
                   <p
                     className={cn(
@@ -1090,24 +834,12 @@ export function LobbyRoom({
 
               <CardContent>
                 {reviewing ? (
-                  /*
-                    Between rounds. The board below stays on screen with every
-                    answer revealed and its reason underneath, which is the point
-                    of the pause -- so this replaces the answer pool, not the
-                    page.
-                  */
                   <div className="flex flex-col items-center gap-3 text-center">
                     <p className="flex items-center gap-2 text-base font-semibold">
                       <BookOpen className="size-4 shrink-0" aria-hidden />
                       Round over — the answers are below
                     </p>
                     <SourceLink source={justFinished?.source ?? null} />
-                    {/*
-                      The only way out of a review -- it has no clock behind it,
-                      so the table reads for as long as it wants and the host
-                      says when that is done. Everyone else is told whose button
-                      it is, or the pause looks like the game has hung.
-                    */}
                     {me?.is_host ? (
                       <Button
                         size="sm"
@@ -1128,9 +860,6 @@ export function LobbyRoom({
                   </div>
                 ) : (
                   <>
-                    {/* The answers are read across a room, so they are sized to
-                        be legible at a glance rather than packed in. Always words
-                        now: the photographs are the categories. */}
                     <div className="flex flex-wrap justify-center gap-2.5">
                       {remainingItems.map((item) => (
                         <Button
@@ -1138,10 +867,6 @@ export function LobbyRoom({
                           size="lg"
                           className={cn(
                             "quiz-shine h-auto min-h-14 px-6 py-3 text-lg font-semibold whitespace-normal",
-                            // Lifts and grows a little under the cursor, settles
-                            // under the press. The shared easing is what stops
-                            // this reading as a separate widget from everything
-                            // else on the board.
                             "ease-(--ease-soft) transition-all duration-200",
                             "hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
                             "active:translate-y-0 active:scale-[0.98] active:duration-75",
@@ -1175,18 +900,7 @@ export function LobbyRoom({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((category, index) => {
                 const solved = solvedIn(category.id);
-                // A category holds exactly one answer, so once it is filled there
-                // is no legal move left into it. Arming it anyway would offer a
-                // placement that is always wrong and costs the player the round.
                 const full = solved.length > 0;
-                // Matched by label because the solution is built from the round
-                // that has just been dropped, so its category ids are no longer
-                // to hand.
-                // Matched by label because the solution is built from the round
-                // that has just been dropped, so its category ids are no longer
-                // to hand. Guarded on a name existing: a picture round withholds
-                // them while it is being played, and `null === null` would match
-                // every card to the first pair.
                 const reveal =
                   (category.label
                     ? justFinished?.solution.find(
@@ -1203,10 +917,6 @@ export function LobbyRoom({
                     wrong={wrongIn(category.id)}
                     reveal={reveal}
                     armed={isMyTurn && selectedItemId !== null && !busy && !full}
-                    // Staggered so the board deals itself in rather than
-                    // appearing at once. Capped, or the last card of a
-                    // thirteen-pair round would still be arriving after the first
-                    // is ready to click.
                     enterDelayMs={Math.min(index, 8) * 45}
                     onPlace={() => play(category.id)}
                   />
@@ -1215,10 +925,6 @@ export function LobbyRoom({
             </div>
           </div>
 
-          {/*
-            Everything about the players, out of the way of the question. Sticky
-            so the order stays visible while the board is scrolled.
-          */}
           <aside className="space-y-4 lg:sticky lg:top-(--sticky-top)">
             <Card>
               <CardHeader className="pb-3">
@@ -1228,20 +934,9 @@ export function LobbyRoom({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
-                {/*
-                  Seating order, never re-sorted. This used to rank by score,
-                  which meant the list rearranged itself under the players every
-                  time anyone scored -- and it is the one panel whose job is to
-                  say who comes after whom. The scores are still here; the running
-                  standings are on the final scoreboard, which is where a ranking
-                  belongs.
-                */}
                 {lobby.players.map((player, index) => {
                   const theirTurn = player.id === lobby.current_player_id;
                   const upNext = player.id === lobby.next_player_id;
-                  // Only during a settling round, where "how many turns do I
-                  // still have" is the thing a player wants and the seat number
-                  // tells them nothing.
                   const owed = lobby.is_catch_up
                     ? (lobby.catch_up_left[player.id] ?? 0)
                     : 0;
@@ -1301,7 +996,6 @@ export function LobbyRoom({
               </CardContent>
             </Card>
 
-            {/* What has been played this round, newest first. */}
             {lobby.history.length > 0 ? (
               <Card>
                 <CardHeader className="pb-3">
@@ -1392,9 +1086,6 @@ function TimeBar({
     const el = fill.current;
     if (!el) return;
 
-    // Colour is carried in the same declaration because an inline `transition`
-    // replaces the class-based one outright, and the fill has to keep fading to
-    // red under five seconds.
     const colour = "background-color 300ms ease";
 
     if (deadline === null) {
@@ -1406,14 +1097,8 @@ function TimeBar({
     const remaining = Math.max(0, deadline - Date.now());
     const start = Math.min(100, (remaining / (totalSeconds * 1000)) * 100);
 
-    // Snap to the true position without animating the jump -- on a new turn
-    // that jump is from empty back to full, and transitioning it would show the
-    // bar refilling.
     el.style.transition = "none";
     el.style.width = `${start}%`;
-    // Forces the style above to be committed as its own value. Without it the
-    // browser coalesces both writes into one frame, sees only the final width,
-    // and there is nothing left to transition from.
     void el.offsetWidth;
 
     el.style.transition = `width ${remaining}ms linear, ${colour}`;
@@ -1422,9 +1107,6 @@ function TimeBar({
 
   return (
     <span className={cn("h-1 w-16 overflow-hidden rounded-full", trackClass)} aria-hidden>
-      {/* No transition class: the effect owns the `transition` property, and an
-          inline one would replace whatever Tailwind put here. Colour is folded
-          into it there instead. */}
       <span ref={fill} className={cn("block h-full w-full", fillClass)} />
     </span>
   );
@@ -1469,8 +1151,6 @@ function TurnBar({
    */
   deadline: number | null;
 }) {
-  // Same threshold the countdown cue starts at, so what you see turning red
-  // and what you hear speeding up are one event rather than two near misses.
   const urgent = !reviewing && secondsLeft !== null && secondsLeft <= HURRY_FROM;
 
   return (
@@ -1481,8 +1161,6 @@ function TurnBar({
           ? "bg-primary text-primary-foreground border-primary animate-quiz-glow"
           : "bg-surface border-hairline",
       )}
-      // The one state worth interrupting a screen reader for is your own turn
-      // arriving; the rest is commentary it can pick up when it gets there.
       aria-live={isMyTurn ? "assertive" : "polite"}
     >
       <div className="min-w-0 flex-1">
@@ -1591,25 +1269,15 @@ function CategoryCard({
     <Card
       className={cn(
         "animate-quiz-rise",
-        // Rises to meet the cursor only when it can actually take the answer,
-        // so the movement means something rather than decorating everything.
         armed &&
           "ring-primary/60 hover:ring-primary cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl",
-        // Greyed out rather than hidden: the pairing so far is what players
-        // reason from when placing what is left.
         full && !reveal && "bg-muted/50 opacity-60",
-        // Nobody got this one, so it is the one worth looking at.
         missed && "border-amber-500/50",
       )}
       style={{ animationDelay: `${enterDelayMs}ms` }}
       onClick={armed ? onPlace : undefined}
       aria-disabled={full || undefined}
     >
-      {/*
-        The photograph IS the question, so it comes before anything else and
-        fills the card. `armed` is passed down because the whole card is a drop
-        target when an answer is selected -- see the note in `category-image`.
-      */}
       {image ? (
         <div className="px-6">
           <CategoryPicture
@@ -1628,10 +1296,6 @@ function CategoryCard({
               aria-hidden
             />
           ) : null}
-          {/*
-            Null while a picture round runs: naming the bridge answers the
-            question the photograph asks. The name arrives with the review.
-          */}
           {title ?? (
             <span className="text-muted-foreground font-normal">
               Was ist das?
@@ -1647,13 +1311,10 @@ function CategoryCard({
               {reveal.item_label}
             </Badge>
           ) : solved.length === 0 ? (
-            // Only "Empty" when nothing has been tried either -- a category
-            // with rejected guesses under it is not empty, it is unsolved.
             wrong.length === 0 ? (
               <p className="text-muted-foreground text-sm">Empty</p>
             ) : null
           ) : (
-            // Pops as it mounts, which is exactly when the answer lands.
             solved.map((item) => (
               <Badge
                 key={item.item_id}
@@ -1664,22 +1325,11 @@ function CategoryCard({
               </Badge>
             ))
           )}
-          {/*
-            "unsolved" rather than "nobody got this": with the round ending on
-            a lap boundary, a pair here has usually not been attempted at all,
-            and claiming the table failed at it would be wrong.
-          */}
           {missed ? (
             <span className="text-muted-foreground text-xs">unsolved</span>
           ) : null}
         </div>
 
-        {/*
-          Guesses that were tried here and rejected. Shown because a wrong
-          placement leaves the category open -- the right answer is still to
-          come -- so without this the next player cannot tell the idea has
-          already been spent, and the table burns a turn each on the same one.
-        */}
         {wrong.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {wrong.map((move) => (
@@ -1693,10 +1343,6 @@ function CategoryCard({
             ))}
           </div>
         ) : null}
-        {/*
-          The reason, underneath its answer. Absent on questions seeded before
-          the explain step existed, and then simply nothing is shown.
-        */}
         {reveal?.explanation ? (
           <p className="text-muted-foreground text-sm">{reveal.explanation}</p>
         ) : null}

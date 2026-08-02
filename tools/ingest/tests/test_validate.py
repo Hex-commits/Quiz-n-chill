@@ -76,8 +76,6 @@ def test_non_url_safe_slugs_are_rejected(slug):
     assert any("not url-safe" in p for p in check(slug=slug))
 
 
-# -- the pairing itself --------------------------------------------------
-
 
 def test_a_repeated_category_is_rejected_and_named():
     """The rule the whole design turns on: `19. Jahrhundert` cannot hold two
@@ -137,8 +135,6 @@ def test_a_term_used_as_both_category_and_answer_is_rejected():
     assert any("both a category and an answer" in p for p in problems)
 
 
-# -- size ----------------------------------------------------------------
-
 
 def sized(n: int) -> list:
     return pairs(*[(f"Land {i}", f"Stadt {i}") for i in range(n)])
@@ -162,8 +158,6 @@ def test_the_floor_and_the_ceiling_are_both_allowed():
     assert check(pairs=sized(MIN_PAIRS)) == []
     assert check(pairs=sized(MAX_PAIRS)) == []
 
-
-# -- answers -------------------------------------------------------------
 
 
 def test_an_answer_longer_than_four_words_is_rejected():
@@ -202,8 +196,6 @@ def test_an_empty_category_name_is_rejected():
         ("Österreich", "Wien"),
     )))
 
-
-# -- slugs ---------------------------------------------------------------
 
 
 def test_umlauts_are_spelled_out_not_stripped():

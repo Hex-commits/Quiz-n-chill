@@ -17,14 +17,6 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, Prom
 
 from ..domain.rules import MAX_ITEM_WORDS, MAX_PAIRS, MIN_PAIRS
 
-# -- extract -------------------------------------------------------------
-
-# Interpolated from `rules.py` rather than written out, because these numbers
-# appear in three places that must agree: the grammar Ollama decodes against,
-# the validator that rejects afterwards, and the prompt that tells the model
-# when to give up instead. The prompt was the one not bound to the source, and
-# it drifted the moment the range changed -- the model was still being told to
-# decline below six while the grammar demanded ten.
 EXTRACT_SYSTEM = f"""\
 Du erstellst Zuordnungsfragen für ein deutschsprachiges Quiz.
 
@@ -118,16 +110,10 @@ EXTRACT = ChatPromptTemplate.from_messages(
     [
         ("system", EXTRACT_SYSTEM),
         ("human", EXTRACT_HUMAN),
-        # Empty on the first attempt; every repair appends the rejected answer
-        # and the complaints about it.
         MessagesPlaceholder("repairs", optional=True),
     ]
 )
 
-# -- repair --------------------------------------------------------------
-
-# `{{problems}}` survives the f-string as a literal `{problems}`, which is what
-# PromptTemplate then fills in. The pair count is baked in here and now.
 REPAIR = PromptTemplate.from_template(
     f"""\
 Deine letzte Antwort verletzt diese Regeln:
@@ -141,21 +127,6 @@ kann: lass es lieber ganz weg, statt es durch etwas Erfundenes zu ersetzen.
 Fällst du dabei unter {MIN_PAIRS} Paare, setze `usable` auf false.
 """
 )
-
-# -- reframe -------------------------------------------------------------
-#
-# Runs on every question that becomes a picture question. `extract` wrote the
-# title and the instruction for a board of words -- "Ordne jedem Land seine
-# Hauptstadt zu" -- and played with photographs the player is not reading a
-# capital, they are looking at one.
-#
-# A flipped question needs it twice over: the pairing survives a flip, because
-# `Eisen -> Fe` and `Fe -> Eisen` are the same fact, but "Elemente und ihre
-# Symbole" is simply wrong once the symbol is what you are given.
-#
-# The pairs go in already in their final direction and the model is told only to
-# rename, never to change them. It cannot: nothing downstream reads a pair back
-# out of this reply.
 
 REFRAME_SYSTEM = """\
 Du benennst eine bestehende Zuordnungsfrage um.
@@ -208,8 +179,6 @@ REFRAME = ChatPromptTemplate.from_messages(
     ]
 )
 
-# -- explain -------------------------------------------------------------
-
 EXPLAIN_SYSTEM = """\
 Du schreibst zu jeder Antwort einer Zuordnungsfrage eine sehr kurze Begründung.
 
@@ -248,8 +217,6 @@ EXPLAIN = ChatPromptTemplate.from_messages(
         ("human", EXPLAIN_HUMAN),
     ]
 )
-
-# -- review --------------------------------------------------------------
 
 REVIEW_SYSTEM = """\
 Du prüfst eine Zuordnungsfrage für ein Quiz gegen den Quelltext.
@@ -292,9 +259,6 @@ Die Zuordnung:
 Prüfe die Frage.
 """
 
-# No MessagesPlaceholder here, and that is the point: the reviewer sees the
-# article and the finished question, never the generator's transcript. A model
-# re-reading its own reasoning mostly agrees with itself.
 REVIEW = ChatPromptTemplate.from_messages(
     [
         ("system", REVIEW_SYSTEM),

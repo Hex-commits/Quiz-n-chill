@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils";
  * and with a keyboard for free.
  */
 export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
-  // itemId -> categoryId. Absent means still unplaced.
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -45,14 +44,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
     [quiz.items],
   );
 
-  // Answers arrive shuffled -- the API does that before they leave the server --
-  // but the categories come in the order the question was written, which is the
-  // order its answers were written in too. Broken up here so the board cannot be
-  // read straight down.
-  //
-  // Seeded on the quiz rather than drawn at random: this component is rendered
-  // on the server first and hydrated on the client, and an order that differs
-  // between the two is a hydration mismatch. See `shuffleBySeed`.
   const categories = useMemo(
     () => shuffleBySeed(quiz.categories, quiz.id, (category) => category.id),
     [quiz.categories, quiz.id],
@@ -88,8 +79,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
         const target = placements[item.id];
         return {
           item_id: item.id,
-          // Every answer belongs to exactly one category, so an unplaced one is
-          // simply wrong rather than a claim that it fits nowhere.
           category_id: target ?? null,
         };
       });
@@ -107,8 +96,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
       .map(([itemId]) => itemsById.get(itemId))
       .filter((item): item is Item => item !== undefined);
   }
-
-  // --- Results -------------------------------------------------------------
 
   if (result) {
     const percent = Math.round((result.score / result.max_score) * 100);
@@ -129,7 +116,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
           <CardContent className="space-y-2">
             <Progress value={percent} />
             <p className="text-muted-foreground text-sm">{percent}%</p>
-            {/* The question is over, so the source is a reference now. */}
             <SourceLink source={result.source} className="pt-1" />
           </CardContent>
           <CardFooter className="gap-2">
@@ -176,9 +162,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
                     )}
                   </span>
                 </div>
-                {/* Indented to clear the icon so the eye runs straight down the
-                    answers, with the reason as a second line rather than a
-                    competing column. Absent for older questions. */}
                 {entry.explanation ? (
                   <p className="text-muted-foreground mt-1 pl-7 text-xs">
                     {entry.explanation}
@@ -191,8 +174,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
       </div>
     );
   }
-
-  // --- Playing -------------------------------------------------------------
 
   return (
     <div className="space-y-6">
@@ -291,8 +272,6 @@ function DropTarget({
     <Card
       className={cn(
         "transition-colors",
-        // Only highlight while an item is actually selected, so the board does
-        // not look interactive when clicking a category would do nothing.
         armed && "border-primary cursor-pointer",
       )}
       onClick={armed ? onPlace : undefined}
@@ -318,8 +297,6 @@ function DropTarget({
               <button
                 type="button"
                 onClick={(event) => {
-                  // Without this the click also lands on the card and
-                  // immediately re-places the item we just removed.
                   event.stopPropagation();
                   onRemove(item.id);
                 }}

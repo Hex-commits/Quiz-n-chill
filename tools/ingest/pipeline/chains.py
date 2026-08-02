@@ -34,12 +34,8 @@ from .illustrate import Illustration, illustrate
 from .llm import structured
 from .prompts import EXPLAIN, EXTRACT, REFRAME, REPAIR, REVIEW
 
-# A 9B model with an 8K context degrades badly on long inputs, and the lead
-# section carries the factual pairings anyway.
 MAX_ARTICLE_CHARS = 6000
 
-
-# -- extract -------------------------------------------------------------
 
 
 def extract_step(model, subject_slugs: list[str], *, max_chars: int = MAX_ARTICLE_CHARS) -> Runnable:
@@ -80,8 +76,6 @@ def _as_extraction(raw: object) -> Extraction:
     except Exception as exc:  # noqa: BLE001 - reported to the repair loop, not raised
         return Extraction(raw=raw, error=f"schema mismatch: {exc}")
 
-
-# -- check ---------------------------------------------------------------
 
 
 def check_step(*, subject_slugs: set[str], taken_slugs: set[str] | None = None) -> Runnable:
@@ -126,8 +120,6 @@ def _render_pairs(question: GeneratedQuestion) -> str:
     return rendered or "- (keine)"
 
 
-# -- review --------------------------------------------------------------
-
 
 def review_step(model, *, max_chars: int = MAX_ARTICLE_CHARS) -> Runnable:
     """`{article, question}` -> `Review`."""
@@ -141,8 +133,6 @@ def review_step(model, *, max_chars: int = MAX_ARTICLE_CHARS) -> Runnable:
 
     verdict = RunnableLambda(prepare) | REVIEW | structured(model, REVIEW_SCHEMA)
 
-    # The question is carried alongside the verdict so the findings can be
-    # checked against it -- see `as_review`.
     return (
         RunnablePassthrough.assign(verdict=verdict)
         | RunnableLambda(lambda state: as_review(state["verdict"], state["question"]))
@@ -162,18 +152,10 @@ def as_review(raw: dict, question: GeneratedQuestion | None = None) -> Review:
     was_specific = bool(misplaced or problems)
 
     if question is not None:
-        # A finding has to name an answer that is actually on the board. A small
-        # model will occasionally report a category name, or a term from the
-        # article that never made it into the question; neither is something the
-        # repair loop could act on.
         on_the_board = {answer.casefold() for answer in question.answers}
         wrongly_flagged = [item for item in misplaced if item.casefold() not in on_the_board]
         misplaced = [item for item in misplaced if item.casefold() in on_the_board]
 
-        # A dropped finding usually has a matching sentence in `problems`, and
-        # leaving that behind would block the question just as effectively as
-        # the finding did. Matching by name is crude, but the alternative is
-        # trusting prose we have already decided is wrong.
         if wrongly_flagged:
             problems = [
                 problem
@@ -183,17 +165,9 @@ def as_review(raw: dict, question: GeneratedQuestion | None = None) -> Review:
 
     survived = bool(problems or misplaced)
 
-    # The reviewer named specifics and every one of them turned out to be
-    # impossible of this question. There is no complaint left to repair against,
-    # so the rejection had no substance and the question passes. This is
-    # distinct from a bare `ok: false` with nothing named, below, which stays a
-    # rejection -- one is a critic that was wrong, the other is a critic that
-    # would not say.
     if was_specific and not survived:
         return Review(ok=True)
 
-    # A model that lists faults but still says `ok: true` is contradicting
-    # itself; trust the specifics over the summary flag.
     ok = bool(raw.get("ok")) and not survived
 
     if not ok and not problems:
@@ -220,8 +194,6 @@ def _clean(values: object) -> list[str]:
     return [str(value) for value in values if str(value).strip()]
 
 
-# -- explain -------------------------------------------------------------
-
 
 def explain_step(model, *, max_chars: int = MAX_ARTICLE_CHARS) -> Runnable:
     """`{article, question}` -> `{answer: one short line}`.
@@ -241,8 +213,6 @@ def explain_step(model, *, max_chars: int = MAX_ARTICLE_CHARS) -> Runnable:
         }
 
     def bind(state: dict) -> Runnable:
-        # The grammar enumerates this question's own answers, so the model
-        # cannot explain something that is not on the board.
         return structured(model, explanation_schema(state["question"].all_items))
 
     return (
@@ -271,8 +241,6 @@ def as_explanations(raw: dict, question: GeneratedQuestion) -> dict[str, str]:
             out[label] = why
     return out
 
-
-# -- illustrate ----------------------------------------------------------
 
 
 def illustrate_step(provider) -> Runnable:
@@ -309,8 +277,6 @@ def reframe_step(model) -> Runnable:
         RunnableLambda(prepare) | REFRAME | structured(model, REFRAME_SCHEMA)
     ).with_config(run_name="reframe")
 
-
-# -- repair --------------------------------------------------------------
 
 
 def repair_step() -> Runnable:

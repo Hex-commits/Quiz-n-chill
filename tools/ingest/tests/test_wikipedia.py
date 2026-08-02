@@ -21,7 +21,6 @@ def test_real_articles_are_kept(title):
         "Portal:Sport",
         "Datei:Foo.jpg",
         "Kategorie:Physik",
-        # Not articles at all -- these really do appear in the top-views list.
         "wiki.phtml",
         "index.php",
         "load.php",
@@ -46,8 +45,6 @@ def test_article_text_survives_a_missing_extract():
     article = Article(title="X", url="https://example.test/X", summary="Nur die Zusammenfassung.", extract="")
     assert article.text == "Nur die Zusammenfassung."
 
-
-# -- picking articles worth a model call ---------------------------------
 
 
 def test_adult_topics_are_not_quiz_material():
@@ -99,8 +96,6 @@ def test_an_article_with_no_categories_is_not_assumed_to_be_a_person():
     assert not Article(title="X", url="u", summary="s", extract="e").is_biography
 
 
-# -- ranking by staying power --------------------------------------------
-
 
 def test_months_back_steps_across_a_year_boundary():
     from tools.ingest.sources.wikipedia import _months_back
@@ -119,7 +114,6 @@ def test_consistency_outranks_a_single_huge_spike(monkeypatch, tmp_path):
     client = WikipediaClient(cache_dir=tmp_path)
 
     def fake_daily(year, month, day):
-        # 'Skandal' appears once with enormous traffic; 'Deutschland' always.
         if (year, month) == (2026, 6):
             return [("Skandal", 5_000_000), ("Deutschland", 10_000)]
         return [("Deutschland", 10_000)]
@@ -162,7 +156,7 @@ def test_a_fetched_day_is_cached_and_never_fetched_twice(tmp_path):
 
     assert client._daily_top(2025, 6, 15) == [("Deutschland", 10)]
     assert client._daily_top(2025, 6, 15) == [("Deutschland", 10)]
-    assert len(calls) == 1  # second read came from disk
+    assert len(calls) == 1
 
 
 def test_a_corrupt_cache_file_is_ignored_rather_than_fatal(tmp_path):

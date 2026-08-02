@@ -36,8 +36,6 @@ export function useCountdown(
 ): number | null {
   const [now, setNow] = useState(() => Date.now());
 
-  // Held in a ref so a caller passing an inline arrow does not re-arm the
-  // timer on every render.
   const expire = useRef(onExpire);
   useEffect(() => {
     expire.current = onExpire;
@@ -95,7 +93,6 @@ export function reconcileDeadline(
   current: number | null,
   next: number | null,
 ): number | null {
-  // Starting or stopping is always news.
   if (next === null || current === null) return next;
   return Math.abs(next - current) > RESYNC_MS ? next : current;
 }

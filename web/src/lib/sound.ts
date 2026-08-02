@@ -195,8 +195,6 @@ const HURRY: Record<number, Note[]> = {
     { freq: N.Gb5, duration: 0.12, gain: 0.46 },
     { freq: N.G5, duration: 0.11, gain: 0.22 },
     { freq: N.C3, duration: 0.12, type: "sine", gain: 0.42 },
-    // The second half of the beat. Same notes, quieter, a third of a second
-    // later -- the pulse doubling rather than a new event.
     { freq: N.Gb5, duration: 0.1, delay: 0.3, gain: 0.32 },
     { freq: N.C3, duration: 0.1, delay: 0.3, type: "sine", gain: 0.3 },
   ],
@@ -267,13 +265,9 @@ export function unlock(): void {
   try {
     if (!context) {
       context = new AudioContext();
-      // Every note goes through one lowpass, so softening the whole instrument
-      // is a single number rather than a change to each cue.
       const filter = context.createBiquadFilter();
       filter.type = "lowpass";
       filter.frequency.value = TONE_HZ;
-      // Just below 1/sqrt(2): no resonant peak at the corner, which would put
-      // back the edge the filter is there to remove.
       filter.Q.value = 0.6;
 
       bus = context.createGain();
@@ -282,7 +276,6 @@ export function unlock(): void {
     }
     if (context.state === "suspended") void context.resume();
   } catch {
-    // No Web Audio: the game is fully playable without it.
   }
 }
 
@@ -324,16 +317,12 @@ function voice(ctx: AudioContext, out: GainNode, note: Note, now: number): void 
   const end = start + note.duration;
 
   const osc = ctx.createOscillator();
-  // Triangle by default: a little more body than a sine, still almost no upper
-  // harmonics once the master filter has been through it.
   osc.type = note.type ?? "triangle";
   osc.frequency.setValueAtTime(note.freq, start);
 
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.exponentialRampToValueAtTime(note.gain ?? 0.5, start + ATTACK);
-  // Exponential, so the tail thins the way a struck string does rather than
-  // fading at a constant rate and stopping abruptly.
   gain.gain.exponentialRampToValueAtTime(0.0001, end);
 
   osc.connect(gain).connect(out);

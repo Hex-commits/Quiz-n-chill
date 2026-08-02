@@ -7,10 +7,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Pointed at the variable `next/font` actually defines. This used to read
-     `--font-sans: var(--font-sans)`, which resolves to nothing -- so
-     `@apply font-sans` emitted an invalid declaration, the browser dropped it,
-     and the loaded font was never used. */
   --font-sans: var(--font-outfit);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-outfit);
@@ -36,9 +32,6 @@
   --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
   --color-hairline: var(--hairline);
-  /* One easing for everything that moves. A shared curve is most of what makes
-     an interface feel like one object rather than a set of parts that each
-     animate their own way. Decelerating hard at the end reads as weight. */
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --color-accent-foreground: var(--accent-foreground);
@@ -62,16 +55,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/*
- * Amber, on a warm neutral.
- *
- * Three colours have to stay tellable apart at a glance, because the game says
- * everything with them: amber is *the app*, green is right, red is wrong. Amber
- * and red are close enough in hue to blur, so `destructive` is pulled toward
- * crimson (h 15 rather than shadcn's 27) to widen the gap. The greys carry a
- * trace of the same warmth -- a truly neutral grey next to amber reads as a
- * mistake rather than a choice.
- */
 :root {
   --background: oklch(0.995 0.003 80);
   --foreground: oklch(0.16 0.012 60);
@@ -79,8 +62,6 @@
   --card-foreground: oklch(0.16 0.012 60);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.012 60);
-  /* Dark text on amber rather than white: at the lightness that makes amber
-     look like amber, white fails contrast. */
   --primary: oklch(0.7 0.165 62);
   --primary-foreground: oklch(0.2 0.035 60);
   --secondary: oklch(0.96 0.012 75);
@@ -95,9 +76,6 @@
   --border: oklch(0.9 0.012 75);
   --input: oklch(0.9 0.012 75);
   --ring: oklch(0.7 0.14 62);
-  /* Surfaces are tinted translucency rather than flat fills, so a card reads as
-     a pane over the background instead of a rectangle stuck on it. This is what
-     does most of the work in making a dark UI feel deep. */
   --surface: oklch(0.16 0.012 60 / 3%);
   --surface-strong: oklch(0.16 0.012 60 / 6%);
   --hairline: oklch(0.16 0.012 60 / 10%);
@@ -106,18 +84,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  /* Generous. Small radii read as "form", large ones as "surface", and this is
-     a game. */
   --radius: 1rem;
-  /* The site header's height, and the offset every *other* sticky thing has to
-     clear.
-
-     One number rather than three, because the three disagreeing is a bug you
-     see rather than one you read: the header is sticky and paints above the
-     page, so anything pinned higher than it slides underneath and shows only
-     its lower half. That is exactly what the turn bar did.
-
-     The half-rem is the gap the pinned element keeps from the header. */
   --header-h: 3.5rem;
   --sticky-top: calc(var(--header-h) + 0.5rem);
   --sidebar: oklch(0.985 0 0);
@@ -130,9 +97,6 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* The default theme, and the one the game is actually played in. Amber is
-   pushed brighter here so it still reads as a light source against a dark
-   background rather than as brown. */
 .dark {
   --background: oklch(0.16 0.012 60);
   --foreground: oklch(0.97 0.008 80);
@@ -178,9 +142,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* A fixed wash of the brand colour at the top of the page, so the
-       background is lit rather than flat. Fixed rather than scrolling: it is
-       the room, not part of the content. */
     background-image: radial-gradient(
       110% 70% at 50% -10%,
       color-mix(in oklch, var(--primary) 14%, transparent),
@@ -193,14 +154,6 @@
   }
 }
 
-/*
- * Game feedback, in motion.
- *
- * Each of these says one thing: something landed, something was refused, it is
- * your go. They are short because they sit between a player's click and their
- * reading the result -- animation that outlasts the reaction it is describing
- * gets in the way of the next turn.
- */
 @keyframes quiz-pop {
   0% {
     transform: scale(0.85);
@@ -234,9 +187,6 @@
   }
 }
 
-/* Confirmation that the lobby code was copied. The code itself does not change
-   when you click it, so the movement is the whole feedback -- it has to be big
-   enough to catch the eye that was already on it. */
 @keyframes quiz-wobble {
   0%,
   100% {
@@ -278,8 +228,6 @@
   animation: quiz-wobble 600ms ease-in-out;
 }
 
-/* On the board while it is your turn: a slow breath, not a flash. It runs for
-   as long as the turn does, so anything sharper would be exhausting. */
 .animate-quiz-glow {
   animation: quiz-glow 2.4s ease-in-out infinite;
 }
@@ -291,23 +239,10 @@
   }
 }
 
-/* `both` so a staggered delay holds the start state rather than showing the
-   element, hiding it, and showing it again. */
 .animate-quiz-rise {
   animation: quiz-rise 420ms var(--ease-soft) both;
 }
 
-/*
- * The ambient glow behind the question.
- *
- * A large, heavily blurred blob of the brand colour, drifting slowly. It is the
- * difference between a dark background and a lit room -- flat #111 reads as
- * "unstyled", the same colour with something glowing behind it reads as depth.
- *
- * Slow (12s) and low contrast on purpose: it should never be the thing you are
- * looking at, and anything faster becomes a distraction on a page people are
- * trying to read.
- */
 @keyframes quiz-drift {
   0%,
   100% {
@@ -335,28 +270,6 @@
   animation: quiz-drift 12s ease-in-out infinite;
 }
 
-/*
- * The same glow while the turn is yours, turned up until it is unmistakable.
- *
- * Waiting and being on the clock looked near enough identical from across a
- * room -- a border and a strip of text, both of which have to be read. This one
- * does not: the board itself lights up.
- *
- * Everything moves together rather than opacity alone, because a blurred blob
- * that is merely brighter reads as the screen having changed brightness. More
- * colour, a tighter blur so the shape carries, a wider swing on the drift, and
- * twice the speed -- but no faster than that. It runs for the whole turn, so it
- * has to be a raised pulse rather than a flash, and the closing five seconds
- * have their own escalation to make that nothing here should compete with.
- *
- * What limits it is contrast, not taste: this sits directly behind the question
- * and amber is a *light* colour, so brightening the glow darkens the text on it
- * in relative terms. At this strength the muted greys in the card header fall to
- * about 2.2:1, which is why the header brightens with the glow rather than
- * staying muted -- against `--foreground` the same spot holds 4.9:1 in the dark
- * theme and 11:1 in the light one. The two changes go together; raising this
- * without the other would light the board by making it harder to read.
- */
 @keyframes quiz-drift-yours {
   0%,
   100% {
@@ -379,27 +292,9 @@
   animation: quiz-drift-yours 6s ease-in-out infinite;
 }
 
-/*
- * The whole room lit while the turn is yours.
- *
- * `body` already carries a fixed wash of the brand colour at 14%; this is that
- * wash turned up and laid over it, covering the viewport rather than a card.
- * The card glow says "this board is yours" to someone already reading the
- * board -- this is for the player who is looking at the table instead, and
- * catches the corner of the eye from across a room.
- *
- * Deliberately still. Every other cue for your turn moves (the bar breathes,
- * the glow behind the question drifts, the last five seconds have their own
- * escalation) and a fourth thing pulsing would be a fairground. It fades in
- * over three quarters of a second because a screen-sized colour change that
- * snaps reads as a fault, and fades out again as the turn passes on.
- */
 .quiz-room-glow {
   position: fixed;
   inset: 0;
-  /* Behind the page's content but above the background canvas `body` paints.
-     Nothing between here and the root makes a stacking context, so a negative
-     index lands where it is meant to. */
   z-index: -10;
   pointer-events: none;
   opacity: 0;
@@ -415,10 +310,6 @@
   opacity: 1;
 }
 
-/*
- * A shine sweeping across a button, skewed so it reads as light passing over a
- * surface rather than a bar sliding along. Runs once on hover.
- */
 @keyframes quiz-shine {
   from {
     transform: translateX(-140%) skewX(-18deg);
@@ -452,11 +343,6 @@
   animation: quiz-shine 720ms var(--ease-soft);
 }
 
-/*
- * Someone who has asked for less motion gets none of it. The information is
- * carried by colour and text in every case above -- the movement is emphasis,
- * so removing it costs nothing but the emphasis.
- */
 @media (prefers-reduced-motion: reduce) {
   .animate-quiz-pop,
   .animate-quiz-shake,
@@ -468,14 +354,9 @@
   .quiz-shine:hover::after {
     animation: none;
   }
-  /* The glow still lights the page, it just stops moving -- removing it
-     entirely would take the depth with it. */
   .quiz-ambient {
     opacity: 0.4;
   }
-  /* Held near the top of its swing rather than dropped back to the resting
-     glow: whose turn it is is information, not emphasis, and it is the one
-     thing here that still has to be obvious once the movement is gone. */
   .quiz-ambient--yours {
     opacity: 0.65;
   }

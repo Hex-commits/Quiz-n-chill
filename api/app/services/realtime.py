@@ -52,15 +52,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Short: this sits between a player's move and the response to it. A Realtime
-# endpoint that is slow to answer should not hold up the game.
 TIMEOUT_SECONDS = 2.0
 
 EVENT = "lobby-changed"
 
-# Well under Supabase's own frame limit, and chosen as the point where sending
-# the state stops being cheaper than letting the client fetch it. A playing view
-# is a few kilobytes; only the tail of a long game approaches this.
 MAX_PAYLOAD_BYTES = 64 * 1024
 
 
@@ -83,9 +78,6 @@ def publish(view: LobbyView) -> bool:
     url = f"{settings.supabase_url.rstrip('/')}/realtime/v1/api/broadcast"
     key = settings.supabase_service_role_key
 
-    # `version` is outside `state` deliberately: it is the one field the client
-    # needs before it decides whether to apply anything, and it has to be there
-    # whether or not the state came along.
     payload: dict[str, object] = {"version": view.version}
     state = view.model_dump(mode="json")
     if len(json.dumps(state)) <= MAX_PAYLOAD_BYTES:
@@ -113,8 +105,5 @@ def publish(view: LobbyView) -> bool:
         response.raise_for_status()
         return True
     except Exception as exc:  # noqa: BLE001 - a missed notification is not a failed move
-        # Logged at debug rather than warning: with the slow poll still running,
-        # this is a latency event, not an error, and a Realtime outage would
-        # otherwise fill the log with one line per turn.
         logger.debug("realtime broadcast for %s failed: %s", view.code, exc)
         return False

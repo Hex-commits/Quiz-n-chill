@@ -61,8 +61,6 @@ def question(*pairs: tuple[str, str]) -> GeneratedQuestion:
 ELEMENTS = question(("Eisen", "Fe"), ("Sauerstoff", "O"), ("Gold", "Au"))
 
 
-# -- the decision -------------------------------------------------------------
-
 
 def test_pictures_on_the_categories_are_used_as_they_are():
     """Where the pictures have to end up: a category is the board, so a
@@ -126,8 +124,6 @@ def test_a_question_with_no_pairs_is_handled():
     assert not illustrate(question(), DOC, StubImages(), min_pairs=3).is_picture
 
 
-# -- flipping -----------------------------------------------------------------
-
 
 def test_flipping_reverses_every_pair():
     flipped = flip(ELEMENTS)
@@ -155,16 +151,7 @@ def test_a_flipped_question_is_still_a_valid_pairing():
     assert problems == []
 
 
-# -- the replay ---------------------------------------------------------------
-#
-# Real pairings from the question set, with the image coverage measured against
-# Wikidata. The orientation the pipeline picks has to match what was measured.
-
 MEASURED = [
-    # (name, pairs, labels that had a P18, expected flip)
-    #
-    # A flip is expected exactly when the pictures were measured on the ANSWER
-    # side, because that is the side that has to be brought round to the board.
     (
         "automarken-laender",
         [("Audi", "Deutschland"), ("Fiat", "Italien"), ("Volvo", "Schweden")],
@@ -246,8 +233,6 @@ def test_a_flipped_board_is_trimmed_against_its_new_categories():
     assert trimmed.labels == have
     assert trimmed.answers == [f"Land {n}" for n in range(10)]
 
-
-# -- salvaged from the recipe path -------------------------------------------
 
 
 def claim(value: str, *, rank: str = "normal", ended: bool = False) -> dict:
