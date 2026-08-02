@@ -116,8 +116,6 @@ def run(
     return outcome, generator, reviewer
 
 
-# -- the happy path ------------------------------------------------------
-
 
 def test_a_good_first_answer_is_accepted_without_retrying():
     outcome, generator, _ = run([payload()])
@@ -153,8 +151,6 @@ def test_the_article_text_is_truncated_before_it_reaches_the_model():
     assert len(generator.seen[0][-1].content) < 8000
 
 
-# -- the repair edge -----------------------------------------------------
-
 
 def test_a_rejected_answer_is_retried_with_the_complaints_fed_back():
     """The first answer uses one answer twice, which the real validator catches."""
@@ -164,8 +160,6 @@ def test_a_rejected_answer_is_retried_with_the_complaints_fed_back():
     assert outcome.question.title == "Zweiter Versuch"
     assert len(generator.seen) == 2
 
-    # The second call must carry the previous answer and the complaint, or the
-    # model is being asked to fix something it can no longer see.
     conversation = generator.seen[1]
     assert conversation[-2].type == "ai"
     assert json.loads(conversation[-2].content)["title"] == "Testfrage"
@@ -178,7 +172,6 @@ def test_every_earlier_attempt_stays_in_the_conversation():
     _outcome, generator, _ = run([broken(), broken(), payload()], max_attempts=3)
 
     assert len(generator.seen) == 3
-    # system + human + (ai + human) * 2 repairs
     assert len(generator.seen[2]) == 6
 
 
@@ -197,8 +190,6 @@ def test_max_attempts_is_respected():
 
     assert len(generator.seen) == 2
 
-
-# -- the edges that stop early -------------------------------------------
 
 
 def test_the_model_declining_stops_immediately():
@@ -230,8 +221,6 @@ def test_a_transport_failure_does_not_burn_the_remaining_attempts():
     assert outcome.problems
 
 
-# -- the check step ------------------------------------------------------
-
 
 def test_a_taken_slug_is_moved_aside_rather_than_rejected():
     outcome, _generator, _ = run([payload(slug="test-frage")], taken_slugs={"test-frage"})
@@ -248,8 +237,6 @@ def test_the_slug_is_normalised_before_it_is_judged():
     assert outcome.question.slug == "fluesse-europas"
 
 
-# -- the review gate -----------------------------------------------------
-
 
 def test_the_reviewer_only_sees_questions_that_passed_the_structural_gate():
     """Reviewing a malformed question spends a model call to learn nothing."""
@@ -259,7 +246,7 @@ def test_the_reviewer_only_sees_questions_that_passed_the_structural_gate():
 
     assert outcome.accepted, outcome.problems
     assert len(generator.seen) == 2
-    assert len(reviewer.seen) == 1  # not called on the malformed first answer
+    assert len(reviewer.seen) == 1
 
 
 def test_a_review_finding_goes_back_through_the_same_repair_edge():
@@ -295,7 +282,6 @@ def test_the_reviewer_sees_the_article_and_the_question_but_not_the_transcript()
     assert "Testfrage" in human.content
     assert "Kat0 -> Ant0" in human.content
     assert "Zuordnungsfrage" in system.content
-    # The generator's opening prompt must not have leaked across.
     assert "Verfügbare Themengebiete" not in human.content
 
 
@@ -309,8 +295,6 @@ def test_without_a_reviewer_the_review_node_is_not_in_the_graph():
     assert "review" not in without.get_graph().nodes
     assert "review" in with_review.get_graph().nodes
 
-
-# -- the trace -----------------------------------------------------------
 
 
 def test_the_trace_records_every_node_that_ran():
@@ -327,7 +311,6 @@ def test_the_trace_names_the_gate_that_objected_and_what_it_said():
     assert "1 problem(s): these answers appear more than once" in trace
     assert "retrying, attempt 2" in trace
     assert outcome.attempts == 2
-    # Every line is timed, so a slow run says which step was slow.
     assert all("s  " in line for line in outcome.steps)
 
 
@@ -349,8 +332,6 @@ def test_on_step_reports_live():
 
     assert [node for node, _ in lines] == ["extract", "check"]
 
-
-# -- the explain step ----------------------------------------------------
 
 
 def explainer(lines: dict[str, str]):

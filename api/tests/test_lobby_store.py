@@ -92,8 +92,6 @@ def test_a_lobby_survives_a_round_trip(store):
         assert loaded.players[0].nickname == "Anna"
         assert loaded.players[0].score == 3
         assert loaded.status is LobbyStatus.playing
-        # The parts most likely to be lost in translation: an enum, a nested
-        # Pydantic model, and a method that has to still work afterwards.
         assert loaded.current_round.source.title == "Hauptstadt"
         assert loaded.current_round.answer_key() == original.current_round.answer_key()
 
@@ -181,7 +179,6 @@ def test_two_writers_do_not_interleave(store):
             barrier.wait(timeout=5)
             with store.mutate("TR3X") as lobby:
                 current = lobby.players[0].score
-                # Widen the window a real interleaving would slip through.
                 import time
 
                 time.sleep(0.05)
@@ -197,7 +194,7 @@ def test_two_writers_do_not_interleave(store):
 
     assert not errors, errors
     with store.mutate("TR3X") as lobby:
-        assert lobby.players[0].score == 5  # 3 + 1 + 1, not 4
+        assert lobby.players[0].score == 5
 
 
 def test_a_stale_lobby_is_not_offered(store):
@@ -210,9 +207,5 @@ def test_a_stale_lobby_is_not_offered(store):
     if isinstance(store, MemoryStore):
         assert not store.exists("TR3X")
     else:
-        # The row carries an expiry rather than being swept on read, so there is
-        # nothing to observe here without waiting hours. Assert the sweep runs
-        # and the row survives it, which is the mechanism working correctly for
-        # a lobby that has not expired yet.
         assert store.sweep() >= 0
         assert store.exists("TR3X")

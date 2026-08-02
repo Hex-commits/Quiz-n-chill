@@ -57,9 +57,6 @@ export function CategoryPicture({
     <>
       <span
         className={cn("group relative block overflow-hidden", className)}
-        // Only when the card is not a drop target. `onClick` on a span rather
-        // than a button because this sits *inside* the category button, and a
-        // button inside a button is invalid HTML that React will warn about.
         onClick={
           armed
             ? undefined
@@ -69,7 +66,6 @@ export function CategoryPicture({
               }
         }
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- see the module note */}
         <img
           src={image.src}
           alt={label}
@@ -78,8 +74,6 @@ export function CategoryPicture({
         />
         <button
           type="button"
-          // The click must not reach the category card, or looking at a
-          // photograph would place an answer on it.
           onClick={(event) => {
             event.stopPropagation();
             setOpen(true);
@@ -88,7 +82,6 @@ export function CategoryPicture({
           className={cn(
             "absolute top-1.5 right-1.5 rounded-md bg-black/55 p-1.5 text-white",
             "opacity-0 transition-opacity duration-150",
-            // Always visible on touch, where there is no hover to reveal it.
             "group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
           )}
         >
@@ -134,8 +127,6 @@ function Lightbox({
       if (event.key === "Escape") close();
     };
     document.addEventListener("keydown", onKey);
-    // The board behind is long; scrolling it while the overlay is up leaves the
-    // picture floating over unrelated cards.
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -165,12 +156,9 @@ function Lightbox({
         <X className="size-5" aria-hidden />
       </button>
 
-      {/* eslint-disable-next-line @next/next/no-img-element -- see the module note */}
       <img
         src={atWidth(image.src, 1280)}
         alt={label}
-        // Stops a click on the picture itself from closing, which otherwise
-        // makes it impossible to look at without dismissing.
         onClick={(event) => event.stopPropagation()}
         className="max-h-[80vh] max-w-full rounded-lg object-contain shadow-2xl"
       />

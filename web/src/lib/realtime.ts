@@ -39,8 +39,6 @@ import { RealtimeClient, type RealtimeChannel } from "@supabase/realtime-js";
 import type { LobbyView } from "@/lib/types";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-// The publishable key. Safe in the browser because of the RLS position above,
-// and not the service-role key, which never leaves the API.
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const realtimeConfigured = Boolean(url && anonKey);
@@ -49,7 +47,6 @@ let client: RealtimeClient | null = null;
 
 function getClient(): RealtimeClient | null {
   if (!realtimeConfigured) return null;
-  // One socket per tab, shared by every channel, rather than one per lobby.
   client ??= new RealtimeClient(`${url!.replace(/\/+$/, "")}/realtime/v1`, {
     params: { apikey: anonKey! },
   });
@@ -77,8 +74,6 @@ export function subscribeToLobby(
   const channel: RealtimeChannel = socket.channel(`lobby:${code.toUpperCase()}`);
   channel
     .on("broadcast", { event: "lobby-changed" }, (message) => {
-      // Shape-checked rather than trusted: this crosses a socket, and a
-      // malformed frame should cost a fetch, not a crashed room.
       const state = (message?.payload as { state?: unknown } | undefined)?.state;
       const view =
         state && typeof state === "object" && "version" in state

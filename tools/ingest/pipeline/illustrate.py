@@ -36,19 +36,6 @@ from dataclasses import dataclass
 from ..domain.models import GeneratedPair, GeneratedQuestion
 from ..sources.protocols import Document, Image, ImageProvider
 
-# Every pair on the board must have a picture -- a board where two categories
-# are words and eight are photographs makes the worded two a different game, and
-# a label that failed to resolve is one we could not identify.
-#
-# But "every pair" need not mean "every pair the model wrote". A question with
-# fourteen pairs and twelve pictures is a perfectly good twelve-pair picture
-# question, and refusing it throws away the two most common shapes: a list
-# article with one entry that has no photograph, and a name the resolver could
-# not place. So the unillustrated pairs are dropped and what remains must still
-# be a legal question -- which is what `MIN_PAIRS` already means.
-#
-# Dropping is safe because every rule `validate.py` enforces is about pairs
-# individually or about duplicates; removing a pair cannot introduce either.
 from ..domain.rules import MIN_PAIRS
 
 
@@ -56,16 +43,9 @@ from ..domain.rules import MIN_PAIRS
 class Illustration:
     """What `illustrate` decided about one question."""
 
-    # Label -> picture, keyed by whatever ends up being the *category* after any
-    # flip. Empty when this stays a text question.
     images: dict[str, Image]
-    # True when the pairing was turned round to bring the pictures to the
-    # category side.
     flipped: bool = False
-    # Categories with no picture, which the caller drops from the board. Named
-    # rather than implied, so the trace can say a question was trimmed.
     dropped: tuple[str, ...] = ()
-    # For the trace, in words.
     detail: str = ""
 
     @property
@@ -105,8 +85,6 @@ def illustrate(
 
     on_answers = provider.images_for(answers, document=document)
     if len(on_answers) >= min_pairs:
-        # After the flip the answers *are* the categories, so the pairs that go
-        # are the answers that failed to resolve.
         missing = tuple(answer for answer in answers if answer not in on_answers)
         return Illustration(
             images=on_answers,

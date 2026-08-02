@@ -22,9 +22,6 @@ import { useStored } from "@/lib/use-stored";
 
 export function JoinForm() {
   const router = useRouter();
-  // The field starts from last game's nickname and switches to whatever the
-  // player types. Keeping "typed" separate avoids an effect that would
-  // overwrite their input on every render.
   const storedNickname = useStored(recallNickname, "");
   const [typed, setTyped] = useState<string | null>(null);
   const nickname = typed ?? storedNickname;

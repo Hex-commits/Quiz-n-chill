@@ -18,6 +18,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { DifficultyBadge, SourceLink } from "@/components/source-link";
 import { checkAssignment } from "@/lib/api";
+import { shuffleBySeed } from "@/lib/shuffle";
 import type { CheckResult, Item, QuizDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,6 @@ import { cn } from "@/lib/utils";
  * and with a keyboard for free.
  */
 export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
-  // itemId -> categoryId. Absent means still unplaced.
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -42,6 +42,11 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
   const itemsById = useMemo(
     () => new Map(quiz.items.map((item) => [item.id, item])),
     [quiz.items],
+  );
+
+  const categories = useMemo(
+    () => shuffleBySeed(quiz.categories, quiz.id, (category) => category.id),
+    [quiz.categories, quiz.id],
   );
 
   const unplaced = quiz.items.filter((item) => !(item.id in placements));
@@ -74,8 +79,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
         const target = placements[item.id];
         return {
           item_id: item.id,
-          // Every answer belongs to exactly one category, so an unplaced one is
-          // simply wrong rather than a claim that it fits nowhere.
           category_id: target ?? null,
         };
       });
@@ -93,8 +96,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
       .map(([itemId]) => itemsById.get(itemId))
       .filter((item): item is Item => item !== undefined);
   }
-
-  // --- Results -------------------------------------------------------------
 
   if (result) {
     const percent = Math.round((result.score / result.max_score) * 100);
@@ -115,7 +116,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
           <CardContent className="space-y-2">
             <Progress value={percent} />
             <p className="text-muted-foreground text-sm">{percent}%</p>
-            {/* The question is over, so the source is a reference now. */}
             <SourceLink source={result.source} className="pt-1" />
           </CardContent>
           <CardFooter className="gap-2">
@@ -162,9 +162,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
                     )}
                   </span>
                 </div>
-                {/* Indented to clear the icon so the eye runs straight down the
-                    answers, with the reason as a second line rather than a
-                    competing column. Absent for older questions. */}
                 {entry.explanation ? (
                   <p className="text-muted-foreground mt-1 pl-7 text-xs">
                     {entry.explanation}
@@ -177,8 +174,6 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
       </div>
     );
   }
-
-  // --- Playing -------------------------------------------------------------
 
   return (
     <div className="space-y-6">
@@ -227,7 +222,7 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {quiz.categories.map((category) => (
+        {categories.map((category) => (
           <DropTarget
             key={category.id}
             title={category.label}
@@ -277,8 +272,6 @@ function DropTarget({
     <Card
       className={cn(
         "transition-colors",
-        // Only highlight while an item is actually selected, so the board does
-        // not look interactive when clicking a category would do nothing.
         armed && "border-primary cursor-pointer",
       )}
       onClick={armed ? onPlace : undefined}
@@ -304,8 +297,6 @@ function DropTarget({
               <button
                 type="button"
                 onClick={(event) => {
-                  // Without this the click also lands on the card and
-                  // immediately re-places the item we just removed.
                   event.stopPropagation();
                   onRemove(item.id);
                 }}

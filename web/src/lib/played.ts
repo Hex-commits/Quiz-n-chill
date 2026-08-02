@@ -20,9 +20,6 @@
 
 const KEY = "quiz-quiz:played";
 
-// Enough for a very long history and still a small payload; the API refuses
-// more than 500. Oldest go first, which is also the order you would want them
-// forgotten in.
 const MAX_REMEMBERED = 400;
 
 function read(): string[] {
@@ -31,9 +28,6 @@ function read(): string[] {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    // Shape-checked rather than trusted: this is user-writable storage that may
-    // also hold a value written by an older version of the app, and a bad read
-    // must cost the exclusion rather than the page.
     return Array.isArray(parsed)
       ? parsed.filter((slug): slug is string => typeof slug === "string")
       : [];
@@ -59,14 +53,11 @@ export const NO_PLAYED: string[] = [];
 
 export function rememberPlayed(slugs: string[]): void {
   if (typeof window === "undefined" || slugs.length === 0) return;
-  // Set semantics, insertion-ordered: re-playing something moves it to the most
-  // recent end rather than duplicating it.
   const merged = [...new Set([...playedSlugs(), ...slugs])];
   cache = merged.slice(-MAX_REMEMBERED);
   try {
     window.localStorage.setItem(KEY, JSON.stringify(cache));
   } catch {
-    // Quota or a private-mode refusal. The game does not depend on this.
   }
 }
 
@@ -76,6 +67,5 @@ export function forgetPlayed(): void {
   try {
     window.localStorage.removeItem(KEY);
   } catch {
-    // As above.
   }
 }

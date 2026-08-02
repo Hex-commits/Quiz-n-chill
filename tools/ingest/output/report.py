@@ -69,8 +69,6 @@ def render_markdown(payload: dict[str, Any], *, model: str = "", generated_at: s
         lines += ["## Accepted", "", "_None._", ""]
 
     if rejected:
-        # Each accepted question already ends with a rule; only add one here
-        # when there were none, otherwise the sections are separated twice.
         if not accepted:
             lines += ["---", ""]
         lines += ["## Rejected", "", _render_rejected(rejected)]
@@ -112,9 +110,6 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
     explanations = question.get("explanations") or {}
 
     if images:
-        # Thumbnails, because nothing automatic can look at a photograph. The
-        # pipeline can tell you the pairing is right and cannot tell you the
-        # picture shows the thing -- so the picture has to be on the page.
         lines += ["| Bild | Category | Answer | Licence |", "| --- | --- | --- | --- |"]
         for pair in pairs:
             answer = pair.get("answer", "?")
@@ -206,15 +201,11 @@ def _render_rejected(rejected: list[dict[str, Any]]) -> str:
         title = article.get("title", "?")
         url = article.get("url", "")
         label = f"[{title}]({url})" if url else title
-        # Several complaints usually share one root cause; showing them all just
-        # makes the table unreadable.
         why = problems[0] if problems else "unknown"
         if len(problems) > 1:
             why += f" _(+{len(problems) - 1} more)_"
         rows.append(f"| {label} | {why} |")
 
-    # A dropped article is the case where the trace is worth reading, so the
-    # steps go below the table rather than being summarised away with the rest.
     for record in rejected:
         steps = record.get("steps")
         if not steps:

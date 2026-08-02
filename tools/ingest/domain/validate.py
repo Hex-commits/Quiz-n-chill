@@ -72,9 +72,6 @@ def validate(question: GeneratedQuestion, *, subject_slugs: set[str]) -> list[st
     if any(not answer for answer in answers):
         problems.append("a category has no answer")
 
-    # The rule that makes this a pairing rather than a grouping. A repeated
-    # category, or one answer offered twice, both break the promise that every
-    # answer has exactly one home.
     repeated_labels = _repeated(labels)
     if repeated_labels:
         problems.append(
@@ -90,8 +87,6 @@ def validate(question: GeneratedQuestion, *, subject_slugs: set[str]) -> list[st
             "with a different answer or drop that pair entirely"
         )
 
-    # An answer that is also a category name reads as a hint rather than a
-    # question.
     clash = _folded(answers) & _folded(labels)
     if clash:
         problems.append(

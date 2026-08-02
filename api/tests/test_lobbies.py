@@ -80,9 +80,6 @@ def clean_store(monkeypatch):
         "draw_balanced",
         lambda pools, count, avoid=frozenset(): sorted(pools)[:count],
     )
-    # Only reached when a caller actually excludes something, so most tests never
-    # touch it -- but it is a database call and the point of this fixture is that
-    # none of them happen.
     monkeypatch.setattr(lobbies, "pair_counts", dict)
 
 
@@ -139,10 +136,9 @@ def test_a_knocked_out_player_is_skipped_and_cannot_play():
     code, (anna, ben, cem) = setup_game(("Anna", "Ben", "Cem"))
     items = items_of(code)
 
-    lobbies.submit_turn(code, anna, items["Berlin"], FR)  # Anna out
-    view = lobbies.submit_turn(code, ben, items["Paris"], FR)  # Ben correct
+    lobbies.submit_turn(code, anna, items["Berlin"], FR)
+    view = lobbies.submit_turn(code, ben, items["Paris"], FR)
 
-    # Cem is next, and the cursor skips Anna on the way round again.
     assert view.current_player_id == cem
     with pytest.raises(ConflictError, match="out for this round"):
         lobbies.submit_turn(code, anna, items["Madrid"], ES)
@@ -164,7 +160,7 @@ def test_nobody_is_up_next_when_only_one_player_can_move():
     items = items_of(code)
 
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
-    view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+    view = lobbies.submit_turn(code, ben, items["Paris"], DE)
 
     assert view.current_player_id == anna
     assert view.next_player_id is None
@@ -216,7 +212,6 @@ def test_round_ends_when_every_item_is_placed():
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
     view = lobbies.submit_turn(code, ben, items["Rom"], IT)
 
-    # The round pauses on its answers rather than rolling straight on.
     assert view.status is LobbyStatus.reviewing
     assert view.round_index == 0
 
@@ -233,7 +228,6 @@ def test_the_next_round_begins_after_the_review():
 
     assert view.round_index == 1
     assert view.status is LobbyStatus.playing
-    # Fresh round: nothing solved, everyone back in.
     assert view.round_view.solved_items == []
     assert all(player.is_active for player in view.players)
 
@@ -242,10 +236,9 @@ def test_round_ends_when_nobody_is_active():
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     items = items_of(code)
 
-    lobbies.submit_turn(code, anna, items["Berlin"], FR)  # wrong, Anna out
-    view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, anna, items["Berlin"], FR)
+    view = lobbies.submit_turn(code, ben, items["Paris"], DE)
 
-    # Everyone knocked out is exactly the round worth reading afterwards.
     assert view.status is LobbyStatus.reviewing
 
     view = next_round(code, anna)
@@ -283,8 +276,8 @@ def test_the_review_includes_pairs_nobody_solved():
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     items = items_of(code)
 
-    lobbies.submit_turn(code, anna, items["Berlin"], FR)  # wrong, Anna out
-    view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, anna, items["Berlin"], FR)
+    view = lobbies.submit_turn(code, ben, items["Paris"], DE)
 
     solution = view.finished_rounds[0].solution
     assert len(solution) == 4
@@ -292,34 +285,22 @@ def test_the_review_includes_pairs_nobody_solved():
     assert {pair.item_label for pair in solution} == {"Berlin", "Paris", "Madrid", "Rom"}
 
 
-def test_the_review_counts_down():
-    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
-
-    view = finish_round_one(code, anna, ben)
-
-    assert view.review_seconds_left is not None
-    assert 0 < view.review_seconds_left <= lobbies.REVIEW_SECONDS
-
-
-def test_the_next_round_starts_on_its_own_once_the_review_runs_out():
-    """Nobody has to press anything: polling is what notices, since no turn is
-    submitted during a review."""
+def test_the_review_waits_for_the_host_however_long_it_takes():
+    """The point of removing the clock: no amount of polling moves the game on
+    while the answers are up. Only the host's button does."""
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     finish_round_one(code, anna, ben)
 
-    with lobbies.edit(code) as lobby:
-        lobby.review_until = datetime.now(UTC) - timedelta(seconds=1)
-    view = lobbies.get_view(code, anna)
+    for _ in range(3):
+        view = lobbies.get_view(code, anna)
+
+    assert view.status is LobbyStatus.reviewing
+    assert view.round_index == 0
+
+    view = lobbies.skip_review(code, anna)
 
     assert view.status is LobbyStatus.playing
     assert view.round_index == 1
-    assert view.review_seconds_left is None
-
-
-def test_no_countdown_outside_a_review():
-    code, (anna, _ben) = setup_game(slugs=("topic-a", "topic-b"))
-
-    assert lobbies.get_view(code, anna).review_seconds_left is None
 
 
 def test_only_the_host_can_skip_the_review():
@@ -354,7 +335,6 @@ def test_the_last_round_goes_straight_to_the_final_scoreboard():
     view = finish_round_one(code, anna, ben)
 
     assert view.status is LobbyStatus.finished
-    assert view.review_seconds_left is None
     assert view.finished_rounds[0].solution
 
 
@@ -363,10 +343,9 @@ def test_the_last_active_player_keeps_going_alone():
     code, (anna, ben) = setup_game()
     items = items_of(code)
 
-    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna 1
-    view = lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    view = lobbies.submit_turn(code, ben, items["Paris"], DE)
 
-    # Paris is still unplaced and Anna is still in, so play continues with her.
     assert view.status is LobbyStatus.playing
     assert view.current_player_id == anna
 
@@ -375,24 +354,15 @@ def test_game_finishes_after_the_last_round_and_names_a_winner():
     code, (anna, ben) = setup_game()
     items = items_of(code)
 
-    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna 1
-    lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
-    lobbies.submit_turn(code, anna, items["Madrid"], ES)  # Anna 2
-    lobbies.submit_turn(code, anna, items["Paris"], FR)  # Anna 3
-    view = lobbies.submit_turn(code, anna, items["Rom"], IT)  # Anna 4, all placed
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], DE)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, anna, items["Paris"], FR)
+    view = lobbies.submit_turn(code, anna, items["Rom"], IT)
 
     assert view.status is LobbyStatus.finished
     assert view.round_view is None
     assert view.winner_ids == [anna]
-
-
-# -- the settling round -------------------------------------------------------
-#
-# Four pairs across three players is one lap plus a remainder, so the seat the
-# rotation starts on is credited two turns and the other two are credited one.
-# That is the whole unfairness these are about: it is handed out by arithmetic
-# before anybody has played, and it is settled after the last question rather
-# than taxed out of every round.
 
 
 def play_out(code, order):
@@ -423,16 +393,12 @@ def test_the_short_changed_players_get_the_turns_they_were_owed():
 
     play_out(code, [anna, ben, cem, anna])
 
-    # The last question is over, but the game is not: it pauses on the answers
-    # first, exactly as any other round does.
     view = lobbies.get_view(code)
     assert view.status is LobbyStatus.reviewing
 
     view = next_round(code, anna)
 
     assert view.is_catch_up
-    # Anna opened the round and so was credited the extra turn. Ben and Cem
-    # were each one short, and this is where they get it back.
     assert view.catch_up_left == {ben: 1, cem: 1}
     assert not next(p for p in view.players if p.id == anna).is_active
     assert view.current_player_id in (ben, cem)
@@ -451,8 +417,6 @@ def test_the_settling_round_ends_when_the_owed_turns_run_out():
     second = view.current_player_id
     view = lobbies.submit_turn(code, second, items["Paris"], FR)
 
-    # Two owed turns, two placements, done -- the rest of the board is not
-    # played and Anna never gets a turn in it at all.
     assert view.status is LobbyStatus.finished
     assert {first, second} == {ben, cem}
 
@@ -479,12 +443,11 @@ def test_being_knocked_out_earns_no_settling_turns():
     items = items_of(code)
 
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
-    lobbies.submit_turn(code, ben, items["Paris"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, ben, items["Paris"], DE)
     lobbies.submit_turn(code, anna, items["Paris"], FR)
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
     view = lobbies.submit_turn(code, anna, items["Rom"], IT)
 
-    # Anna took four turns to Ben's one, and the game still ends here.
     assert view.status is LobbyStatus.finished
     assert not view.is_catch_up
 
@@ -505,12 +468,11 @@ def test_a_draw_reports_every_tied_player():
     code, (anna, ben) = setup_game()
     items = items_of(code)
 
-    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna 1
-    lobbies.submit_turn(code, ben, items["Paris"], FR)  # Ben 1
-    lobbies.submit_turn(code, anna, items["Madrid"], DE)  # wrong, Anna out
-    view = lobbies.submit_turn(code, ben, items["Madrid"], DE)  # wrong, Ben out
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], DE)
+    view = lobbies.submit_turn(code, ben, items["Madrid"], DE)
 
-    # Nobody left active, so the round -- and the game -- ends at 1 apiece.
     assert view.status is LobbyStatus.finished
     assert sorted(view.winner_ids, key=str) == sorted([anna, ben], key=str)
 
@@ -528,7 +490,6 @@ def test_scores_carry_across_rounds():
     second = items_of(code)
     view = lobbies.submit_turn(code, ben, second["Berlin"], DE)
 
-    # Round two starts with Ben, because the starting seat rotates.
     scores = {player.nickname: player.score for player in view.players}
     assert scores == {"Anna": 2, "Ben": 3}
 
@@ -541,15 +502,13 @@ def test_the_lobby_view_never_leaks_an_unsolved_answer():
     view = lobbies.get_view(code)
     payload = view.model_dump_json()
 
-    # Berlin is solved, so its category is fair game. Paris and Madrid are not
-    # placed yet and must carry nothing that hints at the answer.
     assert [item.label for item in view.round_view.remaining_items] == [
         "Paris",
         "Madrid",
         "Rom",
     ]
     assert all(not hasattr(item, "category_id") for item in view.round_view.remaining_items)
-    assert payload.count(str(FR)) == 1  # only as a category definition
+    assert payload.count(str(FR)) == 1
 
 
 def test_unknown_item_is_rejected():
@@ -596,11 +555,6 @@ def test_cannot_join_a_running_game():
         lobbies.join_lobby(code, "Latecomer")
 
 
-# ---------------------------------------------------------------------------
-# Leaving
-# ---------------------------------------------------------------------------
-
-
 def test_leaving_the_waiting_room_removes_the_player():
     code, _host = lobbies.create_lobby("Anna")
     ben = lobbies.join_lobby(code, "Ben")
@@ -617,7 +571,6 @@ def test_the_host_role_moves_when_the_host_leaves():
     view = lobbies.leave_lobby(code, anna)
 
     assert [p.nickname for p in view.players if p.is_host] == ["Ben"]
-    # The promoted host can actually start a game.
     lobbies.join_lobby(code, "Cem")
     lobbies.start_game(code, ben, ["topic-a"])
 
@@ -633,7 +586,7 @@ def test_the_last_player_leaving_discards_the_lobby():
 def test_leaving_on_your_turn_passes_the_turn_on():
     code, (anna, ben, _cem) = setup_game(("Anna", "Ben", "Cem"))
 
-    view = lobbies.leave_lobby(code, anna)  # Anna was first
+    view = lobbies.leave_lobby(code, anna)
 
     assert view.current_player_id == ben
     assert [player.nickname for player in view.players] == ["Ben", "Cem"]
@@ -647,7 +600,7 @@ def test_leaving_out_of_turn_leaves_the_clock_alone():
     """
     code, (anna, ben, _cem) = setup_game(("Anna", "Ben", "Cem"))
     items = items_of(code)
-    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # now Ben's turn
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
 
     view = lobbies.leave_lobby(code, anna)
 
@@ -657,9 +610,8 @@ def test_leaving_out_of_turn_leaves_the_clock_alone():
 def test_leaving_skips_knocked_out_players_when_passing_the_turn():
     code, (anna, ben, cem) = setup_game(("Anna", "Ben", "Cem"))
     items = items_of(code)
-    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna correct
-    lobbies.submit_turn(code, ben, items["Paris"], DE)  # Ben wrong, out
-    # Cem is now on the clock; when Cem leaves the turn must skip Ben.
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], DE)
 
     view = lobbies.leave_lobby(code, cem)
 
@@ -670,12 +622,11 @@ def test_the_last_active_player_leaving_ends_the_round():
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     items = items_of(code)
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
-    lobbies.submit_turn(code, ben, items["Paris"], FR)  # Ben correct
-    lobbies.submit_turn(code, anna, items["Madrid"], DE)  # Anna wrong, out
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], DE)
 
-    view = lobbies.leave_lobby(code, ben)  # only active player walks out
+    view = lobbies.leave_lobby(code, ben)
 
-    # Round could not continue, so it ended -- on its review.
     assert view.status is LobbyStatus.reviewing
 
     view = next_round(code, anna)
@@ -687,9 +638,9 @@ def test_leaving_can_finish_the_game_outright():
     code, (anna, ben) = setup_game()
     items = items_of(code)
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
-    lobbies.submit_turn(code, ben, items["Paris"], DE)  # Ben wrong, out
+    lobbies.submit_turn(code, ben, items["Paris"], DE)
 
-    view = lobbies.leave_lobby(code, anna)  # last active player leaves
+    view = lobbies.leave_lobby(code, anna)
 
     assert view.status is LobbyStatus.finished
     assert view.winner_ids == [ben]
@@ -702,11 +653,6 @@ def test_a_departed_player_cannot_play():
 
     with pytest.raises(NotFoundError, match="not in this lobby"):
         lobbies.submit_turn(code, anna, items["Berlin"], DE)
-
-
-# ---------------------------------------------------------------------------
-# Presence: closing a tab, and coming back
-# ---------------------------------------------------------------------------
 
 
 def go_silent(code, *player_ids):
@@ -731,7 +677,6 @@ def test_polling_keeps_a_player_connected():
     code, (anna, _ben) = setup_game()
     go_silent(code, anna)
 
-    # Anna's own poll is her heartbeat.
     view = lobbies.get_view(code, anna)
 
     assert view.players[0].is_connected
@@ -762,7 +707,7 @@ def test_a_disconnected_player_cannot_play():
     code, (anna, _ben) = setup_game()
     items = items_of(code)
     go_silent(code, anna)
-    lobbies.get_view(code)  # the sweep notices Anna is gone
+    lobbies.get_view(code)
 
     with pytest.raises(ConflictError, match="not your turn"):
         lobbies.submit_turn(code, anna, items["Berlin"], DE)
@@ -793,11 +738,10 @@ def test_the_game_resumes_when_someone_comes_back():
 def test_reconnecting_by_nickname_keeps_the_same_seat_and_score():
     code, (anna, _ben) = setup_game()
     items = items_of(code)
-    lobbies.submit_turn(code, anna, items["Berlin"], DE)  # Anna scores 1
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
     go_silent(code, anna)
     lobbies.get_view(code)
 
-    # A fresh browser has no player id, so it rejoins by name.
     reclaimed = lobbies.join_lobby(code, "Anna")
 
     assert reclaimed == anna
@@ -824,7 +768,7 @@ def test_a_connected_players_nickname_cannot_be_stolen():
 def test_a_knocked_out_player_who_reconnects_stays_knocked_out():
     code, (anna, ben) = setup_game()
     items = items_of(code)
-    lobbies.submit_turn(code, anna, items["Berlin"], FR)  # wrong, Anna out
+    lobbies.submit_turn(code, anna, items["Berlin"], FR)
     go_silent(code, anna)
     lobbies.get_view(code)
 
@@ -833,7 +777,7 @@ def test_a_knocked_out_player_who_reconnects_stays_knocked_out():
     view = lobbies.get_view(code)
     anna_view = next(p for p in view.players if p.id == anna)
     assert anna_view.is_connected
-    assert not anna_view.is_active  # still out until the next round
+    assert not anna_view.is_active
     assert view.current_player_id == ben
 
 
@@ -844,13 +788,12 @@ def test_any_request_counts_as_proof_of_life_even_a_rejected_one():
     go_silent(code, ben)
     lobbies.get_view(code)
 
-    # Ben plays out of turn: refused, but it shows his tab is open.
     with pytest.raises(ConflictError, match="not your turn"):
         lobbies.submit_turn(code, ben, items["Berlin"], DE)
 
     view = lobbies.get_view(code)
     assert next(p for p in view.players if p.id == ben).is_connected
-    assert view.current_player_id == anna  # the turn itself is unaffected
+    assert view.current_player_id == anna
 
 
 def go_quiet(code, *player_ids):
@@ -875,7 +818,6 @@ def test_the_others_are_told_when_the_active_player_goes_quiet():
     view = lobbies.get_view(code, ben)
 
     assert view.current_player_quiet
-    # Still their turn: this explains the pause, it does not cause a skip.
     assert view.current_player_id == anna
 
 
@@ -898,7 +840,6 @@ def test_a_quiet_player_going_silent_clears_the_flag_by_skipping():
     go_silent(code, anna)
     view = lobbies.get_view(code, ben)
 
-    # The turn moved on, so there is nothing left to warn about.
     assert view.current_player_id == ben
     assert not view.current_player_quiet
 
@@ -928,7 +869,7 @@ def test_the_source_is_hidden_while_a_round_is_being_played():
     assert view.round_view is not None
     assert not hasattr(view.round_view, "source")
     assert view.finished_rounds == []
-    assert "example.test" not in payload  # the source URL has not leaked
+    assert "example.test" not in payload
 
 
 def test_a_finished_round_publishes_its_source():
@@ -939,7 +880,6 @@ def test_a_finished_round_publishes_its_source():
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
     view = lobbies.submit_turn(code, ben, items["Rom"], IT)
 
-    # Round one is over, so its source is now fair game -- round two's is not.
     assert [r.slug for r in view.finished_rounds] == ["topic-a"]
     assert view.finished_rounds[0].source.url == "https://example.test/topic-a"
     assert "example.test/topic-b" not in view.model_dump_json()
@@ -991,16 +931,7 @@ def test_leaving_frees_a_slot_in_the_waiting_room():
     ben = lobbies.join_lobby(code, "Ben")
     lobbies.leave_lobby(code, ben)
 
-    # The nickname is available again because Ben is really gone.
     lobbies.join_lobby(code, "Ben")
-
-
-# -- not repeating what this browser has already played ----------------------
-#
-# The record lives in the client, so it arrives with the request. Two things
-# soften it, and both are the point: a question big enough to deal a different
-# board every time is never counted as used up, and once nothing new is left the
-# played ones come back rather than the game being short.
 
 
 def test_a_played_question_is_kept_out_of_the_draw(monkeypatch):
@@ -1092,8 +1023,6 @@ def test_no_exclusions_costs_no_database_call(monkeypatch):
 
     assert view.status is LobbyStatus.playing
 
-
-# -- drawing only the difficulties the host ticked ---------------------------
 
 
 def test_the_chosen_difficulties_reach_the_pool_query(monkeypatch):

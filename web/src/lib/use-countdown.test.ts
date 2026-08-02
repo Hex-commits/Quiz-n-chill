@@ -23,8 +23,6 @@ test("a clock stopping is adopted", () => {
 });
 
 test("rounding noise is ignored", () => {
-  // The server rounds up, so its answer routinely lands within a second of the
-  // running deadline. Adopting that is what made the display stutter.
   const running = NOW + 12_000;
   assert.equal(reconcileDeadline(running, NOW + 12_900), running);
   assert.equal(reconcileDeadline(running, NOW + 11_200), running);
@@ -32,17 +30,14 @@ test("rounding noise is ignored", () => {
 
 test("a reply that arrived slightly late is ignored", () => {
   const running = NOW + 8_000;
-  // Server said 8s, but the answer took 400ms to arrive, so it reads as 7.6s.
   assert.equal(reconcileDeadline(running, NOW + 7_600), running);
 });
 
 test("a new turn is adopted", () => {
-  // The previous player had 3s left; the next gets a full 30.
   assert.equal(reconcileDeadline(NOW + 3_000, NOW + 30_000), NOW + 30_000);
 });
 
 test("real drift is corrected", () => {
-  // A tab that slept, or a clock that wandered. Worth believing the server.
   assert.equal(reconcileDeadline(NOW + 25_000, NOW + 4_000), NOW + 4_000);
 });
 

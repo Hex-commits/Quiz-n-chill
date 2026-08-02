@@ -16,20 +16,9 @@ the final placement is forced. Once every answer but one is placed, the last has
 exactly one home left.
 """
 
-# Categories, answers, and pairings are all the same count.
-#
-# 10 to 14. The floor is what makes a round worth playing: turns go round the
-# table one placement at a time, so at six pairs a lobby of five has barely a
-# turn each before the board is empty. The ceiling is the phone, where the
-# frontend stacks categories in a single column.
-#
-# Was 6 to 10, and 6 was too few for the size a lobby actually is.
 MIN_PAIRS = 10
 MAX_PAIRS = 14
 
-# Kept as aliases because the two read differently at their call sites -- the
-# grammar constrains a list of categories, the validator counts answers -- and
-# spelling both out is clearer than one name doing double duty.
 MIN_CATEGORIES = MIN_PAIRS
 MAX_CATEGORIES = MAX_PAIRS
 MIN_ITEMS = MIN_PAIRS

@@ -20,8 +20,6 @@ export async function generateMetadata({
 export default async function LobbyPage({ params }: PageProps) {
   const { code } = await params;
 
-  // Fetched here so the host's subject picker is populated on first paint. The
-  // live lobby state itself is polled client-side.
   let subjects: Subject[] = [];
   try {
     subjects = await listSubjects();

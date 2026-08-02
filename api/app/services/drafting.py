@@ -41,15 +41,10 @@ def draw_balanced(
     """
     rng = rng or random.Random()
 
-    # Shuffle each pool, and the subject order too -- otherwise the subject
-    # listed first always gets the extra question when count does not divide
-    # evenly.
     remaining = {}
     for slug in rng.sample(sorted(pools), len(pools)):
         shuffled = list(pools[slug])
         rng.shuffle(shuffled)
-        # Drawing pops from the end, so the preferred ones go last. Both halves
-        # keep the shuffle above, so the choice within each is still random.
         if avoid:
             shuffled.sort(key=lambda quiz: quiz not in avoid)
         remaining[slug] = shuffled
@@ -64,7 +59,7 @@ def draw_balanced(
                 drawn.append(queue.pop())
                 took_any = True
         if not took_any:
-            break  # every pool is empty
+            break
 
     rng.shuffle(drawn)
     return drawn

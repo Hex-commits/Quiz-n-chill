@@ -29,7 +29,6 @@ from tests.test_lobbies import clean_store  # noqa: F401  -- the autouse fixture
 
 UK, FR, IT, DE = uuid4(), uuid4(), uuid4(), uuid4()
 
-# (category id, the bridge shown, its file, the country that is the answer)
 BRIDGES = [
     (UK, "Albert Bridge", "Albert Bridge London.jpg", "Vereinigtes Königreich"),
     (FR, "Pont Neuf", "Pont Neuf Paris.jpg", "Frankreich"),
@@ -95,8 +94,6 @@ def find(code, country):
         return next(i.id for i in lobby.current_round.items if i.label == country)
 
 
-# -- the board ---------------------------------------------------------------
-
 
 def test_every_category_carries_its_photograph(picture_game):
     code, _anna, _ben = picture_game
@@ -126,7 +123,6 @@ def test_a_category_on_a_running_picture_round_is_not_named(picture_game):
     code, _anna, _ben = picture_game
 
     assert all(category.label is None for category in board(code))
-    # The photograph is still there: it is the question.
     assert all(category.image is not None for category in board(code))
 
 
@@ -134,7 +130,7 @@ def test_nothing_in_a_running_picture_round_names_a_category(picture_game):
     """Stated once, over the whole payload a player receives."""
     code, anna, _ben = picture_game
 
-    lobbies.submit_turn(code, anna, find(code, "Frankreich"), UK)  # wrong
+    lobbies.submit_turn(code, anna, find(code, "Frankreich"), UK)
     view = lobbies.get_view(code)
 
     on_screen = [
@@ -157,7 +153,6 @@ def test_the_names_come_back_for_the_review(picture_game, monkeypatch):
     lobbies.submit_turn(code, anna, find(code, "Italien"), IT)
     view = lobbies.submit_turn(code, ben, find(code, "Deutschland"), DE)
 
-    # The game is over, so the answer key is what carries them.
     solution = view.finished_rounds[0].solution
     assert {pair.category_label for pair in solution} == {b for _, b, _, _ in BRIDGES}
 
@@ -217,8 +212,6 @@ def test_a_text_question_has_no_pictures_anywhere(monkeypatch):
     assert all(item.label for item in view.round_view.remaining_items)
 
 
-# -- the commentary ----------------------------------------------------------
-
 
 def test_a_wrongly_placed_answer_is_named(picture_game):
     """It goes back in the pool where every player can read it anyway, so
@@ -241,8 +234,6 @@ def test_a_correct_placement_is_named_too(picture_game):
     assert [s.label for s in view.round_view.solved_items] == ["Vereinigtes Königreich"]
 
 
-# -- the review --------------------------------------------------------------
-
 
 def test_the_review_shows_each_photograph_beside_its_answer(picture_game):
     """The point of the pause: seeing which bridge went with which country."""
@@ -260,8 +251,6 @@ def test_the_review_shows_each_photograph_beside_its_answer(picture_game):
     assert all(pair.image is not None for pair in solution)
     assert all(pair.image.licence for pair in solution)
 
-
-# -- dealing a board out of a bigger question --------------------------------
 
 
 def big_round(pairs: int):
@@ -281,7 +270,6 @@ def test_a_large_question_is_dealt_down_to_a_board():
 
     assert len(dealt.categories) == BOARD_PAIRS
     assert len(dealt.items) == BOARD_PAIRS
-    # Every answer still has its category, or the board would be unplayable.
     assert {i.category_id for i in dealt.items} == {c.id for c in dealt.categories}
 
 

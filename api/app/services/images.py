@@ -22,8 +22,6 @@ from __future__ import annotations
 
 import urllib.parse
 
-# Wide enough to read a photograph on a laptop, small enough that ten of them
-# are not a megabyte. Commons renders and caches this size for us.
 THUMB_WIDTH = 640
 
 
