@@ -33,10 +33,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   getLobby,
   leaveLobby,
@@ -91,10 +89,10 @@ const ROUND_CHOICES = [3, 5, 7, 10];
 
 const TURN_CHOICES = [15, 30, 45, 60];
 
-const DIFFICULTY_CHOICES: { level: Difficulty; label: string }[] = [
-  { level: "easy", label: "Easy" },
-  { level: "medium", label: "Medium" },
-  { level: "hard", label: "Hard" },
+const DIFFICULTY_CHOICES: { level: Difficulty; label: string; bars: number }[] = [
+  { level: "easy", label: "Easy", bars: 1 },
+  { level: "medium", label: "Medium", bars: 2 },
+  { level: "hard", label: "Hard", bars: 3 },
 ];
 
 export function LobbyRoom({
@@ -1057,6 +1055,173 @@ function TimeBar({
   );
 }
 
+function SetupLabel({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <Label>{title}</Label>
+      {hint ? (
+        <span className="text-muted-foreground text-xs tabular-nums">{hint}</span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One toggleable thing in the setup: a subject, a difficulty.
+ *
+ * Selection is carried three ways over, because one is never enough. Colour
+ * does the work at a glance, the tick survives a colourblind reader, and the
+ * size holds up in a photograph of a screen across a room -- which is roughly
+ * the resolution this gets read at while a table argues about what to play.
+ *
+ * The wobble is on the inner span rather than the button, so the animation's
+ * transform and the button's held `scale-105` never fight over the same
+ * property -- together on one element, the chip would snap back to unscaled at
+ * the moment the animation ended. It replays whenever the class returns, which
+ * is exactly once per selection, and it plays for the players watching the host
+ * pick as much as for the host: a chip that jumps is how the change announces
+ * itself on somebody else's screen.
+ */
+function Chip({
+  selected,
+  disabled,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={cn(
+        "ease-(--ease-soft) rounded-4xl border px-3.5 py-2 text-sm font-medium transition-all duration-200",
+        "focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+        selected
+          ? "bg-primary text-primary-foreground border-primary scale-105 shadow-sm"
+          : "bg-surface border-hairline text-foreground",
+        !disabled &&
+          !selected &&
+          "hover:border-primary/40 hover:bg-surface-strong cursor-pointer",
+        !disabled && selected && "cursor-pointer",
+        disabled && "cursor-default",
+      )}
+    >
+      <span
+        className={cn(
+          "flex items-center gap-1.5",
+          selected && "animate-quiz-wobble",
+        )}
+      >
+        {selected ? <Check className="size-3.5 shrink-0" aria-hidden /> : null}
+        {children}
+      </span>
+    </button>
+  );
+}
+
+function ChipCount({
+  selected,
+  children,
+}: {
+  selected: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "text-xs tabular-nums",
+        selected ? "text-primary-foreground/70" : "text-muted-foreground",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * How hard a rating is, as bars rather than a colour.
+ *
+ * Green and red already mean right and wrong everywhere else in this game, and
+ * a difficulty picker is no place to teach them a second meaning. Height reads
+ * as "more" without borrowing anything.
+ */
+function LevelBars({ filled, selected }: { filled: number; selected: boolean }) {
+  return (
+    <span className="flex items-end gap-[3px]" aria-hidden>
+      {[0, 1, 2].map((index) => (
+        <span
+          key={index}
+          className={cn(
+            "w-[3px] rounded-full",
+            ["h-1.5", "h-2.5", "h-3.5"][index],
+            index < filled
+              ? selected
+                ? "bg-primary-foreground"
+                : "bg-foreground/60"
+              : selected
+                ? "bg-primary-foreground/25"
+                : "bg-muted-foreground/25",
+          )}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * One-of-several, as a track with the choice sliding between the options.
+ *
+ * No held scale here, unlike `Chip`: these sit in a fixed row, and a pill that
+ * grew would push its neighbours around every time the choice moved.
+ */
+function Segmented({
+  options,
+  value,
+  disabled,
+  onSelect,
+  format = String,
+}: {
+  options: number[];
+  value: number;
+  disabled?: boolean;
+  onSelect: (value: number) => void;
+  format?: (value: number) => string;
+}) {
+  return (
+    <div className="bg-surface border-hairline inline-flex rounded-4xl border p-1">
+      {options.map((option) => {
+        const on = option === value;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onSelect(option)}
+            disabled={disabled}
+            aria-pressed={on}
+            className={cn(
+              "ease-(--ease-soft) rounded-4xl px-3.5 py-1.5 text-sm font-medium tabular-nums transition-all duration-200",
+              "focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+              on
+                ? "bg-primary text-primary-foreground animate-quiz-pop shadow-sm"
+                : "text-muted-foreground",
+              !disabled && !on && "hover:text-foreground cursor-pointer",
+              !disabled && on && "cursor-pointer",
+            )}
+          >
+            {format(option)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /**
  * The game being set up, for whoever is looking at it.
  *
@@ -1109,7 +1274,7 @@ function LobbySetup({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">
-          {readOnly ? "The game being set up" : "Pick the subjects"}
+          {readOnly ? "The game being set up" : "Set up the game"}
         </CardTitle>
         <CardDescription>
           {readOnly
@@ -1117,113 +1282,104 @@ function LobbySetup({
             : "Questions are drawn at random from whatever you choose, spread as evenly as possible across them."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {subjects.map((subject) => (
-            <div key={subject.slug} className="flex items-start gap-3">
-              <Checkbox
-                id={subject.slug}
-                checked={setup.subject_slugs.includes(subject.slug)}
-                disabled={readOnly}
-                onCheckedChange={(checked) =>
-                  patch({
-                    subject_slugs: checked
-                      ? [...setup.subject_slugs, subject.slug]
-                      : setup.subject_slugs.filter((slug) => slug !== subject.slug),
-                  })
-                }
-              />
-              <Label htmlFor={subject.slug} className="font-normal">
-                {subject.name}
-                <span className="text-muted-foreground"> · {subject.quiz_count}</span>
-              </Label>
-            </div>
-          ))}
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <Label>Difficulty</Label>
-          <div className="flex flex-wrap gap-x-6 gap-y-3">
-            {DIFFICULTY_CHOICES.map(({ level, label }) => {
-              const onlyOneLeft =
-                setup.difficulties.length === 1 && setup.difficulties.includes(level);
+      <CardContent className="space-y-5">
+        <section className="space-y-2.5">
+          <SetupLabel
+            title="Subjects"
+            hint={
+              chosen.length > 0
+                ? `${chosen.length} of ${subjects.length}`
+                : "Pick at least one"
+            }
+          />
+          <div className="flex flex-wrap gap-2.5">
+            {subjects.map((subject) => {
+              const on = setup.subject_slugs.includes(subject.slug);
               return (
-                <div key={level} className="flex items-start gap-3">
-                  <Checkbox
-                    id={`difficulty-${level}`}
-                    checked={setup.difficulties.includes(level)}
-                    disabled={readOnly || onlyOneLeft}
-                    onCheckedChange={(checked) =>
-                      patch({
-                        difficulties: checked
-                          ? [...setup.difficulties, level]
-                          : setup.difficulties.filter((each) => each !== level),
-                      })
-                    }
-                  />
-                  <Label htmlFor={`difficulty-${level}`} className="font-normal">
-                    {label}
-                    <span className="text-muted-foreground"> · {countAt(level)}</span>
-                  </Label>
-                </div>
+                <Chip
+                  key={subject.slug}
+                  selected={on}
+                  disabled={readOnly}
+                  onClick={() =>
+                    patch({
+                      subject_slugs: on
+                        ? setup.subject_slugs.filter((slug) => slug !== subject.slug)
+                        : [...setup.subject_slugs, subject.slug],
+                    })
+                  }
+                >
+                  {subject.name}
+                  <ChipCount selected={on}>{subject.quiz_count}</ChipCount>
+                </Chip>
               );
             })}
           </div>
+        </section>
+
+        <section className="space-y-2.5">
+          <SetupLabel title="Difficulty" />
+          <div className="flex flex-wrap gap-2.5">
+            {DIFFICULTY_CHOICES.map(({ level, label, bars }) => {
+              const on = setup.difficulties.includes(level);
+              const onlyOneLeft = on && setup.difficulties.length === 1;
+              return (
+                <Chip
+                  key={level}
+                  selected={on}
+                  disabled={readOnly || onlyOneLeft}
+                  onClick={() =>
+                    patch({
+                      difficulties: on
+                        ? setup.difficulties.filter((each) => each !== level)
+                        : [...setup.difficulties, level],
+                    })
+                  }
+                >
+                  <LevelBars filled={bars} selected={on} />
+                  {label}
+                  <ChipCount selected={on}>{countAt(level)}</ChipCount>
+                </Chip>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <section className="space-y-2.5">
+            <SetupLabel title="Rounds" />
+            <Segmented
+              options={ROUND_CHOICES}
+              value={setup.round_count}
+              disabled={readOnly}
+              onSelect={(n) => patch({ round_count: n })}
+            />
+          </section>
+
+          <section className="space-y-2.5">
+            <SetupLabel title="Seconds per turn" />
+            <Segmented
+              options={TURN_CHOICES}
+              value={setup.turn_seconds}
+              disabled={readOnly}
+              format={(n) => `${n}s`}
+              onSelect={(n) => patch({ turn_seconds: n })}
+            />
+          </section>
         </div>
 
-        <Separator />
-
-        <div className="space-y-2">
-          <Label>Rounds</Label>
-          <div className="flex flex-wrap gap-2">
-            {ROUND_CHOICES.map((n) => (
-              <Button
-                key={n}
-                type="button"
-                size="sm"
-                variant={setup.round_count === n ? "default" : "outline"}
-                aria-pressed={setup.round_count === n}
-                disabled={readOnly}
-                onClick={() => patch({ round_count: n })}
-              >
-                {n}
-              </Button>
-            ))}
-          </div>
-          {setup.subject_slugs.length > 0 && setup.round_count > availableQuestions ? (
-            <p className="text-muted-foreground text-sm">
-              Only {availableQuestions} question
-              {availableQuestions === 1 ? "" : "s"} available in the chosen
-              subjects — the game will be that short.
-            </p>
-          ) : null}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Seconds per turn</Label>
-          <div className="flex flex-wrap gap-2">
-            {TURN_CHOICES.map((n) => (
-              <Button
-                key={n}
-                type="button"
-                size="sm"
-                variant={setup.turn_seconds === n ? "default" : "outline"}
-                aria-pressed={setup.turn_seconds === n}
-                disabled={readOnly}
-                onClick={() => patch({ turn_seconds: n })}
-              >
-                {n}s
-              </Button>
-            ))}
-          </div>
+        {setup.subject_slugs.length > 0 && setup.round_count > availableQuestions ? (
           <p className="text-muted-foreground text-sm">
-            Run out of time and you are out for the round, the same as a wrong
-            answer. Whoever opens a round gets a little longer — they are the one
-            reading the board cold.
+            Only {availableQuestions} question
+            {availableQuestions === 1 ? "" : "s"} available in the chosen subjects
+            — the game will be that short.
           </p>
-        </div>
+        ) : null}
+
+        <p className="text-muted-foreground text-sm">
+          Run out of time and you are out for the round, the same as a wrong
+          answer. Whoever opens a round gets a little longer — they are the one
+          reading the board cold.
+        </p>
 
         {children}
       </CardContent>
