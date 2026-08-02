@@ -278,6 +278,32 @@ class RoundView(BaseModel):
     solved_items: list[SolvedItem] = []
 
 
+class LobbySettings(BaseModel):
+    """The game the host has set up, before there is a game to play.
+
+    Kept on the lobby rather than in the host's browser, because the other
+    players have no other way of knowing what they are about to play -- and a
+    player who joins late has then missed nothing.
+
+    Looser than `LobbyStart`, which is what the same choices have to satisfy to
+    become a game: a host part-way through picking has every right to no
+    subjects ticked, and being told so belongs on the start button rather than
+    on every click leading up to it.
+    """
+
+    subject_slugs: list[str] = Field(default_factory=list, max_length=50)
+    difficulties: list[Difficulty] = Field(
+        default_factory=lambda: list(Difficulty), max_length=len(Difficulty)
+    )
+    round_count: int = Field(default=5, ge=1, le=20)
+    turn_seconds: int = Field(default=30, ge=10, le=120)
+
+
+class LobbySettingsUpdate(BaseModel):
+    player_id: UUID
+    settings: LobbySettings
+
+
 class LobbyView(BaseModel):
     code: str
     status: LobbyStatus
@@ -299,6 +325,7 @@ class LobbyView(BaseModel):
     finished_rounds: list[FinishedRound] = []
     last_move: LastMove | None = None
     winner_ids: list[UUID] = []
+    settings: LobbySettings = Field(default_factory=LobbySettings)
     version: int = 0
 
 

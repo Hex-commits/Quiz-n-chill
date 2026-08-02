@@ -43,6 +43,7 @@ from app.schemas import (
     FinishedRound,
     ItemPublic,
     LastMove,
+    LobbySettings,
     LobbyStatus,
     LobbyView,
     PlayerPublic,
@@ -184,6 +185,33 @@ def join_lobby(code: str, nickname: str) -> UUID:
         return player.id
 
 
+def set_settings(code: str, player_id: UUID, settings: LobbySettings) -> LobbyView:
+    """Record what the host has picked for the next game.
+
+    The settings used to live in the host's browser and reach the server only
+    when the game began, which left everyone else looking at a lobby that said
+    nothing about what they were about to play. Kept here, they ride out on the
+    view every player already polls.
+
+    Read-only for everyone but the host, and only while there is no game: what
+    the settings mean once a game is running is fixed at the moment it starts,
+    so accepting a change would only be an offer to lie about it.
+    """
+    with _mutate(code) as lobby:
+        player = lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
+
+        if not player.is_host:
+            raise ConflictError("Only the host can change the settings.")
+        if lobby.status is not LobbyStatus.lobby:
+            raise ConflictError("This game has already started.")
+
+        lobby.settings = settings
+        lobby.touch()
+        return _view(lobby)
+
+
 def start_game(
     code: str,
     player_id: UUID,
@@ -235,6 +263,12 @@ def start_game(
         rounds = [_load_round(slug) for slug in quiz_slugs]
         lobby.catch_up_round = _load_round(spare_slug) if spare_slug else None
 
+        lobby.settings = LobbySettings(
+            subject_slugs=list(subject_slugs),
+            difficulties=list(difficulties) if difficulties else list(Difficulty),
+            round_count=round_count,
+            turn_seconds=turn_seconds,
+        )
         lobby.subject_names = subject_names
         lobby.quiz_slugs = quiz_slugs
         lobby.rounds = rounds
@@ -874,6 +908,7 @@ def _view(lobby: Lobby) -> LobbyView:
         finished_rounds=list(lobby.finished_rounds),
         last_move=lobby.last_move,
         winner_ids=_winner_ids(lobby),
+        settings=lobby.settings,
         version=lobby.version,
     )
 

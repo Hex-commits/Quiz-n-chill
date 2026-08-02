@@ -11,7 +11,15 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 
 from app.errors import ConflictError, NotFoundError, ValidationError
-from app.schemas import Category, ItemSolution, LobbyStatus, Source, TurnSubmit
+from app.schemas import (
+    Category,
+    Difficulty,
+    ItemSolution,
+    LobbySettings,
+    LobbyStatus,
+    Source,
+    TurnSubmit,
+)
 from app.services import lobbies
 
 DE, FR, ES, IT = uuid4(), uuid4(), uuid4(), uuid4()
@@ -531,6 +539,75 @@ def test_a_game_needs_at_least_two_players():
 
     with pytest.raises(ConflictError, match="At least two players"):
         lobbies.start_game(code, host_id, ["topic-a"])
+
+
+def test_the_settings_the_host_picks_are_visible_to_everyone():
+    code, host = lobbies.create_lobby("Anna")
+    ben = lobbies.join_lobby(code, "Ben")
+
+    lobbies.set_settings(
+        code,
+        host,
+        LobbySettings(
+            subject_slugs=["geografie", "musik"],
+            difficulties=[Difficulty.easy],
+            round_count=7,
+            turn_seconds=45,
+        ),
+    )
+
+    view = lobbies.get_view(code, ben)
+    assert view.settings.subject_slugs == ["geografie", "musik"]
+    assert view.settings.difficulties == [Difficulty.easy]
+    assert view.settings.round_count == 7
+    assert view.settings.turn_seconds == 45
+
+
+def test_a_fresh_lobby_reports_the_defaults_rather_than_nothing():
+    code, _host = lobbies.create_lobby("Anna")
+
+    settings = lobbies.get_view(code).settings
+
+    assert settings.subject_slugs == []
+    assert settings.round_count == 5
+    assert settings.turn_seconds == 30
+    assert settings.difficulties == list(Difficulty)
+
+
+def test_only_the_host_can_change_the_settings():
+    code, _host = lobbies.create_lobby("Anna")
+    ben = lobbies.join_lobby(code, "Ben")
+
+    with pytest.raises(ConflictError, match="Only the host"):
+        lobbies.set_settings(code, ben, LobbySettings(round_count=3))
+
+
+def test_the_settings_are_fixed_once_the_game_is_running():
+    code, (anna, _ben) = setup_game()
+
+    with pytest.raises(ConflictError, match="already started"):
+        lobbies.set_settings(code, anna, LobbySettings(round_count=3))
+
+
+def test_starting_records_the_game_that_was_actually_started():
+    code, host = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    lobbies.set_settings(code, host, LobbySettings(subject_slugs=["stale"], round_count=9))
+
+    view = lobbies.start_game(code, host, ["topic-a"], 1, 45)
+
+    assert view.settings.subject_slugs == ["topic-a"]
+    assert view.settings.round_count == 1
+    assert view.settings.turn_seconds == 45
+
+
+def test_changing_the_settings_moves_the_version_so_others_re_read():
+    code, host = lobbies.create_lobby("Anna")
+    before = lobbies.get_view(code).version
+
+    after = lobbies.set_settings(code, host, LobbySettings(round_count=3)).version
+
+    assert after > before
 
 
 def test_only_the_host_can_start():

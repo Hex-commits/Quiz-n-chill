@@ -23,6 +23,7 @@ from app.schemas import (
     FinishedRound,
     ItemSolution,
     LastMove,
+    LobbySettings,
     LobbyStatus,
     Source,
 )
@@ -85,6 +86,7 @@ class Lobby:
     last_move: LastMove | None = None
     history: list[LastMove] = field(default_factory=list)
     finished_rounds: list[FinishedRound] = field(default_factory=list)
+    settings: LobbySettings = field(default_factory=LobbySettings)
     version: int = 0
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
