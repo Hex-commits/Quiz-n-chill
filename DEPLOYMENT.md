@@ -46,6 +46,7 @@ Docker runs `uvicorn app.main:app` directly.
 | `ADMIN_TOKEN` | a long random string | Guards the admin routes |
 | `CORS_ORIGINS` | *(optional)* | Defaults already allow the deployed frontend. See §4 |
 | `CORS_ORIGIN_REGEX` | *(optional)* | Defaults already allow this project's previews |
+| `FIRST_TURN_BONUS_SECONDS` | *(optional)* | Extra seconds for whoever opens a round. Default `10`, `0` disables |
 
 ### Web project
 

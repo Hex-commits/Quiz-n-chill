@@ -373,14 +373,15 @@ class LobbyView(BaseModel):
     # because `players` is the seating order, not the *playing* order: whoever is
     # knocked out or disconnected is skipped, and only the server knows which.
     next_player_id: UUID | None = None
-    # Seconds until the next round starts. Only set while status is `reviewing`.
-    review_seconds_left: int | None = None
     # Seconds the player on the clock has left to place an answer, and how long
     # they got. Both None when nobody is on the clock.
     #
     # Sent as a remaining duration rather than a deadline so a client whose
     # clock is wrong still counts down correctly -- and the client ticks it
     # locally rather than asking again, which is the whole point of sending it.
+    #
+    # `turn_seconds` is this turn's allowance, not the lobby's setting: the
+    # player who opens a round is given longer, so the two differ there.
     turn_seconds_left: int | None = None
     turn_seconds: int | None = None
     # Who last lost their turn to the clock. Cleared by the next real move.

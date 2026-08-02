@@ -239,7 +239,8 @@ export function submitTurn(
   });
 }
 
-/** Host cuts the between-rounds review short. It ends on its own timer anyway. */
+/** Host ends the between-rounds review. The only thing that starts the next
+ *  round -- the review has no timer of its own. */
 export function skipReview(code: string, playerId: string): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/next-round`, {
     method: "POST",

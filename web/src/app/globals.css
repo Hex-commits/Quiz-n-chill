@@ -109,6 +109,17 @@
   /* Generous. Small radii read as "form", large ones as "surface", and this is
      a game. */
   --radius: 1rem;
+  /* The site header's height, and the offset every *other* sticky thing has to
+     clear.
+
+     One number rather than three, because the three disagreeing is a bug you
+     see rather than one you read: the header is sticky and paints above the
+     page, so anything pinned higher than it slides underneath and shows only
+     its lower half. That is exactly what the turn bar did.
+
+     The half-rem is the gap the pinned element keeps from the header. */
+  --header-h: 3.5rem;
+  --sticky-top: calc(var(--header-h) + 0.5rem);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -223,6 +234,28 @@
   }
 }
 
+/* Confirmation that the lobby code was copied. The code itself does not change
+   when you click it, so the movement is the whole feedback -- it has to be big
+   enough to catch the eye that was already on it. */
+@keyframes quiz-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-4deg) scale(1.08);
+  }
+  40% {
+    transform: rotate(3deg) scale(1.06);
+  }
+  60% {
+    transform: rotate(-2deg) scale(1.03);
+  }
+  80% {
+    transform: rotate(1deg) scale(1.01);
+  }
+}
+
 @keyframes quiz-glow {
   0%,
   100% {
@@ -239,6 +272,10 @@
 
 .animate-quiz-shake {
   animation: quiz-shake 380ms ease-in-out;
+}
+
+.animate-quiz-wobble {
+  animation: quiz-wobble 600ms ease-in-out;
 }
 
 /* On the board while it is your turn: a slow breath, not a flash. It runs for
@@ -299,6 +336,86 @@
 }
 
 /*
+ * The same glow while the turn is yours, turned up until it is unmistakable.
+ *
+ * Waiting and being on the clock looked near enough identical from across a
+ * room -- a border and a strip of text, both of which have to be read. This one
+ * does not: the board itself lights up.
+ *
+ * Everything moves together rather than opacity alone, because a blurred blob
+ * that is merely brighter reads as the screen having changed brightness. More
+ * colour, a tighter blur so the shape carries, a wider swing on the drift, and
+ * twice the speed -- but no faster than that. It runs for the whole turn, so it
+ * has to be a raised pulse rather than a flash, and the closing five seconds
+ * have their own escalation to make that nothing here should compete with.
+ *
+ * What limits it is contrast, not taste: this sits directly behind the question
+ * and amber is a *light* colour, so brightening the glow darkens the text on it
+ * in relative terms. At this strength the muted greys in the card header fall to
+ * about 2.2:1, which is why the header brightens with the glow rather than
+ * staying muted -- against `--foreground` the same spot holds 4.9:1 in the dark
+ * theme and 11:1 in the light one. The two changes go together; raising this
+ * without the other would light the board by making it harder to read.
+ */
+@keyframes quiz-drift-yours {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translate3d(-6%, -3%, 0) scale(1.06);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate3d(6%, 3%, 0) scale(1.22);
+  }
+}
+
+.quiz-ambient--yours {
+  filter: blur(80px);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in oklch, var(--primary) 75%, transparent),
+    transparent 72%
+  );
+  animation: quiz-drift-yours 6s ease-in-out infinite;
+}
+
+/*
+ * The whole room lit while the turn is yours.
+ *
+ * `body` already carries a fixed wash of the brand colour at 14%; this is that
+ * wash turned up and laid over it, covering the viewport rather than a card.
+ * The card glow says "this board is yours" to someone already reading the
+ * board -- this is for the player who is looking at the table instead, and
+ * catches the corner of the eye from across a room.
+ *
+ * Deliberately still. Every other cue for your turn moves (the bar breathes,
+ * the glow behind the question drifts, the last five seconds have their own
+ * escalation) and a fourth thing pulsing would be a fairground. It fades in
+ * over three quarters of a second because a screen-sized colour change that
+ * snaps reads as a fault, and fades out again as the turn passes on.
+ */
+.quiz-room-glow {
+  position: fixed;
+  inset: 0;
+  /* Behind the page's content but above the background canvas `body` paints.
+     Nothing between here and the root makes a stacking context, so a negative
+     index lands where it is meant to. */
+  z-index: -10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 750ms var(--ease-soft);
+  background: radial-gradient(
+    120% 80% at 50% -10%,
+    color-mix(in oklch, var(--primary) 26%, transparent),
+    transparent 62%
+  );
+}
+
+.quiz-room-glow--on {
+  opacity: 1;
+}
+
+/*
  * A shine sweeping across a button, skewed so it reads as light passing over a
  * surface rather than a bar sliding along. Runs once on hover.
  */
@@ -343,9 +460,11 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-quiz-pop,
   .animate-quiz-shake,
+  .animate-quiz-wobble,
   .animate-quiz-glow,
   .animate-quiz-rise,
   .quiz-ambient,
+  .quiz-ambient--yours,
   .quiz-shine:hover::after {
     animation: none;
   }
@@ -353,5 +472,11 @@
      entirely would take the depth with it. */
   .quiz-ambient {
     opacity: 0.4;
+  }
+  /* Held near the top of its swing rather than dropped back to the resting
+     glow: whose turn it is is information, not emphasis, and it is the one
+     thing here that still has to be obvious once the movement is gone. */
+  .quiz-ambient--yours {
+    opacity: 0.65;
   }
 }

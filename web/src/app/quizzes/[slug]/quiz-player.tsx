@@ -18,6 +18,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { DifficultyBadge, SourceLink } from "@/components/source-link";
 import { checkAssignment } from "@/lib/api";
+import { shuffleBySeed } from "@/lib/shuffle";
 import type { CheckResult, Item, QuizDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,19 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
   const itemsById = useMemo(
     () => new Map(quiz.items.map((item) => [item.id, item])),
     [quiz.items],
+  );
+
+  // Answers arrive shuffled -- the API does that before they leave the server --
+  // but the categories come in the order the question was written, which is the
+  // order its answers were written in too. Broken up here so the board cannot be
+  // read straight down.
+  //
+  // Seeded on the quiz rather than drawn at random: this component is rendered
+  // on the server first and hydrated on the client, and an order that differs
+  // between the two is a hydration mismatch. See `shuffleBySeed`.
+  const categories = useMemo(
+    () => shuffleBySeed(quiz.categories, quiz.id, (category) => category.id),
+    [quiz.categories, quiz.id],
   );
 
   const unplaced = quiz.items.filter((item) => !(item.id in placements));
@@ -227,7 +241,7 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {quiz.categories.map((category) => (
+        {categories.map((category) => (
           <DropTarget
             key={category.id}
             title={category.label}

@@ -219,8 +219,6 @@ export interface LobbyView {
   catch_up_left: Record<string, number>;
   /** The player on the clock has gone silent but has not timed out yet. */
   current_player_quiet: boolean;
-  /** Seconds until the next round starts. Only set while reviewing. */
-  review_seconds_left: number | null;
   /**
    * Seconds the player on the clock has left, and how long they got. Both null
    * when nobody is on the clock. Sent as a remaining duration, not a deadline,

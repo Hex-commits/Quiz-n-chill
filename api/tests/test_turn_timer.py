@@ -16,6 +16,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from app.config import get_settings
 from app.errors import ConflictError
 from app.schemas import LobbyStart, LobbyStatus
 from app.services import lobbies
@@ -45,12 +46,37 @@ def expire_the_turn(code):
         lobby.turn_expires_at = datetime.now(UTC) - timedelta(seconds=1)
 
 
+@pytest.fixture(autouse=True)
+def fresh_settings():
+    """The opening bonus is read from the environment, and `get_settings` is
+    cached -- so a test that sets it must not leak into the next one."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+def with_bonus(monkeypatch, seconds):
+    """Set FIRST_TURN_BONUS_SECONDS for one test.
+
+    A real environment variable rather than a patched attribute, because it
+    takes priority over the repo's `.env` -- otherwise these would assert
+    against whatever the developer happens to have configured.
+    """
+    monkeypatch.setenv("FIRST_TURN_BONUS_SECONDS", str(seconds))
+    get_settings.cache_clear()
+
+
 # -- the clock is running -------------------------------------------------
 
 
 def test_a_turn_starts_with_the_configured_time():
+    """From the second turn on. The one that opens a round is longer -- see the
+    opening bonus below."""
     code, (anna, _ben) = setup_game()
-    view = start_with(code, anna, 45)
+    start_with(code, anna, 45)
+    items = items_of(code)
+
+    view = lobbies.submit_turn(code, anna, items["Berlin"], DE)
 
     assert view.turn_seconds == 45
     assert view.turn_seconds_left is not None
@@ -59,8 +85,10 @@ def test_a_turn_starts_with_the_configured_time():
 
 def test_the_default_is_used_when_the_host_does_not_choose():
     code, (anna, _ben) = setup_game()
+    lobbies.start_game(code, anna, ["topic-a"], 1)
+    items = items_of(code)
 
-    view = lobbies.start_game(code, anna, ["topic-a"], 1)
+    view = lobbies.submit_turn(code, anna, items["Berlin"], DE)
 
     assert view.turn_seconds == LobbyStart.model_fields["turn_seconds"].default
 
@@ -89,6 +117,70 @@ def test_nobody_on_the_clock_means_no_countdown():
 
     assert view.turn_seconds_left is None
     assert view.turn_seconds is None
+
+
+# -- the opening bonus ----------------------------------------------------
+#
+# Whoever opens a round is doing a different job from everyone else: the board
+# is new, and every category and every answer has to be read before they can
+# place one. The players after them have been reading it all along, on somebody
+# else's clock. Charging them all the same is what made the opening turn the
+# one people lost to the timer.
+
+
+@pytest.mark.parametrize("bonus", [0, 10, 25])
+def test_the_opening_player_gets_the_configured_bonus(monkeypatch, bonus):
+    with_bonus(monkeypatch, bonus)
+    code, (anna, _ben) = setup_game()
+
+    view = start_with(code, anna, 30)
+
+    assert view.turn_seconds == 30 + bonus
+    assert 30 - 1 < view.turn_seconds_left <= 30 + bonus
+
+
+def test_the_bonus_is_spent_on_the_opening_turn_alone(monkeypatch):
+    with_bonus(monkeypatch, 10)
+    code, (anna, ben) = setup_game()
+    start_with(code, anna, 30)
+    items = items_of(code)
+
+    view = lobbies.submit_turn(code, anna, items["Berlin"], DE)
+
+    assert view.current_player_id == ben
+    assert view.turn_seconds == 30
+
+
+def test_every_round_opens_with_the_bonus(monkeypatch):
+    """Not only the first round of the game -- each round deals a board that
+    has never been read."""
+    with_bonus(monkeypatch, 10)
+    code, (anna, ben) = setup_game()
+    start_with(code, anna, 30)
+    items = items_of(code)
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, ben, items["Rom"], IT)
+
+    view = lobbies.skip_review(code, anna)
+
+    assert view.round_index == 1
+    assert view.turn_seconds == 40
+
+
+def test_the_bonus_does_not_pass_on_when_the_opener_runs_out(monkeypatch):
+    """Nobody has moved, so the round looks untouched -- but the player who
+    inherits the board has been staring at it for a whole turn already."""
+    with_bonus(monkeypatch, 10)
+    code, (anna, ben) = setup_game()
+    start_with(code, anna, 30)
+
+    expire_the_turn(code)
+    view = lobbies.get_view(code, ben)
+
+    assert view.current_player_id == ben
+    assert view.turn_seconds == 30
 
 
 # -- running out ----------------------------------------------------------
