@@ -6,6 +6,7 @@ from app.schemas import (
     LobbyCreate,
     LobbyIdentity,
     LobbyJoin,
+    LobbySettingsUpdate,
     LobbyStart,
     LobbyView,
     PlayerAction,
@@ -40,6 +41,16 @@ def get_lobby(code: str, player_id: UUID | None = None) -> LobbyView:
     category.
     """
     return service.get_view(code, player_id)
+
+
+@router.post("/{code}/settings", response_model=LobbyView)
+def set_settings(code: str, payload: LobbySettingsUpdate) -> LobbyView:
+    """Record the host's choices for the next game, for everyone to see.
+
+    Separate from starting one: the players waiting are entitled to know what
+    is being set up for them, and only the host may write it.
+    """
+    return service.set_settings(code, payload.player_id, payload.settings)
 
 
 @router.post("/{code}/start", response_model=LobbyView)

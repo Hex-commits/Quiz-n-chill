@@ -11,6 +11,7 @@ import type {
   CheckResult,
   Difficulty,
   LobbyIdentity,
+  LobbySettings,
   LobbyView,
   QuizDetail,
   QuizSummary,
@@ -168,6 +169,24 @@ export function markAway(code: string, playerId: string): void {
     }).catch(() => {});
   } catch {
   }
+}
+
+/**
+ * Publish what the host has picked, so the rest of the table can see it.
+ *
+ * Refused for anyone but the host, and once the game is running. The players
+ * waiting have no other source for this: until it is sent, the choices exist
+ * only in the host's browser.
+ */
+export function updateLobbySettings(
+  code: string,
+  playerId: string,
+  settings: LobbySettings,
+): Promise<LobbyView> {
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/settings`, {
+    method: "POST",
+    body: JSON.stringify({ player_id: playerId, settings }),
+  });
 }
 
 /**

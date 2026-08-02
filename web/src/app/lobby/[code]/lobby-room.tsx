@@ -45,6 +45,7 @@ import {
   skipReview,
   startGame,
   submitTurn,
+  updateLobbySettings,
 } from "@/lib/api";
 import { copyText } from "@/lib/clipboard";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
@@ -62,6 +63,7 @@ import type {
   CategoryImage,
   Difficulty,
   LastMove,
+  LobbySettings,
   LobbyView,
   ResolvedPair,
   SolvedItem,
@@ -73,6 +75,15 @@ import { cn } from "@/lib/utils";
 import { RejoinForm } from "./rejoin-form";
 
 const POLL_MS = 4_000;
+
+/**
+ * How long the host's choices settle before they are published.
+ *
+ * Long enough that ticking four subjects is one request rather than four, short
+ * enough that the rest of the table sees the change while the host is still
+ * looking at it.
+ */
+const SETTINGS_DEBOUNCE_MS = 400;
 
 const COPIED_MS = 2_000;
 
@@ -99,18 +110,23 @@ export function LobbyRoom({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [chosenSubjects, setChosenSubjects] = useState<string[]>(
-    subjects.slice(0, 3).map((subject) => subject.slug),
-  );
-  const [roundCount, setRoundCount] = useState(5);
-  const [turnSeconds, setTurnSeconds] = useState(30);
-  const [difficulties, setDifficulties] = useState<Difficulty[]>([
-    "easy",
-    "medium",
-    "hard",
-  ]);
+  const [localSetup, setLocalSetup] = useState<LobbySettings>({
+    subject_slugs: subjects.slice(0, 3).map((subject) => subject.slug),
+    difficulties: ["easy", "medium", "hard"],
+    round_count: 5,
+    turn_seconds: 30,
+  });
 
   const versionRef = useRef(-1);
+
+  /**
+   * What the lobby was last known to hold for the host's choices, as JSON.
+   *
+   * Null until the first view says which way to sync — see `apply`, where that
+   * is decided, and the effect below, which publishes. Comparing against it is
+   * what keeps an adopted set from being echoed straight back.
+   */
+  const pushed = useRef<string | null>(null);
 
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
 
@@ -123,14 +139,40 @@ export function LobbyRoom({
     [],
   );
 
-  const apply = useCallback((view: LobbyView) => {
-    if (view.version < versionRef.current) return;
-    versionRef.current = view.version;
-    setLobby(view);
-    setTurnDeadline((current) =>
-      reconcileDeadline(current, deadlineFrom(view.turn_seconds_left)),
-    );
-  }, []);
+  /**
+   * Take a lobby the server sent, and decide once which way settings sync.
+   *
+   * A lobby with subjects already on it has been set up before — a host who
+   * reloaded, most likely — and adopting is the only way not to reset their own
+   * choices behind their back. An untouched one keeps the defaults the controls
+   * started with, and the effect below publishes those instead.
+   *
+   * Re-checked on every view rather than only the first, so the player who
+   * inherits the host's chair when they leave is handled by the same path.
+   */
+  const apply = useCallback(
+    (view: LobbyView) => {
+      if (view.version < versionRef.current) return;
+      versionRef.current = view.version;
+      setLobby(view);
+      setTurnDeadline((current) =>
+        reconcileDeadline(current, deadlineFrom(view.turn_seconds_left)),
+      );
+
+      const hosting = Boolean(
+        playerId && view.players.find((player) => player.id === playerId)?.is_host,
+      );
+      if (pushed.current !== null || !hosting || view.status !== "lobby") return;
+
+      if (view.settings.subject_slugs.length > 0) {
+        pushed.current = JSON.stringify(view.settings);
+        setLocalSetup(view.settings);
+      } else {
+        pushed.current = "";
+      }
+    },
+    [playerId],
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -173,6 +215,8 @@ export function LobbyRoom({
 
   const me = lobby?.players.find((player) => player.id === playerId) ?? null;
   const isMyTurn = Boolean(playerId && lobby?.current_player_id === playerId);
+  const hostName =
+    lobby?.players.find((player) => player.is_host)?.nickname ?? null;
 
   const onTheClock = isMyTurn && lobby?.status === "playing";
 
@@ -234,25 +278,39 @@ export function LobbyRoom({
     playCountdown(turnSecondsLeft);
   }, [turnSecondsLeft, isMyTurn]);
 
+  const isHost = Boolean(me?.is_host);
+
+  /**
+   * Publish the host's choices, so the rest of the table can see them.
+   *
+   * The controls stay driven by local state, so a click lands at once rather
+   * than after a round trip; what goes out is a copy for everyone else to read.
+   * Debounced, because ticking four subjects is one decision.
+   *
+   * A push that fails is retried on the next poll rather than reverted, and
+   * never adopted over: the host's own screen is the one place these choices
+   * are certainly right, and a dropped request is no reason to argue with it.
+   * Nothing is lost either way — starting the game sends them again.
+   */
+  useEffect(() => {
+    if (!lobby || !playerId || !isHost) return;
+    if (lobby.status !== "lobby") return;
+    if (pushed.current === null) return;
+
+    const wanted = JSON.stringify(localSetup);
+    if (wanted === pushed.current) return;
+
+    const timer = setTimeout(() => {
+      pushed.current = wanted;
+      updateLobbySettings(code, playerId, localSetup).then(apply, () => {
+        pushed.current = "";
+      });
+    }, SETTINGS_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [lobby, playerId, isHost, localSetup, code, apply]);
+
   const [, forgetTick] = useState(0);
   const played = useStored(playedSlugs, NO_PLAYED);
-
-  const countAt = (level: Difficulty) =>
-    subjects
-      .filter((subject) => chosenSubjects.includes(subject.slug))
-      .reduce((total, subject) => total + (subject.difficulty_counts[level] ?? 0), 0);
-
-  const availableQuestions = subjects
-    .filter((subject) => chosenSubjects.includes(subject.slug))
-    .reduce(
-      (total, subject) =>
-        total +
-        difficulties.reduce(
-          (sum, level) => sum + (subject.difficulty_counts[level] ?? 0),
-          0,
-        ),
-      0,
-    );
 
   async function act(fn: () => Promise<LobbyView>) {
     unlock();
@@ -400,158 +458,14 @@ export function LobbyRoom({
           </CardContent>
         </Card>
 
-        {me?.is_host ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Pick the subjects</CardTitle>
-              <CardDescription>
-                Questions are drawn at random from whatever you choose, spread
-                as evenly as possible across them.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {subjects.map((subject) => (
-                  <div key={subject.slug} className="flex items-start gap-3">
-                    <Checkbox
-                      id={subject.slug}
-                      checked={chosenSubjects.includes(subject.slug)}
-                      onCheckedChange={(checked) =>
-                        setChosenSubjects((current) =>
-                          checked
-                            ? [...current, subject.slug]
-                            : current.filter((slug) => slug !== subject.slug),
-                        )
-                      }
-                    />
-                    <Label htmlFor={subject.slug} className="font-normal">
-                      {subject.name}
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {subject.quiz_count}
-                      </span>
-                    </Label>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Difficulty</Label>
-                <div className="flex flex-wrap gap-x-6 gap-y-3">
-                  {DIFFICULTY_CHOICES.map(({ level, label }) => {
-                    const onlyOneLeft =
-                      difficulties.length === 1 && difficulties.includes(level);
-                    return (
-                      <div key={level} className="flex items-start gap-3">
-                        <Checkbox
-                          id={`difficulty-${level}`}
-                          checked={difficulties.includes(level)}
-                          disabled={onlyOneLeft}
-                          onCheckedChange={(checked) =>
-                            setDifficulties((current) =>
-                              checked
-                                ? [...current, level]
-                                : current.filter((each) => each !== level),
-                            )
-                          }
-                        />
-                        <Label
-                          htmlFor={`difficulty-${level}`}
-                          className="font-normal"
-                        >
-                          {label}
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {countAt(level)}
-                          </span>
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Rounds</Label>
-                <div className="flex flex-wrap gap-2">
-                  {ROUND_CHOICES.map((n) => (
-                    <Button
-                      key={n}
-                      type="button"
-                      size="sm"
-                      variant={roundCount === n ? "default" : "outline"}
-                      aria-pressed={roundCount === n}
-                      onClick={() => setRoundCount(n)}
-                    >
-                      {n}
-                    </Button>
-                  ))}
-                </div>
-                {roundCount > availableQuestions ? (
-                  <p className="text-muted-foreground text-sm">
-                    Only {availableQuestions} question
-                    {availableQuestions === 1 ? "" : "s"} available in the
-                    chosen subjects — the game will be that short.
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Seconds per turn</Label>
-                <div className="flex flex-wrap gap-2">
-                  {TURN_CHOICES.map((n) => (
-                    <Button
-                      key={n}
-                      type="button"
-                      size="sm"
-                      variant={turnSeconds === n ? "default" : "outline"}
-                      aria-pressed={turnSeconds === n}
-                      onClick={() => setTurnSeconds(n)}
-                    >
-                      {n}s
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-muted-foreground text-sm">
-                  Run out of time and you are out for the round, the same as a
-                  wrong answer. Whoever opens a round gets a little longer —
-                  they are the one reading the board cold.
-                </p>
-              </div>
-
-              {played.length > 0 ? (
-                <div className="space-y-2">
-                  <Label>Already played</Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-muted-foreground text-sm">
-                      {played.length} question{played.length === 1 ? "" : "s"}{" "}
-                      will be kept back where possible.
-                    </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        forgetPlayed();
-                        forgetTick((n) => n + 1);
-                      }}
-                    >
-                      <RotateCcw className="size-4" aria-hidden />
-                      Reset
-                    </Button>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Remembered on this device only, and used up once nothing new
-                    is left.
-                  </p>
-                </div>
-              ) : null}
-            </CardContent>
-            <CardFooter>
+        <LobbySetup
+          subjects={subjects}
+          setup={me?.is_host ? localSetup : lobby.settings}
+          readOnly={!me?.is_host}
+          hostName={hostName}
+          onChange={setLocalSetup}
+          footer={
+            me?.is_host ? (
               <Button
                 onClick={() =>
                   playerId &&
@@ -559,26 +473,58 @@ export function LobbyRoom({
                     startGame(
                       code,
                       playerId,
-                      chosenSubjects,
-                      roundCount,
-                      turnSeconds,
+                      localSetup.subject_slugs,
+                      localSetup.round_count,
+                      localSetup.turn_seconds,
                       played,
-                      difficulties,
+                      localSetup.difficulties,
                     ),
                   )
                 }
                 disabled={
-                  busy || chosenSubjects.length === 0 || lobby.players.length < 2
+                  busy ||
+                  localSetup.subject_slugs.length === 0 ||
+                  lobby.players.length < 2
                 }
               >
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                 Start game
               </Button>
-            </CardFooter>
-          </Card>
-        ) : (
+            ) : null
+          }
+        >
+          {me?.is_host && played.length > 0 ? (
+            <div className="space-y-2">
+              <Label>Already played</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-muted-foreground text-sm">
+                  {played.length} question{played.length === 1 ? "" : "s"} will
+                  be kept back where possible.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    forgetPlayed();
+                    forgetTick((n) => n + 1);
+                  }}
+                >
+                  <RotateCcw className="size-4" aria-hidden />
+                  Reset
+                </Button>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Remembered on this device only, and used up once nothing new is
+                left.
+              </p>
+            </div>
+          ) : null}
+        </LobbySetup>
+
+        {me?.is_host ? null : (
           <p className="text-muted-foreground text-sm">
-            Waiting for the host to start…
+            Waiting for {hostName ?? "the host"} to start…
           </p>
         )}
 
@@ -710,7 +656,6 @@ export function LobbyRoom({
   const nextPlayer = lobby.players.find(
     (player) => player.id === lobby.next_player_id,
   );
-  const hostName = lobby.players.find((player) => player.is_host)?.nickname ?? null;
   const reviewing = lobby.status === "reviewing";
   const lit = onTheClock;
   const overGlow = lit ? "text-foreground" : "text-muted-foreground";
@@ -1109,6 +1054,181 @@ function TimeBar({
     <span className={cn("h-1 w-16 overflow-hidden rounded-full", trackClass)} aria-hidden>
       <span ref={fill} className={cn("block h-full w-full", fillClass)} />
     </span>
+  );
+}
+
+/**
+ * The game being set up, for whoever is looking at it.
+ *
+ * One component for both sides on purpose. The host's controls and the read-only
+ * copy the others see are the same thing seen from two chairs, and a second
+ * component would be a second version of the truth -- the first setting either
+ * one grew that the other did not would go unnoticed until somebody at the table
+ * asked why their screen disagreed.
+ *
+ * `readOnly` disables rather than hides: a ticked box that cannot be clicked
+ * still says what was chosen, which is the whole point of showing it.
+ */
+function LobbySetup({
+  subjects,
+  setup,
+  readOnly,
+  hostName,
+  onChange,
+  children,
+  footer,
+}: {
+  subjects: Subject[];
+  setup: LobbySettings;
+  readOnly: boolean;
+  hostName: string | null;
+  onChange: (next: LobbySettings) => void;
+  /** Rendered at the end of the card body. The host's device-only settings. */
+  children?: React.ReactNode;
+  /** Rendered in the card footer. The host's start button, and nobody else's. */
+  footer?: React.ReactNode;
+}) {
+  const chosen = subjects.filter((subject) =>
+    setup.subject_slugs.includes(subject.slug),
+  );
+
+  const countAt = (level: Difficulty) =>
+    chosen.reduce(
+      (total, subject) => total + (subject.difficulty_counts[level] ?? 0),
+      0,
+    );
+
+  const availableQuestions = setup.difficulties.reduce(
+    (total, level) => total + countAt(level),
+    0,
+  );
+
+  const patch = (next: Partial<LobbySettings>) => onChange({ ...setup, ...next });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">
+          {readOnly ? "The game being set up" : "Pick the subjects"}
+        </CardTitle>
+        <CardDescription>
+          {readOnly
+            ? `${hostName ?? "The host"} chooses these — they change as they are picked.`
+            : "Questions are drawn at random from whatever you choose, spread as evenly as possible across them."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {subjects.map((subject) => (
+            <div key={subject.slug} className="flex items-start gap-3">
+              <Checkbox
+                id={subject.slug}
+                checked={setup.subject_slugs.includes(subject.slug)}
+                disabled={readOnly}
+                onCheckedChange={(checked) =>
+                  patch({
+                    subject_slugs: checked
+                      ? [...setup.subject_slugs, subject.slug]
+                      : setup.subject_slugs.filter((slug) => slug !== subject.slug),
+                  })
+                }
+              />
+              <Label htmlFor={subject.slug} className="font-normal">
+                {subject.name}
+                <span className="text-muted-foreground"> · {subject.quiz_count}</span>
+              </Label>
+            </div>
+          ))}
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label>Difficulty</Label>
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
+            {DIFFICULTY_CHOICES.map(({ level, label }) => {
+              const onlyOneLeft =
+                setup.difficulties.length === 1 && setup.difficulties.includes(level);
+              return (
+                <div key={level} className="flex items-start gap-3">
+                  <Checkbox
+                    id={`difficulty-${level}`}
+                    checked={setup.difficulties.includes(level)}
+                    disabled={readOnly || onlyOneLeft}
+                    onCheckedChange={(checked) =>
+                      patch({
+                        difficulties: checked
+                          ? [...setup.difficulties, level]
+                          : setup.difficulties.filter((each) => each !== level),
+                      })
+                    }
+                  />
+                  <Label htmlFor={`difficulty-${level}`} className="font-normal">
+                    {label}
+                    <span className="text-muted-foreground"> · {countAt(level)}</span>
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label>Rounds</Label>
+          <div className="flex flex-wrap gap-2">
+            {ROUND_CHOICES.map((n) => (
+              <Button
+                key={n}
+                type="button"
+                size="sm"
+                variant={setup.round_count === n ? "default" : "outline"}
+                aria-pressed={setup.round_count === n}
+                disabled={readOnly}
+                onClick={() => patch({ round_count: n })}
+              >
+                {n}
+              </Button>
+            ))}
+          </div>
+          {setup.subject_slugs.length > 0 && setup.round_count > availableQuestions ? (
+            <p className="text-muted-foreground text-sm">
+              Only {availableQuestions} question
+              {availableQuestions === 1 ? "" : "s"} available in the chosen
+              subjects — the game will be that short.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Seconds per turn</Label>
+          <div className="flex flex-wrap gap-2">
+            {TURN_CHOICES.map((n) => (
+              <Button
+                key={n}
+                type="button"
+                size="sm"
+                variant={setup.turn_seconds === n ? "default" : "outline"}
+                aria-pressed={setup.turn_seconds === n}
+                disabled={readOnly}
+                onClick={() => patch({ turn_seconds: n })}
+              >
+                {n}s
+              </Button>
+            ))}
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Run out of time and you are out for the round, the same as a wrong
+            answer. Whoever opens a round gets a little longer — they are the one
+            reading the board cold.
+          </p>
+        </div>
+
+        {children}
+      </CardContent>
+      {footer ? <CardFooter>{footer}</CardFooter> : null}
+    </Card>
   );
 }
 

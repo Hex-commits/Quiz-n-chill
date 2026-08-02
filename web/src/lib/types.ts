@@ -193,6 +193,20 @@ export interface RoundView {
   solved_items: SolvedItem[];
 }
 
+/**
+ * The game the host has set up, before there is a game to play.
+ *
+ * Lives on the lobby rather than in the host's browser, so the players waiting
+ * can see what they are about to play and someone joining late has missed
+ * nothing. Only the host may write it — see `updateLobbySettings`.
+ */
+export interface LobbySettings {
+  subject_slugs: string[];
+  difficulties: Difficulty[];
+  round_count: number;
+  turn_seconds: number;
+}
+
 export interface LobbyView {
   code: string;
   status: LobbyStatus;
@@ -232,6 +246,7 @@ export interface LobbyView {
   finished_rounds: FinishedRound[];
   last_move: LastMove | null;
   winner_ids: string[];
+  settings: LobbySettings;
   /** Bumped on every mutation, so polling can skip unchanged state. */
   version: number;
 }
