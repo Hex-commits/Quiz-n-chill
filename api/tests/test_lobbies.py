@@ -292,34 +292,22 @@ def test_the_review_includes_pairs_nobody_solved():
     assert {pair.item_label for pair in solution} == {"Berlin", "Paris", "Madrid", "Rom"}
 
 
-def test_the_review_counts_down():
-    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
-
-    view = finish_round_one(code, anna, ben)
-
-    assert view.review_seconds_left is not None
-    assert 0 < view.review_seconds_left <= lobbies.REVIEW_SECONDS
-
-
-def test_the_next_round_starts_on_its_own_once_the_review_runs_out():
-    """Nobody has to press anything: polling is what notices, since no turn is
-    submitted during a review."""
+def test_the_review_waits_for_the_host_however_long_it_takes():
+    """The point of removing the clock: no amount of polling moves the game on
+    while the answers are up. Only the host's button does."""
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     finish_round_one(code, anna, ben)
 
-    with lobbies.edit(code) as lobby:
-        lobby.review_until = datetime.now(UTC) - timedelta(seconds=1)
-    view = lobbies.get_view(code, anna)
+    for _ in range(3):
+        view = lobbies.get_view(code, anna)
+
+    assert view.status is LobbyStatus.reviewing
+    assert view.round_index == 0
+
+    view = lobbies.skip_review(code, anna)
 
     assert view.status is LobbyStatus.playing
     assert view.round_index == 1
-    assert view.review_seconds_left is None
-
-
-def test_no_countdown_outside_a_review():
-    code, (anna, _ben) = setup_game(slugs=("topic-a", "topic-b"))
-
-    assert lobbies.get_view(code, anna).review_seconds_left is None
 
 
 def test_only_the_host_can_skip_the_review():
@@ -354,7 +342,6 @@ def test_the_last_round_goes_straight_to_the_final_scoreboard():
     view = finish_round_one(code, anna, ben)
 
     assert view.status is LobbyStatus.finished
-    assert view.review_seconds_left is None
     assert view.finished_rounds[0].solution
 
 

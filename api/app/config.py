@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +59,19 @@ class Settings(BaseSettings):
     cors_origin_regex: str = r"^https://quiz-n-chill[a-z0-9-]*-hex15hex\.vercel\.app$"
 
     environment: str = "development"
+
+    # Extra seconds on the clock for the player who opens a round.
+    #
+    # Their turn is not the same job as everyone else's: they are handed a board
+    # nobody has read yet and have to take in every category and every answer
+    # before they can place one. Whoever follows them has been reading it all
+    # along, on somebody else's time. Charging both the same is what made the
+    # opening turn the one people lost to the clock.
+    #
+    # A rule of the game rather than a lobby setting, so it is not one more
+    # thing for the host to decide -- but it is worth tuning against a real
+    # table, hence the variable. Zero turns it off.
+    first_turn_bonus_seconds: int = Field(default=10, ge=0)
 
     # Where lobbies live. False means "in this process", which is right for one
     # container and wrong for anything that scales horizontally -- serverless

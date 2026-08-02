@@ -34,6 +34,7 @@ from datetime import UTC, datetime, timedelta
 from math import ceil
 from uuid import UUID, uuid4
 
+from app.config import get_settings
 from app.errors import ConflictError, ValidationError
 from app.schemas import (
     Category,
@@ -93,11 +94,12 @@ PRESENCE_TIMEOUT = timedelta(seconds=15)
 # PRESENCE_TIMEOUT or it could never fire.
 QUIET_AFTER = timedelta(seconds=6)
 
-# How long the finished round's answers stay up before the next round starts.
-# Timed rather than host-gated so nobody can stall the table by walking away --
-# the same reasoning as PRESENCE_TIMEOUT. The host can cut it short.
-REVIEW_SECONDS = 10
-REVIEW_FOR = timedelta(seconds=REVIEW_SECONDS)
+# The finished round's answers stay up until the host starts the next one.
+# There is deliberately no clock on it: ten seconds was never enough to read a
+# board of explanations, and a table that is still talking about the answer
+# should not be moved on by a timer. The cost is that a host who walks away
+# stalls the game -- the review is the one place where nothing else can move it
+# along.
 
 # How many pairs a round puts on the board. A question may hold many more --
 # a picture question built from a Wikidata category can easily reach thirty --
@@ -332,7 +334,6 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         lobby.catch_up_left = {}
         lobby.round_index = 0
         lobby.turn_cursor = 0
-        lobby.review_until = None
         lobby.last_move = None
         for candidate in lobby.players:
             candidate.score = 0
@@ -409,10 +410,11 @@ def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
 
 
 def skip_review(code: str, player_id: UUID) -> LobbyView:
-    """Host cuts the between-rounds review short and starts the next round.
+    """Host leaves the between-rounds review and starts the next round.
 
-    Only shortens the wait -- it can never skip a review that has not started,
-    so it cannot be used to rush players past a board that is still in play.
+    The only way out of a review, now that it has no clock of its own. It still
+    cannot end a review that has not started, so it can never be used to rush
+    players past a board that is still in play.
     """
     with _mutate(code) as lobby:
         player = lobby.player(player_id)
@@ -573,18 +575,28 @@ def _begin_round(lobby: Lobby, round_: Round) -> None:
     # After the cursor is set, because who is owed what depends on where the
     # rotation starts.
     _credit_turns(lobby)
-    _arm_turn_clock(lobby)
+    _arm_turn_clock(lobby, opening=True)
 
 
-def _arm_turn_clock(lobby: Lobby) -> None:
+def _arm_turn_clock(lobby: Lobby, *, opening: bool = False) -> None:
     """Start the clock for whoever is now on it, or stop it if nobody is.
 
     Called after every move of the turn rather than computed on read, so the
     deadline is a fact about the game rather than a function of when someone
     happened to ask.
+
+    `opening` marks the first turn of a round, which is worth more time than the
+    rest: that player is reading a board nobody has seen yet, where everyone
+    after them has been reading it while the others played. Passed in by the two
+    callers that deal a fresh board rather than inferred here -- the history is
+    also empty when the opener times out without moving, and the player who
+    inherits that board has had it in front of them all along.
     """
     if lobby.status is LobbyStatus.playing and _current_player(lobby) is not None:
-        lobby.turn_expires_at = datetime.now(UTC) + timedelta(seconds=lobby.turn_seconds)
+        lobby.turn_allowance = lobby.turn_seconds
+        if opening:
+            lobby.turn_allowance += get_settings().first_turn_bonus_seconds
+        lobby.turn_expires_at = datetime.now(UTC) + timedelta(seconds=lobby.turn_allowance)
     else:
         lobby.turn_expires_at = None
 
@@ -676,14 +688,9 @@ def _resync(lobby: Lobby) -> None:
     Without this a disconnected player would hold the turn forever: no one
     submits, so nothing would otherwise run to move it along.
 
-    The review deadline rides on the same mechanism, and for the same reason:
-    nobody submits anything during a review, so polling is the only thing that
-    can notice it has run out.
+    A review is left alone: it ends when the host says so and at no other time,
+    so there is nothing here to notice.
     """
-    if lobby.status is LobbyStatus.reviewing:
-        if lobby.review_until is not None and datetime.now(UTC) >= lobby.review_until:
-            _end_review(lobby)
-        return
     if lobby.status is not LobbyStatus.playing:
         return
     if _current_player(lobby) is None:
@@ -833,15 +840,14 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     if not _has_another_round(lobby):
         lobby.status = LobbyStatus.finished
         lobby.current_round = None
-        lobby.review_until = None
         lobby.in_catch_up = False
         lobby.catch_up_left = {}
         return
 
     # `current_round` deliberately stays loaded: the board with its answers in
-    # place is what the explanations are shown underneath.
+    # place is what the explanations are shown underneath. It stays there until
+    # the host ends the review -- nothing else will.
     lobby.status = LobbyStatus.reviewing
-    lobby.review_until = datetime.now(UTC) + REVIEW_FOR
 
 
 def _has_another_round(lobby: Lobby) -> bool:
@@ -859,7 +865,6 @@ def _has_another_round(lobby: Lobby) -> bool:
 
 def _end_review(lobby: Lobby) -> None:
     """Leave the review and start whatever comes next."""
-    lobby.review_until = None
     lobby.status = LobbyStatus.playing
 
     if lobby.round_index + 1 < len(lobby.rounds):
@@ -915,7 +920,9 @@ def _begin_catch_up(lobby: Lobby) -> None:
         lobby.turn_cursor = _index_of(lobby, ranked[0][0])
     if _current_player(lobby) is None:
         _advance_turn(lobby)
-    _arm_turn_clock(lobby)
+    # A settling round deals a board of its own, so its opener reads it cold
+    # exactly as any other round's does.
+    _arm_turn_clock(lobby, opening=True)
 
 
 def _avoid(exclude_slugs: list[str] | None) -> frozenset[str]:
@@ -997,9 +1004,14 @@ def _view(lobby: Lobby) -> LobbyView:
         round_index=lobby.round_index,
         round_count=len(lobby.quiz_slugs),
         current_player_id=current_player.id if current_player else None,
-        review_seconds_left=_review_seconds_left(lobby),
         turn_seconds_left=_turn_seconds_left(lobby),
-        turn_seconds=lobby.turn_seconds if current_player else None,
+        # What this turn was given, not what the host chose -- the opening turn
+        # of a round is longer, and the client's draining bar is scaled by this.
+        #
+        # Falls back to the lobby's setting for a game that was already running
+        # when allowances started being recorded: its stored state has no
+        # allowance, and zero would leave that turn with no bar at all.
+        turn_seconds=(lobby.turn_allowance or lobby.turn_seconds) if current_player else None,
         timed_out=lobby.timed_out,
         history=list(lobby.history),
         round_view=_round_view(lobby),
@@ -1008,18 +1020,6 @@ def _view(lobby: Lobby) -> LobbyView:
         winner_ids=_winner_ids(lobby),
         version=lobby.version,
     )
-
-
-def _review_seconds_left(lobby: Lobby) -> int | None:
-    """Seconds until the next round starts, or None when not reviewing.
-
-    Sent as a remaining duration rather than a wall-clock deadline so a client
-    whose clock is off still counts down correctly.
-    """
-    if lobby.status is not LobbyStatus.reviewing or lobby.review_until is None:
-        return None
-    left = (lobby.review_until - datetime.now(UTC)).total_seconds()
-    return max(0, ceil(left))
 
 
 def _turn_seconds_left(lobby: Lobby) -> int | None:

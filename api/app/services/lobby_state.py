@@ -105,12 +105,14 @@ class Lobby:
     # When the player on the clock runs out of time. Set every time the turn
     # moves, cleared whenever nobody is on the clock.
     turn_expires_at: datetime | None = None
+    # How long the current turn was actually given, which is `turn_seconds`
+    # plus the opening player's bonus on the first turn of a round. Recorded
+    # rather than recomputed: it is what the clock was armed with, and the bar
+    # on the client needs the number the countdown started from.
+    turn_allowance: int = 0
     # Who last lost their turn to the clock, so the table is told why it moved.
     # Cleared by the next actual move.
     timed_out: str | None = None
-    # When the between-rounds review stops and the next round begins. Set only
-    # while `status` is `reviewing`.
-    review_until: datetime | None = None
     last_move: LastMove | None = None
     # Every placement this round, oldest first. Bounded, and cleared when a
     # round starts -- it is a running commentary for the players on screen, not

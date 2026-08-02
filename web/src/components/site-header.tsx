@@ -12,7 +12,10 @@ export function SiteHeader() {
         anyway, and where the logo already goes, so it was a second button to
         the page you were almost certainly already on.
       */}
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-6 px-4">
+      {/* Height from the token, not a literal: anything else on the page that
+          sticks is offset by it, and a header that grows without telling them
+          would pin them behind itself. See `--header-h` in globals.css. */}
+      <div className="mx-auto flex h-(--header-h) w-full max-w-5xl items-center gap-6 px-4">
         <Link href="/" className="text-base">
           <Logo />
         </Link>
