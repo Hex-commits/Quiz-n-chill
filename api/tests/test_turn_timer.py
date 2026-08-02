@@ -66,8 +66,6 @@ def with_bonus(monkeypatch, seconds):
     get_settings.cache_clear()
 
 
-# -- the clock is running -------------------------------------------------
-
 
 def test_a_turn_starts_with_the_configured_time():
     """From the second turn on. The one that opens a round is longer -- see the
@@ -98,14 +96,12 @@ def test_the_clock_resets_when_the_turn_moves():
     start_with(code, anna, 30)
     items = items_of(code)
 
-    # Wind Anna's clock most of the way down, then let her answer.
     with lobbies.edit(code) as lobby:
         lobby.turn_expires_at = datetime.now(UTC) + timedelta(seconds=2)
 
     view = lobbies.submit_turn(code, anna, items["Berlin"], DE)
 
     assert view.current_player_id == ben
-    # Ben gets a whole turn, not the two seconds left on Anna's.
     assert view.turn_seconds_left > 2
 
 
@@ -117,15 +113,6 @@ def test_nobody_on_the_clock_means_no_countdown():
 
     assert view.turn_seconds_left is None
     assert view.turn_seconds is None
-
-
-# -- the opening bonus ----------------------------------------------------
-#
-# Whoever opens a round is doing a different job from everyone else: the board
-# is new, and every category and every answer has to be read before they can
-# place one. The players after them have been reading it all along, on somebody
-# else's clock. Charging them all the same is what made the opening turn the
-# one people lost to the timer.
 
 
 @pytest.mark.parametrize("bonus", [0, 10, 25])
@@ -182,8 +169,6 @@ def test_the_bonus_does_not_pass_on_when_the_opener_runs_out(monkeypatch):
     assert view.current_player_id == ben
     assert view.turn_seconds == 30
 
-
-# -- running out ----------------------------------------------------------
 
 
 def test_running_out_of_time_passes_the_turn_on():
@@ -284,8 +269,6 @@ def test_the_new_round_starts_the_clock_again():
     assert view.status is LobbyStatus.playing
     assert view.turn_seconds_left is not None
 
-
-# -- the bounds -----------------------------------------------------------
 
 
 @pytest.mark.parametrize("seconds", [9, 121, 0, -5])

@@ -68,7 +68,7 @@ def test_a_rejection_with_no_detail_still_yields_a_usable_complaint():
     review = as_review(verdict(ok=False))
 
     assert not review.ok
-    assert review.problems  # never empty, or the repair loop has nothing to act on
+    assert review.problems
 
 
 def test_junk_entries_are_dropped():
@@ -76,8 +76,6 @@ def test_junk_entries_are_dropped():
 
     assert review.misplaced_items == ["Wasser"]
 
-
-# -- checking the critic against the question ----------------------------
 
 
 def test_a_finding_naming_something_not_on_the_board_is_discarded():
@@ -94,7 +92,6 @@ def test_a_finding_naming_something_not_on_the_board_is_discarded():
 
     assert review.ok
     assert review.misplaced_items == []
-    # The matching sentence has to go too, or it blocks the question by itself.
     assert review.problems == []
 
 

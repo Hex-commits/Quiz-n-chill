@@ -29,14 +29,6 @@ function baseUrl(): string {
       ? (process.env.API_URL ?? DEFAULT_API_URL)
       : (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL);
 
-  // Trailing slashes are stripped because every path below starts with one, and
-  // `https://api.example.com/` + `/lobbies` is `//lobbies` -- a different path,
-  // which the server answers with a redirect to the real one.
-  //
-  // That is fatal rather than untidy: a browser will not follow a redirect on a
-  // CORS *preflight*, so the request fails with "Redirect is not allowed for a
-  // preflight request" and reads as a CORS misconfiguration. It is not one, and
-  // no amount of correcting the allowed origins fixes it.
   return configured.replace(/\/+$/, "");
 }
 
@@ -67,13 +59,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         "Content-Type": "application/json",
         ...init?.headers,
       },
-      // Quiz content changes rarely but must not be stale after an edit, so
-      // opt out of Next's fetch cache and let page-level revalidation decide.
       cache: "no-store",
     });
   } catch (cause) {
-    // Keep the original cause attached -- "fetch failed" alone does not
-    // distinguish a refused connection from a DNS miss.
     throw new ApiError(
       `Cannot reach the API at ${baseUrl()}. Is the backend running?`,
       503,
@@ -97,8 +85,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-// --- Quizzes ---------------------------------------------------------------
-
 export function listSubjects(): Promise<Subject[]> {
   return request<Subject[]>("/subjects");
 }
@@ -113,8 +99,6 @@ export function listQuizzes(subjectSlugs?: string[]): Promise<QuizSummary[]> {
 export function getQuiz(slugOrId: string): Promise<QuizDetail> {
   return request<QuizDetail>(`/quizzes/${encodeURIComponent(slugOrId)}`);
 }
-
-// --- Checking --------------------------------------------------------------
 
 /**
  * Grade an assignment. Stateless on the server: nothing about this attempt is
@@ -132,12 +116,6 @@ export function checkAssignment(
     },
   );
 }
-
-// --- Lobbies ---------------------------------------------------------------
-//
-// Lobby state lives in the API process, not the database. It is gone when the
-// backend restarts, and it needs a single long-lived process -- see the README
-// note about Vercel's serverless runtime.
 
 export function createLobby(nickname: string): Promise<LobbyIdentity> {
   return request<LobbyIdentity>("/lobbies", {
@@ -189,7 +167,6 @@ export function markAway(code: string, playerId: string): void {
       keepalive: true,
     }).catch(() => {});
   } catch {
-    // Ignore: unload is not a place to surface errors.
   }
 }
 

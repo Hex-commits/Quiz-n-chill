@@ -92,15 +92,6 @@ def test_the_list_is_split_and_trimmed(configured, origin):
     assert allowed(client_allowing(configured), origin)
 
 
-# -- the defaults that ship, with nothing configured ----------------------
-#
-# These are what a deploy uses when nobody sets an environment variable, and
-# getting them wrong fails only in the browser -- the API answers normally and
-# the response is discarded, with nothing in any log to say why. That happened
-# once already: production returned "400 Disallowed CORS origin" while the API
-# was otherwise perfectly healthy.
-
-
 def default_client() -> TestClient:
     """Built from the class defaults, not from `Settings()`.
 
@@ -122,9 +113,6 @@ def default_client() -> TestClient:
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://quiz-n-chill-web.vercel.app",
-        # A real preview URL, copied from a browser that this refused. Vercel
-        # names them `<project>-<hash>-<scope>`, which is not the shape the
-        # first version of the pattern guessed at.
         "https://quiz-n-chill-a7th8ajbs-hex15hex.vercel.app",
         "https://quiz-n-chill-web-git-main-hex15hex.vercel.app",
     ],
@@ -138,12 +126,9 @@ def test_the_shipped_defaults_allow_the_real_frontends(origin):
     [
         "https://someone-elses-app.vercel.app",
         "https://quiz-n-chill-web.vercel.app.evil.example",
-        "http://quiz-n-chill-web.vercel.app",  # plain http
+        "http://quiz-n-chill-web.vercel.app",
         "https://evil.example",
-        # Anchored at the front: `<anything>.vercel.app` ending in the account
-        # slug is claimable by whoever names a project that way.
         "https://evil-hex15hex.vercel.app",
-        # Anchored at the back: another account's fork of this same project.
         "https://quiz-n-chill-a7th8ajbs-someoneelse.vercel.app",
     ],
 )

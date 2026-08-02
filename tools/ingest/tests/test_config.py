@@ -32,8 +32,6 @@ def clean_env(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
-# -- the Supabase URL ----------------------------------------------------
-
 
 def test_the_flag_beats_everything(monkeypatch):
     monkeypatch.setenv("INGEST_SUPABASE_URL", "http://from-env:54321")
@@ -78,8 +76,6 @@ def test_no_url_at_all_says_how_to_fix_it():
     assert "INGEST_SUPABASE_URL" in str(caught.value)
 
 
-# -- the rest ------------------------------------------------------------
-
 
 def test_a_missing_service_role_key_says_where_to_find_it():
     with pytest.raises(ConfigError) as caught:
@@ -87,8 +83,6 @@ def test_a_missing_service_role_key_says_where_to_find_it():
 
     assert "service_role" in str(caught.value)
 
-
-# -- the key, which has to name the same project as the URL --------------
 
 
 def test_the_key_flag_beats_everything(monkeypatch):
@@ -161,8 +155,6 @@ def test_flags_beat_the_environment_for_every_setting(monkeypatch):
     assert settings.model == "flag-model"
 
 
-# -- the .env reader -----------------------------------------------------
-
 
 def test_an_exported_value_wins_over_the_file(monkeypatch, tmp_path):
     """Exporting a variable for one run must not mean editing .env."""
@@ -185,10 +177,8 @@ def test_comments_and_blank_lines_are_ignored(monkeypatch, tmp_path):
 
 
 def test_a_missing_file_is_not_an_error(tmp_path):
-    load_dotenv(tmp_path / "nope.env")  # must not raise
+    load_dotenv(tmp_path / "nope.env")
 
-
-# -- console encoding ----------------------------------------------------
 
 
 def test_the_console_is_switched_to_utf8(monkeypatch):
@@ -222,4 +212,4 @@ def test_a_stream_that_cannot_be_reconfigured_is_not_fatal(monkeypatch):
     monkeypatch.setattr("tools.ingest.cli.sys.stdout", Awkward())
     monkeypatch.setattr("tools.ingest.cli.sys.stderr", object())
 
-    _speak_utf8()  # must not raise
+    _speak_utf8()

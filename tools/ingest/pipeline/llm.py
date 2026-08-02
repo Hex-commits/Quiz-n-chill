@@ -30,11 +30,8 @@ from langchain_ollama import ChatOllama
 DEFAULT_BASE_URL = "http://localhost:11435"
 DEFAULT_MODEL = "glm4:9b"
 
-# A 9B model is slow on CPU and this is a batch job, so the timeout is generous.
 DEFAULT_TIMEOUT = 600.0
 
-# Low but not zero: at 0 a small model retries the same wrong answer on every
-# repair attempt, which makes the repair loop pointless.
 DEFAULT_TEMPERATURE = 0.3
 DEFAULT_NUM_CTX = 8192
 

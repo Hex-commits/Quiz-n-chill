@@ -44,14 +44,12 @@ class StubClient:
         return self.top[:limit]
 
 
-# -- lists ---------------------------------------------------------------
-
 
 def test_a_list_article_is_recognised():
     assert is_list_article("Liste_der_Staaten_der_Erde")
     assert is_list_article("Liste der IPA-Zeichen")
     assert not is_list_article("Deutschland")
-    assert not is_list_article("Liszt_Ferenc")  # not a list, despite the prefix
+    assert not is_list_article("Liszt_Ferenc")
 
 
 def test_the_lists_strategy_keeps_only_list_articles():
@@ -72,8 +70,6 @@ def test_the_lists_strategy_preserves_the_popularity_order():
 
     assert strategies.lists(client, limit=10) == ["Liste_A", "Liste_B"]
 
-
-# -- subjects ------------------------------------------------------------
 
 
 def test_every_subject_maps_to_at_least_one_category():
@@ -130,8 +126,6 @@ def test_one_dead_category_does_not_end_the_run():
     assert strategies.subjects(client, limit=5, subject_slugs=["geografie"]) == ["Athen"]
 
 
-# -- vetted --------------------------------------------------------------
-
 
 def test_vetted_draws_from_both_review_grades():
     client = StubClient(members={
@@ -143,8 +137,6 @@ def test_vetted_draws_from_both_review_grades():
 
     assert set(out) == {"Exzellent-1", "Lesenswert-1"}
 
-
-# -- mixed ---------------------------------------------------------------
 
 
 def test_mixed_takes_from_every_strategy():
@@ -158,10 +150,10 @@ def test_mixed_takes_from_every_strategy():
 
     out = strategies.mixed(client, limit=10, subject_slugs=["geografie"])
 
-    assert "Albanien" in out                    # subjects
-    assert "Liste_der_Staaten_der_Erde" in out  # lists
-    assert "Ein exzellenter Artikel" in out     # vetted
-    assert "Deutschland" in out                 # evergreen
+    assert "Albanien" in out
+    assert "Liste_der_Staaten_der_Erde" in out
+    assert "Ein exzellenter Artikel" in out
+    assert "Deutschland" in out
 
 
 def test_mixed_never_repeats_an_article():
@@ -172,8 +164,6 @@ def test_mixed_never_repeats_an_article():
 
     assert len(out) == len(set(out))
 
-
-# -- the registry --------------------------------------------------------
 
 
 def test_every_named_strategy_is_callable():
@@ -187,8 +177,6 @@ def test_an_unknown_strategy_names_the_valid_ones():
     with pytest.raises(ValueError, match="mixed"):
         candidates("nonsense", StubClient(), limit=1)
 
-
-# -- interleaving --------------------------------------------------------
 
 
 def test_round_robin_alternates_and_respects_the_limit():

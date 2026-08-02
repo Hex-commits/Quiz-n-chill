@@ -30,8 +30,6 @@ export default async function QuizPage({ params }: PageProps) {
   try {
     quiz = await getQuiz(slug);
   } catch (cause) {
-    // A 404 from the API is a genuinely missing quiz; anything else is an
-    // infrastructure problem the developer needs to see, not a 404 page.
     if (cause instanceof ApiError && cause.status === 404) {
       notFound();
     }

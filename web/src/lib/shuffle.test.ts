@@ -10,8 +10,6 @@ import { shuffleBySeed } from "./shuffle.ts";
 
 const id = (entry: string) => entry;
 
-// Enough entries that "unchanged" cannot pass by luck: a board of ten has 3.6
-// million orders.
 const BOARD = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
 
 test("the written order is broken up", () => {
@@ -19,8 +17,6 @@ test("the written order is broken up", () => {
 });
 
 test("the same seed gives the same order", () => {
-  // This is what holds the board still between polls, and what keeps every
-  // player at the table looking at the same board.
   assert.deepEqual(
     shuffleBySeed(BOARD, "round-1", id),
     shuffleBySeed(BOARD, "round-1", id),
@@ -43,9 +39,6 @@ test("the order the entries arrived in does not matter", () => {
 });
 
 test("solving an answer leaves the rest where they are", () => {
-  // The one that would bite hardest in play: answers leave the pool as they are
-  // placed, and a shuffle that re-dealt the survivors would move the buttons
-  // out from under whoever is on the clock.
   const full = shuffleBySeed(BOARD, "round-1", id);
   const solved = full[3];
   const rest = shuffleBySeed(
@@ -74,8 +67,6 @@ test("empty and single-entry lists are fine", () => {
 });
 
 test("entries are placed by id, not by their contents", () => {
-  // The board holds objects, and two answers with the same label are still two
-  // different answers.
   const entries = [
     { id: "1", label: "same" },
     { id: "2", label: "same" },
@@ -88,9 +79,6 @@ test("entries are placed by id, not by their contents", () => {
 });
 
 test("uuids sharing a prefix are spread out", () => {
-  // Real ids, hashed against a shared seed, are near-identical strings. A hash
-  // that kept them in neighbouring buckets would sort them almost back into the
-  // order they came in -- which is the order being hidden.
   const uuids = Array.from(
     { length: 12 },
     (_, i) => `0191f2a4-7c3d-7b8e-9f10-aabbccdd${String(i).padStart(4, "0")}`,

@@ -43,13 +43,8 @@ from app.services.lobby_state import Lobby
 
 LOBBY_TTL = timedelta(hours=4)
 
-# How long a lock may be held before it is assumed abandoned. A deadline rather
-# than a holder who must return: on serverless an instance can vanish mid-request,
-# and a lock nobody releases would wedge that lobby for everyone.
 LOCK_SECONDS = 5
 
-# How long to wait for another writer to finish before giving up. Two players
-# submitting at the same instant is ordinary; waiting seconds for one is not.
 LOCK_WAIT = 3.0
 LOCK_POLL = 0.02
 
@@ -80,11 +75,6 @@ class LobbyStore(Protocol):
         already gone is not an error.
         """
         ...
-
-
-# ---------------------------------------------------------------------------
-# In this process
-# ---------------------------------------------------------------------------
 
 
 class MemoryStore:
@@ -119,8 +109,6 @@ class MemoryStore:
             lobby = self._lobbies.get(code.upper())
             if lobby is None:
                 raise NotFoundError(f"No lobby with code '{code.upper()}'.")
-            # The stored object *is* the working copy here, so there is nothing
-            # to write back.
             yield lobby
 
     @contextmanager
@@ -132,11 +120,6 @@ class MemoryStore:
         cutoff = datetime.now(UTC) - LOBBY_TTL
         for code in [c for c, lobby in self._lobbies.items() if lobby.updated_at < cutoff]:
             del self._lobbies[code]
-
-
-# ---------------------------------------------------------------------------
-# Shared across instances
-# ---------------------------------------------------------------------------
 
 
 class SupabaseStore:
@@ -154,8 +137,6 @@ class SupabaseStore:
 
     def __init__(self, client) -> None:
         self._db = client
-
-    # -- plumbing --------------------------------------------------------
 
     @staticmethod
     def _ttl_seconds() -> int:
@@ -178,13 +159,9 @@ class SupabaseStore:
             ).execute().data
 
             row = rows[0] if isinstance(rows, list) and rows else rows
-            # Checked on `state` rather than on the row: a composite return type
-            # can hand back a row of nulls, which is truthy but holds nothing.
             if isinstance(row, dict) and row.get("state") is not None:
                 return token, _lobby_json.validate_python(row["state"])
 
-            # Either there is no such lobby, or somebody else holds the lock.
-            # Only the second is worth waiting on.
             if not self.exists(code):
                 return None
             if time.monotonic() >= deadline:
@@ -202,8 +179,6 @@ class SupabaseStore:
                 "p_ttl_seconds": self._ttl_seconds(),
             },
         ).execute()
-
-    # -- the interface ---------------------------------------------------
 
     def create(self, lobby: Lobby) -> None:
         expires = datetime.now(UTC) + LOBBY_TTL
@@ -231,8 +206,6 @@ class SupabaseStore:
         self._db.table("lobbies").delete().eq("code", code.upper()).execute()
 
     def clear(self) -> None:
-        # Filtered on the primary key rather than an unfiltered delete, which
-        # PostgREST refuses outright.
         self._db.table("lobbies").delete().neq("code", "").execute()
 
     def sweep(self) -> int:
@@ -251,9 +224,6 @@ class SupabaseStore:
         try:
             yield lobby
         finally:
-            # Written even when the block raised -- see the note on the memory
-            # store: every entry point records the caller's heartbeat before it
-            # validates, and a refused request still proves that client is alive.
             self._release(code, token, lobby)
 
     @contextmanager
@@ -267,11 +237,6 @@ class SupabaseStore:
             yield lobby
         finally:
             self._release(code, token, lobby)
-
-
-# ---------------------------------------------------------------------------
-# Choosing one
-# ---------------------------------------------------------------------------
 
 
 def build_store() -> LobbyStore:

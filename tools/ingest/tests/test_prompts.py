@@ -78,10 +78,8 @@ def test_the_repair_prompt_asks_for_removal_rather_than_invention():
 
     assert "answers appear more than once" in rendered
     assert "lieber ganz weg" in rendered
-    assert "usable" in rendered  # the way out when a fix drops it below six
+    assert "usable" in rendered
 
-
-# -- the grammar handed to Ollama ----------------------------------------
 
 
 @pytest.mark.parametrize("key", ["usable", "pairs", "difficulty", "subject_slug"])

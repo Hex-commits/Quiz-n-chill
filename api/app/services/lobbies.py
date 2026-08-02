@@ -63,71 +63,23 @@ from app.services.quizzes import (
 )
 from app.services.scoring import grade_item
 
-# Re-exported: callers and tests build these, and moving them was a storage
-# concern rather than a change to what a lobby is.
 __all__ = ["Lobby", "Player", "Round"]
 
-# Ambiguous characters left out so a code can be read aloud without confusion.
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 4
 MAX_PLAYERS = 10
 
-# How many placements the round's running commentary keeps. A round cannot have
-# many more than this -- ten pairs plus a knockout each -- so it is a ceiling
-# rather than a window in practice.
 MAX_HISTORY = 20
 
-# Changes arrive by push, so the client's poll is no longer how it learns what
-# happened -- it is the heartbeat, and the backstop for anything push misses.
-# It runs every ~4s (POLL_MS in the lobby room) and these are scaled to that:
-# a player has to miss several beats before the others are told anything.
-#
-# The poll was briefly 10s, tuned against a cache that billed per command. The
-# store is Postgres now and nothing meters round trips, so the only reason to
-# poll slowly was gone -- and a slow poll is what everything unresponsive about
-# the game traced back to.
 PRESENCE_TIMEOUT = timedelta(seconds=15)
 
-# How long the player on the clock may be silent before the others are told
-# something is up. Long enough to survive one missed poll, short enough that the
-# wait before a skip is explained rather than mysterious. Must stay below
-# PRESENCE_TIMEOUT or it could never fire.
 QUIET_AFTER = timedelta(seconds=6)
 
-# The finished round's answers stay up until the host starts the next one.
-# There is deliberately no clock on it: ten seconds was never enough to read a
-# board of explanations, and a table that is still talking about the answer
-# should not be moved on by a timer. The cost is that a host who walks away
-# stalls the game -- the review is the one place where nothing else can move it
-# along.
-
-# How many pairs a round puts on the board. A question may hold many more --
-# a picture question built from a Wikidata category can easily reach thirty --
-# and dealing a random subset of them is what stops the same question being the
-# same board every time it comes up. With a pool this small that variety is
-# worth more than showing every pair.
-#
-# Ten because it fills the category grid without scrolling on a laptop, and
-# because a round of ten placements is about a minute and a half at 15s a turn.
-# A question with fewer pairs than this is dealt whole.
 BOARD_PAIRS = 10
 
-# At how many stored pairs a question stops counting as "already played".
-#
-# The board is a random subset, so a question with more pairs than it deals is
-# a different board next time. That is a matter of degree: at 11 pairs the
-# second board repeats 10 of the same 11 and the table will recognise it; at 15
-# the overlap is thin enough that it plays as a fresh question.
-#
-# One and a half boards is where that line is drawn. It also happens to sit just
-# above `MAX_PAIRS` in the ingest rules (14), so ordinary generated questions are
-# never exempt and only the big list-built ones are -- which is the intent.
 REPLAYABLE_PAIRS = BOARD_PAIRS * 3 // 2
 
 
-# The one instance the whole API shares. Built from configuration: shared
-# lobbies live in the database and are visible to every instance, otherwise this
-# process holds them. Nothing else in this module knows the difference.
 _store = build_store()
 
 
@@ -190,11 +142,6 @@ def edit(code: str):
     return _store.mutate(code)
 
 
-# ---------------------------------------------------------------------------
-# Lobby lifecycle
-# ---------------------------------------------------------------------------
-
-
 def create_lobby(nickname: str) -> tuple[str, UUID]:
     code = _unique_code()
     host = Player(id=uuid4(), nickname=nickname.strip(), is_host=True)
@@ -221,8 +168,6 @@ def join_lobby(code: str, nickname: str) -> UUID:
         if existing is not None:
             if existing.is_connected:
                 raise ConflictError(f"'{cleaned}' is already taken in this lobby.")
-            # Same person coming back: keep their score and their place in the
-            # turn order rather than handing out a new seat.
             _heartbeat(lobby, existing.id)
             _resync(lobby)
             lobby.touch()
@@ -276,26 +221,17 @@ def start_game(
 
         pools = pools_by_subject(subject_slugs, difficulties)
         if not pools:
-            # Named separately because the two are fixed differently: one wants
-            # another subject, the other wants another difficulty ticked, and
-            # "no questions" leaves the host guessing which.
             raise ConflictError(
                 "No questions at that difficulty in the chosen subjects."
                 if difficulties is not None and len(difficulties) < len(Difficulty)
                 else "The chosen subjects contain no questions."
             )
 
-        # One more than asked for: the last is held back for the settling round
-        # at the end, which is only played if the arithmetic left someone short.
-        # A pool with nothing spare simply yields no extra, and then there is no
-        # settling round -- which is why this is drawn rather than required.
         drawn = draw_balanced(pools, round_count + 1, avoid=_avoid(exclude_slugs))
         quiz_slugs = drawn[:round_count]
         spare_slug = drawn[round_count] if len(drawn) > round_count else None
         subject_names = _subject_names(subject_slugs)
 
-        # Load every question up front, so a content problem surfaces now
-        # rather than halfway through a game.
         rounds = [_load_round(slug) for slug in quiz_slugs]
         lobby.catch_up_round = _load_round(spare_slug) if spare_slug else None
 
@@ -356,8 +292,6 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
 
         current = _current_player(lobby)
         current_id = current.id if current else None
-        # Only needed when the leaver is the one on the clock, but it has to be
-        # computed while they are still in the list for the rotation to be right.
         successor_id = _next_active_id(lobby, exclude=player_id)
 
         lobby.players.remove(player)
@@ -368,23 +302,17 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
             emptied = False
 
         if not emptied:
-            # The host leaving must not leave the lobby unstartable.
             if not any(candidate.is_host for candidate in lobby.players):
                 lobby.players[0].is_host = True
 
             if lobby.status is LobbyStatus.playing:
                 keep_id = current_id if current_id and current_id != player_id else successor_id
                 lobby.turn_cursor = _index_of(lobby, keep_id) if keep_id else 0
-                # The leaver may have been the last active player, which ends
-                # the round exactly as a wrong answer would.
                 _maybe_finish_round(lobby)
 
             lobby.touch()
             view = _view(lobby)
 
-    # Outside the block: the lobby has to be written back before it can be
-    # dropped, and dropping it inside would leave the store writing a lobby it
-    # had just been told to forget.
     if emptied:
         _store.delete(code)
         return None
@@ -402,8 +330,6 @@ def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
         changed = _refresh_presence(lobby)
         before = (lobby.turn_cursor, lobby.round_index, lobby.status)
         _resync(lobby)
-        # Only bump the version on a real change, or every poll would look like
-        # new state to the clients.
         if changed or before != (lobby.turn_cursor, lobby.round_index, lobby.status):
             lobby.touch()
         return _view(lobby)
@@ -448,11 +374,6 @@ def mark_away(code: str, player_id: UUID) -> None:
                 _resync(lobby)
                 lobby.touch()
                 return
-
-
-# ---------------------------------------------------------------------------
-# Playing a turn
-# ---------------------------------------------------------------------------
 
 
 def submit_turn(
@@ -510,27 +431,16 @@ def submit_turn(
             was_correct=was_correct,
         )
 
-        # Kept so the table can see how the round has gone, not just the last
-        # thing that happened. Trimmed because the lobby is written back whole
-        # on every mutation, and an unbounded list would grow the document for
-        # the length of the game.
         lobby.history.append(lobby.last_move)
         del lobby.history[:-MAX_HISTORY]
 
         _spend_catch_up(lobby, player)
         _advance_turn(lobby)
         _arm_turn_clock(lobby)
-        # A move resets the clock, so the previous player's expiry never lands
-        # on the next one.
         lobby.timed_out = None
         _maybe_finish_round(lobby)
         lobby.touch()
         return _view(lobby)
-
-
-# ---------------------------------------------------------------------------
-# Round and turn mechanics
-# ---------------------------------------------------------------------------
 
 
 def deal_board(round_: Round, rng: random.Random | None = None) -> Round:
@@ -558,9 +468,6 @@ def deal_board(round_: Round, rng: random.Random | None = None) -> Round:
 
 
 def _begin_round(lobby: Lobby, round_: Round) -> None:
-    # Dealt before anything reads the board: `_credit_turns` below sizes the
-    # turn ledger from `len(current.items)`, so it has to see the played board
-    # rather than the stored question.
     round_ = deal_board(round_)
     lobby.current_round = round_
     lobby.solved = {}
@@ -569,11 +476,7 @@ def _begin_round(lobby: Lobby, round_: Round) -> None:
     for player in lobby.players:
         player.is_active = True
 
-    # Rotate the starting player each round so the same person is not always
-    # first at the easy items.
     lobby.turn_cursor = lobby.round_index % max(len(lobby.players), 1)
-    # After the cursor is set, because who is owed what depends on where the
-    # rotation starts.
     _credit_turns(lobby)
     _arm_turn_clock(lobby, opening=True)
 
@@ -620,14 +523,7 @@ def _enforce_turn_deadline(lobby: Lobby) -> bool:
         return False
 
     player.is_active = False
-    # Spent even though the clock took it: the turn was theirs and they had it.
-    # Not doing this would leave a credit outstanding in a settling round that
-    # they can no longer play, and the round would have to end on the knockout
-    # instead -- true here, but only by accident.
     _spend_catch_up(lobby, player)
-    # Named so the table is told why the turn moved. `last_move` cannot say it:
-    # a timeout has no item and no category, and making those optional to fit
-    # would weaken a type that is right everywhere else.
     lobby.timed_out = player.nickname
     _advance_turn(lobby)
     _arm_turn_clock(lobby)
@@ -662,9 +558,6 @@ def _advance_turn(lobby: Lobby) -> None:
             lobby.turn_cursor = (lobby.turn_cursor + step) % count
             return
 
-    # Nobody left active. The cursor no longer matters; the round is over and
-    # `_maybe_finish_round` is about to handle it.
-
 
 def _refresh_presence(lobby: Lobby) -> bool:
     """Recompute who is still connected. Returns True if anything changed.
@@ -696,9 +589,6 @@ def _resync(lobby: Lobby) -> None:
     if _current_player(lobby) is None:
         _advance_turn(lobby)
         _arm_turn_clock(lobby)
-    # Nobody submits anything when a player simply stops playing, so -- like the
-    # review deadline -- a request arriving is the only thing that can notice
-    # the clock has run out.
     _enforce_turn_deadline(lobby)
     _maybe_finish_round(lobby)
 
@@ -813,15 +703,10 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     if current is None:
         return
 
-    # If every last player has vanished, freeze rather than racing through the
-    # remaining rounds to a meaningless winner. Play resumes when someone
-    # reconnects.
     if not any(player.is_connected for player in lobby.players):
         return
 
     all_solved = len(lobby.solved) == len(current.items)
-    # Someone merely being disconnected must not stall the players who are
-    # still here, so this asks who *can* play, not who is nominally active.
     nobody_can_play = not any(player.can_play() for player in lobby.players)
     if not (all_solved or nobody_can_play):
         return
@@ -844,9 +729,6 @@ def _maybe_finish_round(lobby: Lobby) -> None:
         lobby.catch_up_left = {}
         return
 
-    # `current_round` deliberately stays loaded: the board with its answers in
-    # place is what the explanations are shown underneath. It stays there until
-    # the host ends the review -- nothing else will.
     lobby.status = LobbyStatus.reviewing
 
 
@@ -891,10 +773,6 @@ def _begin_catch_up(lobby: Lobby) -> None:
     """
     owed = _catch_up_owed(lobby)
     if not owed or lobby.catch_up_round is None:
-        # `_has_another_round` already refused both of these, so reaching here
-        # means the two disagree. Ending the game is the safe reading -- an
-        # `assert` would be stripped under -O and leave `current_round` None in
-        # a lobby that believes it is playing.
         lobby.status = LobbyStatus.finished
         lobby.current_round = None
         lobby.in_catch_up = False
@@ -911,17 +789,12 @@ def _begin_catch_up(lobby: Lobby) -> None:
     for player in lobby.players:
         player.is_active = owed.get(player.id, 0) > 0
 
-    # Whoever is furthest behind opens it. Any seat would do -- everyone here
-    # plays a fixed number of turns whatever the order -- but starting with the
-    # player who was short-changed most reads as the point of the round.
     lobby.turn_cursor = 0
     ranked = sorted(owed.items(), key=lambda pair: -pair[1])
     if ranked:
         lobby.turn_cursor = _index_of(lobby, ranked[0][0])
     if _current_player(lobby) is None:
         _advance_turn(lobby)
-    # A settling round deals a board of its own, so its opener reads it cold
-    # exactly as any other round's does.
     _arm_turn_clock(lobby, opening=True)
 
 
@@ -965,19 +838,8 @@ def _load_round(slug: str) -> Round:
     )
 
 
-# ---------------------------------------------------------------------------
-# Views -- everything below must be safe to send to a player
-# ---------------------------------------------------------------------------
-
-
 def _view(lobby: Lobby) -> LobbyView:
-    # Nobody is on the clock unless a round is actually running. Without this
-    # the cursor would still name a player during the between-rounds review,
-    # and their client would arm the board against a round that is over.
     current_player = _current_player(lobby) if lobby.status is LobbyStatus.playing else None
-    # Who is up after them, so a player can see their turn coming rather than
-    # only discovering it has arrived. None when they would be up again
-    # themselves, which is not "next" in any useful sense.
     next_player_id = _next_active_id(lobby, exclude=None) if current_player else None
     if next_player_id == (current_player.id if current_player else None):
         next_player_id = None
@@ -1005,12 +867,6 @@ def _view(lobby: Lobby) -> LobbyView:
         round_count=len(lobby.quiz_slugs),
         current_player_id=current_player.id if current_player else None,
         turn_seconds_left=_turn_seconds_left(lobby),
-        # What this turn was given, not what the host chose -- the opening turn
-        # of a round is longer, and the client's draining bar is scaled by this.
-        #
-        # Falls back to the lobby's setting for a game that was already running
-        # when allowances started being recorded: its stored state has no
-        # allowance, and zero would leave that turn with no bar at all.
         turn_seconds=(lobby.turn_allowance or lobby.turn_seconds) if current_player else None,
         timed_out=lobby.timed_out,
         history=list(lobby.history),
@@ -1057,18 +913,6 @@ def _round_view(lobby: Lobby) -> RoundView | None:
     if current is None:
         return None
 
-    # Unsolved items carry no category: that is still the answer. Only items
-    # already placed correctly reveal where they belong.
-    #
-    # And on a picture round the categories carry no *name* while it is being
-    # played. "Albert Bridge" printed above a photograph of the Albert Bridge
-    # answers the question the photograph was chosen to ask -- and for most
-    # picture questions it gives the paired answer away too, since the name of a
-    # bridge tends to name its city. The names come back the moment the round
-    # ends, which is the whole point of the pause.
-    #
-    # Only while `playing`: the review reads these same categories and has to
-    # show what everything was.
     hide_names = (
         current.category_kind is CategoryKind.image
         and lobby.status is LobbyStatus.playing
@@ -1108,11 +952,6 @@ def _winner_ids(lobby: Lobby) -> list[UUID]:
         return []
     best = max(player.score for player in lobby.players)
     return [player.id for player in lobby.players if player.score == best]
-
-
-# ---------------------------------------------------------------------------
-# Store helpers
-# ---------------------------------------------------------------------------
 
 
 def _unique_code() -> str:
