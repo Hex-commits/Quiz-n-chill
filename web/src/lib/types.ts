@@ -238,6 +238,20 @@ export interface LobbyView {
    */
   turn_seconds_left: number | null;
   turn_seconds: number | null;
+  /**
+   * Who has asked for the next round while the answers are up, in seat order.
+   * Only players who are still connected — a vote from a tab that has gone
+   * away stops counting, so it can never hold a review open on its own.
+   */
+  ready_ids: string[];
+  /** How many of those asks start the countdown: half of those present, rounded up. */
+  ready_needed: number;
+  /**
+   * Seconds until the next round begins, once enough have asked. Null while
+   * nothing is counting. A remaining duration rather than a deadline, so a
+   * device with a wrong clock still counts down correctly.
+   */
+  next_round_in: number | null;
   /** Who last lost their turn to the clock. Cleared by the next real move. */
   timed_out: string | null;
   /** Every placement this round, oldest first. Reset when a round starts. */

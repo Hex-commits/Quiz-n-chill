@@ -109,13 +109,25 @@ def items_of(code):
     return {item.label: item.id for item in view.round_view.remaining_items}
 
 
-def next_round(code, host):
-    """Leave the between-rounds review, as the host's button does.
+def next_round(code, asks_first):
+    """Leave the between-rounds review, as the players' buttons do.
 
     A round no longer rolls straight into the next one -- it pauses on the
-    answers first -- so any test that wants round two has to say so.
+    answers first, and then on a countdown -- so any test that wants round two
+    has to say so. Everyone asks and the countdown is run out, which is the
+    shortest way to say "get me to the next round" without describing the vote
+    every time. The rule itself is tested below, one condition at a time.
     """
-    return lobbies.skip_review(code, host)
+    for player in lobbies.get_view(code).players:
+        lobbies.ready_for_next_round(code, player.id)
+    expire_the_countdown(code)
+    return lobbies.get_view(code, asks_first)
+
+
+def expire_the_countdown(code):
+    """Backdate the countdown, as if the three seconds had passed."""
+    with lobbies.edit(code) as lobby:
+        lobby.next_round_at = datetime.now(UTC) - timedelta(seconds=1)
 
 
 def test_turn_passes_to_the_next_player_after_a_correct_answer():
@@ -293,9 +305,9 @@ def test_the_review_includes_pairs_nobody_solved():
     assert {pair.item_label for pair in solution} == {"Berlin", "Paris", "Madrid", "Rom"}
 
 
-def test_the_review_waits_for_the_host_however_long_it_takes():
+def test_the_review_waits_however_long_it_takes():
     """The point of removing the clock: no amount of polling moves the game on
-    while the answers are up. Only the host's button does."""
+    while the answers are up. Only the players asking does."""
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     finish_round_one(code, anna, ben)
 
@@ -304,27 +316,125 @@ def test_the_review_waits_for_the_host_however_long_it_takes():
 
     assert view.status is LobbyStatus.reviewing
     assert view.round_index == 0
+    assert view.next_round_in is None
 
-    view = lobbies.skip_review(code, anna)
+    view = next_round(code, anna)
 
     assert view.status is LobbyStatus.playing
     assert view.round_index == 1
 
 
-def test_only_the_host_can_skip_the_review():
+def review_with_three():
+    """Three players, sitting on the review after round one.
+
+    Three because two is the one lobby size where every majority is also a
+    single vote, and the rule these tests are about would be invisible.
+    """
+    code, ids = setup_game(("Anna", "Ben", "Cem"), ("topic-a", "topic-b"))
+    play_out(code, [ids[0], ids[1], ids[2], ids[0]])
+    return code, ids
+
+
+def test_anybody_can_ask_for_the_next_round():
+    """The button is on every screen now, not only the host's."""
+    code, (_anna, ben, _cem) = review_with_three()
+
+    view = lobbies.ready_for_next_round(code, ben)
+
+    assert view.ready_ids == [ben]
+
+
+def test_half_the_players_asking_starts_the_countdown():
+    code, (_anna, ben, cem) = review_with_three()
+
+    view = lobbies.ready_for_next_round(code, cem)
+
+    assert view.ready_needed == 2
+    assert view.next_round_in is None
+    assert view.status is LobbyStatus.reviewing
+
+    view = lobbies.ready_for_next_round(code, ben)
+
+    assert view.next_round_in == 3
+    assert view.status is LobbyStatus.reviewing
+
+
+def test_the_round_begins_when_the_countdown_runs_out():
+    """The three seconds are the whole point -- the board must not change under
+    a player who is still reading."""
     code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
     finish_round_one(code, anna, ben)
 
-    with pytest.raises(ConflictError, match="Only the host"):
-        lobbies.skip_review(code, ben)
+    lobbies.ready_for_next_round(code, anna)
+    view = lobbies.get_view(code, ben)
+
+    assert view.status is LobbyStatus.reviewing
+    assert view.next_round_in == 3
+
+    expire_the_countdown(code)
+    view = lobbies.get_view(code, ben)
+
+    assert view.status is LobbyStatus.playing
+    assert view.round_index == 1
+    assert view.next_round_in is None
 
 
-def test_a_review_cannot_be_skipped_while_a_round_is_still_running():
-    """Otherwise the host could cut a live board short."""
+def test_asking_twice_counts_once():
+    code, (anna, _ben, _cem) = review_with_three()
+
+    lobbies.ready_for_next_round(code, anna)
+    view = lobbies.ready_for_next_round(code, anna)
+
+    assert view.ready_ids == [anna]
+    assert view.next_round_in is None
+
+
+def test_a_player_going_quiet_lowers_the_bar():
+    """Cem's tab is gone, so the two who are left are the whole lobby as far as
+    the count is concerned -- and Anna's vote already carries it."""
+    code, (anna, _ben, cem) = review_with_three()
+    lobbies.ready_for_next_round(code, anna)
+
+    view = lobbies.get_view(code, anna)
+    assert view.next_round_in is None
+
+    lobbies.mark_away(code, cem)
+    view = lobbies.get_view(code, anna)
+
+    assert view.ready_needed == 1
+    assert view.next_round_in == 3
+
+
+def test_a_vote_from_somebody_who_has_since_gone_does_not_count():
+    code, (anna, _ben, cem) = review_with_three()
+    lobbies.ready_for_next_round(code, cem)
+
+    lobbies.mark_away(code, cem)
+    view = lobbies.get_view(code, anna)
+
+    assert view.ready_ids == []
+    assert view.next_round_in is None
+
+
+def test_the_next_review_starts_from_nobody_being_ready():
+    code, (anna, ben) = setup_game(("Anna", "Ben"), ("topic-a", "topic-b", "topic-c"))
+    finish_round_one(code, anna, ben)
+    next_round(code, anna)
+
+    play_out(code, [ben, anna, ben, anna])
+    view = lobbies.get_view(code, anna)
+
+    assert view.status is LobbyStatus.reviewing
+    assert view.ready_ids == []
+    assert view.next_round_in is None
+
+
+def test_a_round_that_is_still_running_cannot_be_left():
+    """Otherwise a player could cut a live board short."""
     code, (anna, _ben) = setup_game(slugs=("topic-a", "topic-b"))
 
-    with pytest.raises(ConflictError, match="no review to skip"):
-        lobbies.skip_review(code, anna)
+    with pytest.raises(ConflictError, match="no review to leave"):
+        lobbies.ready_for_next_round(code, anna)
 
 
 def test_a_turn_cannot_be_played_during_the_review():

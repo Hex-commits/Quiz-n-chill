@@ -318,6 +318,9 @@ class LobbyView(BaseModel):
     next_player_id: UUID | None = None
     turn_seconds_left: int | None = None
     turn_seconds: int | None = None
+    ready_ids: list[UUID] = []
+    ready_needed: int = 1
+    next_round_in: int | None = None
     timed_out: str | None = None
     history: list[LastMove] = []
     current_player_quiet: bool = False

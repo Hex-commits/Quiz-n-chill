@@ -21,7 +21,7 @@ from app.errors import ConflictError
 from app.schemas import LobbyStart, LobbyStatus
 from app.services import lobbies
 
-from tests.test_lobbies import DE, ES, FR, IT, items_of, make_round  # noqa: F401
+from tests.test_lobbies import DE, ES, FR, IT, items_of, make_round, next_round  # noqa: F401
 from tests.test_lobbies import clean_store  # noqa: F401  -- the autouse fixture
 
 
@@ -150,7 +150,7 @@ def test_every_round_opens_with_the_bonus(monkeypatch):
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
     lobbies.submit_turn(code, ben, items["Rom"], IT)
 
-    view = lobbies.skip_review(code, anna)
+    view = next_round(code, anna)
 
     assert view.round_index == 1
     assert view.turn_seconds == 40
@@ -264,7 +264,7 @@ def test_the_new_round_starts_the_clock_again():
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
     lobbies.submit_turn(code, ben, items["Rom"], IT)
 
-    view = lobbies.skip_review(code, anna)
+    view = next_round(code, anna)
 
     assert view.status is LobbyStatus.playing
     assert view.turn_seconds_left is not None

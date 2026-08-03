@@ -235,9 +235,17 @@ export function submitTurn(
   });
 }
 
-/** Host ends the between-rounds review. The only thing that starts the next
- *  round -- the review has no timer of its own. */
-export function skipReview(code: string, playerId: string): Promise<LobbyView> {
+/**
+ * Say you are done reading the answers. Anyone in the lobby may.
+ *
+ * Once half of those present have said so the server starts a three-second
+ * countdown and the round begins when it runs out. Nothing else moves a review
+ * on -- it has no timer of its own until somebody asks.
+ */
+export function readyForNextRound(
+  code: string,
+  playerId: string,
+): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/next-round`, {
     method: "POST",
     body: JSON.stringify({ player_id: playerId }),

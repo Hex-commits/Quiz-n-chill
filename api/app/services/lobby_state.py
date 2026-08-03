@@ -83,6 +83,8 @@ class Lobby:
     turn_expires_at: datetime | None = None
     turn_allowance: int = 0
     timed_out: str | None = None
+    ready_ids: list[UUID] = field(default_factory=list)
+    next_round_at: datetime | None = None
     last_move: LastMove | None = None
     history: list[LastMove] = field(default_factory=list)
     finished_rounds: list[FinishedRound] = field(default_factory=list)

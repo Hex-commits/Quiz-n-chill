@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -10,6 +9,7 @@ import {
   Crown,
   History,
   Loader2,
+  Lock,
   LogOut,
   RotateCcw,
   Timer,
@@ -39,8 +39,8 @@ import {
   getLobby,
   leaveLobby,
   markAway,
+  readyForNextRound,
   restartLobby,
-  skipReview,
   startGame,
   submitTurn,
   updateLobbySettings,
@@ -85,6 +85,16 @@ const SETTINGS_DEBOUNCE_MS = 400;
 
 const COPIED_MS = 2_000;
 
+/**
+ * How long the count-in before a round lasts, mirroring `NEXT_ROUND_COUNTDOWN`
+ * in `api/app/services/lobbies.py`.
+ *
+ * The server owns the rule — this is only what the draining bar treats as full,
+ * and every number on screen still comes from the deadline the server set. A
+ * copy that drifted would cost a bar that starts part-drained, nothing more.
+ */
+const NEXT_ROUND_SECONDS = 3;
+
 const ROUND_CHOICES = [3, 5, 7, 10];
 
 const TURN_CHOICES = [15, 30, 45, 60];
@@ -128,6 +138,16 @@ export function LobbyRoom({
 
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
 
+  /**
+   * When the next round begins, once enough players have asked for it.
+   *
+   * A second clock rather than a mode of the turn one: they can never run
+   * together — the review has no turns — but they are set from different
+   * fields, and folding them into one state would mean deciding which of the
+   * two an arriving view was talking about on every poll.
+   */
+  const [nextRoundDeadline, setNextRoundDeadline] = useState<number | null>(null);
+
   const [copiedAt, setCopiedAt] = useState<number | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -155,6 +175,9 @@ export function LobbyRoom({
       setLobby(view);
       setTurnDeadline((current) =>
         reconcileDeadline(current, deadlineFrom(view.turn_seconds_left)),
+      );
+      setNextRoundDeadline((current) =>
+        reconcileDeadline(current, deadlineFrom(view.next_round_in)),
       );
 
       const hosting = Boolean(
@@ -202,6 +225,7 @@ export function LobbyRoom({
   const poke = useCallback(() => void refresh(), [refresh]);
 
   const turnSecondsLeft = useCountdown(turnDeadline, poke);
+  const nextRoundIn = useCountdown(nextRoundDeadline, poke);
 
   useEffect(() => {
     if (!playerId) return;
@@ -269,12 +293,25 @@ export function LobbyRoom({
     rememberPlayed(lobby.finished_rounds.map((round) => round.slug));
   }, [lobby]);
 
+
   useEffect(() => {
     if (!isMyTurn) return;
     if (turnSecondsLeft === null || turnSecondsLeft <= 0) return;
     if (turnSecondsLeft > HURRY_FROM) return;
     playCountdown(turnSecondsLeft);
   }, [turnSecondsLeft, isMyTurn]);
+
+  /**
+   * The count-in before a round, in the same escalating cue the turn clock
+   * uses. Unlike that one it plays on every device at once, which is the
+   * point — it is the one moment in the game where the whole table is being
+   * counted in together, and hearing it is what makes people look up.
+   */
+  useEffect(() => {
+    if (nextRoundIn === null || nextRoundIn <= 0) return;
+    if (nextRoundIn > HURRY_FROM) return;
+    playCountdown(nextRoundIn);
+  }, [nextRoundIn]);
 
   const isHost = Boolean(me?.is_host);
 
@@ -569,18 +606,15 @@ export function LobbyRoom({
               </div>
             ))}
           </CardContent>
-          <CardFooter className="gap-2">
-            {me?.is_host ? (
-              <Button
-                onClick={() => playerId && act(() => restartLobby(code, playerId))}
-                disabled={busy}
-              >
-                Back to lobby
-              </Button>
-            ) : null}
-            <Button variant="ghost" asChild>
-              <Link href="/play">New game</Link>
-            </Button>
+          <CardFooter>
+            <NewRound
+              isHost={Boolean(me?.is_host)}
+              hostName={hostName}
+              busy={busy}
+              onRestart={() =>
+                playerId && act(() => restartLobby(code, playerId))
+              }
+            />
           </CardFooter>
         </Card>
 
@@ -706,11 +740,12 @@ export function LobbyRoom({
                 currentName={currentPlayer?.nickname ?? null}
                 nextName={nextPlayer?.nickname ?? null}
                 quiet={lobby.current_player_quiet}
-                hostName={hostName}
-                isHost={Boolean(me?.is_host)}
-                secondsLeft={reviewing ? null : turnSecondsLeft}
-                totalSeconds={reviewing ? null : lobby.turn_seconds}
-                deadline={reviewing ? null : turnDeadline}
+                readyCount={lobby.ready_ids.length}
+                readyNeeded={lobby.ready_needed}
+                nextRoundIn={reviewing ? nextRoundIn : null}
+                secondsLeft={reviewing ? nextRoundIn : turnSecondsLeft}
+                totalSeconds={reviewing ? NEXT_ROUND_SECONDS : lobby.turn_seconds}
+                deadline={reviewing ? nextRoundDeadline : turnDeadline}
               />
             </div>
 
@@ -777,29 +812,22 @@ export function LobbyRoom({
 
               <CardContent>
                 {reviewing ? (
-                  <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="flex flex-col items-center gap-4 text-center">
                     <p className="flex items-center gap-2 text-base font-semibold">
                       <BookOpen className="size-4 shrink-0" aria-hidden />
                       Round over — the answers are below
                     </p>
                     <SourceLink source={justFinished?.source ?? null} />
-                    {me?.is_host ? (
-                      <Button
-                        size="sm"
-                        disabled={busy}
-                        onClick={() =>
-                          playerId && act(() => skipReview(code, playerId))
-                        }
-                      >
-                        {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                        Next round
-                      </Button>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">
-                        Read them through — the next round starts when{" "}
-                        {hostName ?? "the host"} is ready.
-                      </p>
-                    )}
+                    <NextRoundVote
+                      ready={Boolean(playerId && lobby.ready_ids.includes(playerId))}
+                      readyCount={lobby.ready_ids.length}
+                      readyNeeded={lobby.ready_needed}
+                      secondsLeft={nextRoundIn}
+                      busy={busy}
+                      onReady={() =>
+                        playerId && act(() => readyForNextRound(code, playerId))
+                      }
+                    />
                   </div>
                 ) : (
                   <>
@@ -978,6 +1006,10 @@ export function LobbyRoom({
           </aside>
         </div>
       </div>
+
+      {reviewing && nextRoundIn !== null ? (
+        <NextRoundCountdown secondsLeft={nextRoundIn} />
+      ) : null}
     </>
   );
 }
@@ -1074,22 +1106,40 @@ function SetupLabel({ title, hint }: { title: string; hint?: string }) {
  * size holds up in a photograph of a screen across a room -- which is roughly
  * the resolution this gets read at while a table argues about what to play.
  *
- * The wobble is on the inner span rather than the button, so the animation's
- * transform and the button's held `scale-105` never fight over the same
- * property -- together on one element, the chip would snap back to unscaled at
- * the moment the animation ended. It replays whenever the class returns, which
- * is exactly once per selection, and it plays for the players watching the host
- * pick as much as for the host: a chip that jumps is how the change announces
- * itself on somebody else's screen.
+ * The zoom is a scale and nothing else -- no rotation, no travel. The chip
+ * swells around its own centre and settles back, so the eye is drawn to it
+ * without anything appearing to leave its place. It goes on the button rather
+ * than the contents, or the label would grow out past a pill that stayed put.
+ * The held `scale-105` and the animation can share the button because they
+ * drive different properties, `scale` and `transform`, which compose instead of
+ * overwriting each other -- on one property the chip would snap back to
+ * unscaled the moment the animation ended. It replays whenever the class
+ * returns, which is exactly once per selection, and it plays for the players
+ * watching the host pick as much as for the host: a chip that reacts is how the
+ * change announces itself on somebody else's screen.
+ *
+ * The tick keeps its slot whether or not it is showing. Letting it in and out of
+ * the flow would resize the chip by the width of an icon, and in a wrapping row
+ * that shoves every later chip sideways and sometimes onto another line -- the
+ * whole block jumping each time one thing is ticked.
+ *
+ * `muted` is not `disabled`. Disabled is what the chip does; muted is what it
+ * looks like it does, and the two only coincide for the players watching. The
+ * host's own last difficulty is disabled too -- unticking it would leave nothing
+ * to draw from -- and dimming that one would say the whole row had gone away
+ * rather than that this single chip is holding the floor.
  */
 function Chip({
   selected,
   disabled,
+  muted,
   onClick,
   children,
 }: {
   selected: boolean;
   disabled?: boolean;
+  /** Show as out of reach: somebody else's control, not yours to click. */
+  muted?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -1103,22 +1153,24 @@ function Chip({
         "ease-(--ease-soft) rounded-4xl border px-3.5 py-2 text-sm font-medium transition-all duration-200",
         "focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
         selected
-          ? "bg-primary text-primary-foreground border-primary scale-105 shadow-sm"
+          ? "bg-primary text-primary-foreground border-primary animate-quiz-zoom scale-105 shadow-sm"
           : "bg-surface border-hairline text-foreground",
         !disabled &&
           !selected &&
           "hover:border-primary/40 hover:bg-surface-strong cursor-pointer",
         !disabled && selected && "cursor-pointer",
         disabled && "cursor-default",
+        muted && "opacity-60 shadow-none saturate-50",
       )}
     >
-      <span
-        className={cn(
-          "flex items-center gap-1.5",
-          selected && "animate-quiz-wobble",
-        )}
-      >
-        {selected ? <Check className="size-3.5 shrink-0" aria-hidden /> : null}
+      <span className="flex items-center gap-1.5">
+        <Check
+          className={cn(
+            "ease-(--ease-soft) size-3.5 shrink-0 transition-opacity duration-200",
+            selected ? "opacity-100" : "opacity-0",
+          )}
+          aria-hidden
+        />
         {children}
       </span>
     </button>
@@ -1184,17 +1236,25 @@ function Segmented({
   options,
   value,
   disabled,
+  muted,
   onSelect,
   format = String,
 }: {
   options: number[];
   value: number;
   disabled?: boolean;
+  /** Show as out of reach: somebody else's control, not yours to click. */
+  muted?: boolean;
   onSelect: (value: number) => void;
   format?: (value: number) => string;
 }) {
   return (
-    <div className="bg-surface border-hairline inline-flex rounded-4xl border p-1">
+    <div
+      className={cn(
+        "bg-surface border-hairline inline-flex rounded-4xl border p-1",
+        muted && "opacity-60 saturate-50",
+      )}
+    >
       {options.map((option) => {
         const on = option === value;
         return (
@@ -1232,7 +1292,11 @@ function Segmented({
  * asked why their screen disagreed.
  *
  * `readOnly` disables rather than hides: a ticked box that cannot be clicked
- * still says what was chosen, which is the whole point of showing it.
+ * still says what was chosen, which is the whole point of showing it. It is
+ * also dimmed, because a control that looks live and does nothing reads as a
+ * broken screen rather than somebody else's turn to choose -- and the dimming
+ * stops at the controls. The labels, the counts and the wording stay at full
+ * strength, since those are what the players came to this card to read.
  */
 function LobbySetup({
   subjects,
@@ -1273,8 +1337,14 @@ function LobbySetup({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">
+        <CardTitle className="flex flex-wrap items-center gap-2 text-base">
           {readOnly ? "The game being set up" : "Set up the game"}
+          {readOnly ? (
+            <Badge variant="outline" className="gap-1 font-normal">
+              <Lock className="size-3" aria-hidden />
+              Host only
+            </Badge>
+          ) : null}
         </CardTitle>
         <CardDescription>
           {readOnly
@@ -1300,6 +1370,7 @@ function LobbySetup({
                   key={subject.slug}
                   selected={on}
                   disabled={readOnly}
+                  muted={readOnly}
                   onClick={() =>
                     patch({
                       subject_slugs: on
@@ -1327,6 +1398,7 @@ function LobbySetup({
                   key={level}
                   selected={on}
                   disabled={readOnly || onlyOneLeft}
+                  muted={readOnly}
                   onClick={() =>
                     patch({
                       difficulties: on
@@ -1351,6 +1423,7 @@ function LobbySetup({
               options={ROUND_CHOICES}
               value={setup.round_count}
               disabled={readOnly}
+              muted={readOnly}
               onSelect={(n) => patch({ round_count: n })}
             />
           </section>
@@ -1361,6 +1434,7 @@ function LobbySetup({
               options={TURN_CHOICES}
               value={setup.turn_seconds}
               disabled={readOnly}
+              muted={readOnly}
               format={(n) => `${n}s`}
               onSelect={(n) => patch({ turn_seconds: n })}
             />
@@ -1388,6 +1462,132 @@ function LobbySetup({
   );
 }
 
+/**
+ * The way out of a review: a button on every screen, and a tally of who has
+ * pressed it.
+ *
+ * It used to be the host's alone, which put the one decision everybody at the
+ * table has an opinion about — "are we done reading?" — in the hands of the
+ * person least likely to still be reading, and left every other screen with
+ * nothing to press. So the button is on all of them, it is the size of the
+ * decision rather than the size of a toolbar control, and half of those present
+ * carry it.
+ *
+ * Once they do it stops being a button at all and becomes the count-in, in the
+ * same place and at the same size. Nothing moves on the screen and there is
+ * nothing left to click: what was being asked has been answered, and the only
+ * thing left to do is look up.
+ */
+function NextRoundVote({
+  ready,
+  readyCount,
+  readyNeeded,
+  secondsLeft,
+  busy,
+  onReady,
+}: {
+  /** You have already asked, so the button is spent — for you. */
+  ready: boolean;
+  readyCount: number;
+  /** How many asks start the countdown: half of those present, rounded up. */
+  readyNeeded: number;
+  /** Seconds until the round begins, or null while nothing is counting. */
+  secondsLeft: number | null;
+  busy: boolean;
+  onReady: () => void;
+}) {
+  const counting = secondsLeft !== null;
+
+  return (
+    <div className="w-full max-w-sm space-y-3">
+      {counting ? (
+        <div className="border-primary bg-primary text-primary-foreground animate-quiz-glow flex h-16 w-full items-center justify-center gap-3 rounded-(--radius) border">
+          <span className="text-sm font-bold tracking-wide uppercase">
+            Next round in
+          </span>
+          <span
+            key={secondsLeft}
+            className="animate-quiz-pop font-mono text-4xl leading-none font-black tabular-nums"
+          >
+            {Math.max(secondsLeft, 0)}
+          </span>
+        </div>
+      ) : (
+        <Button
+          size="lg"
+          variant={ready ? "outline" : "default"}
+          className={cn(
+            "ease-(--ease-soft) h-16 w-full text-xl font-bold transition-all duration-200",
+            !ready &&
+              "quiz-shine hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-xl active:translate-y-0 active:scale-[0.99]",
+          )}
+          disabled={busy || ready}
+          onClick={onReady}
+        >
+          {busy ? (
+            <Loader2 className="size-5 animate-spin" aria-hidden />
+          ) : ready ? (
+            <Check className="size-5" aria-hidden />
+          ) : null}
+          {ready ? "You are ready" : "Next round"}
+        </Button>
+      )}
+
+      <Progress
+        value={(Math.min(readyCount, readyNeeded) / Math.max(readyNeeded, 1)) * 100}
+        className="h-1.5"
+      />
+      <p className="text-muted-foreground text-sm">
+        {counting
+          ? "Everybody get ready…"
+          : `${readyCount} of ${readyNeeded} ready — ${
+              ready
+                ? "waiting for the others"
+                : "press it once you have read the answers"
+            }`}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The count-in, over the whole screen.
+ *
+ * The point of the three seconds is that everybody spends them looking at the
+ * same number, and a number inside a card is something you have to already be
+ * looking at to see. This is deliberately impossible to miss and deliberately
+ * brief.
+ *
+ * It does not take the pointer: the answers underneath stay readable and
+ * clickable for the seconds that are left, and there is nothing here to press
+ * anyway. It is silent to a screen reader too — the turn bar is a live region
+ * and already says the same thing, and announcing it twice a second would bury
+ * everything else.
+ */
+function NextRoundCountdown({ secondsLeft }: { secondsLeft: number }) {
+  return (
+    <div
+      className="bg-background/70 pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
+      aria-hidden
+    >
+      <p className="text-muted-foreground text-xs font-bold tracking-[0.3em] uppercase">
+        Next round
+      </p>
+      <span
+        key={secondsLeft}
+        className={cn(
+          "animate-quiz-pop text-primary leading-none font-black",
+          secondsLeft > 0
+            ? "font-mono text-[7rem] tabular-nums sm:text-[10rem]"
+            : "text-6xl sm:text-8xl",
+        )}
+      >
+        {secondsLeft > 0 ? secondsLeft : "Go!"}
+      </span>
+    </div>
+  );
+}
+
 function TurnBar({
   isMyTurn,
   isOut,
@@ -1397,8 +1597,9 @@ function TurnBar({
   currentName,
   nextName,
   quiet,
-  hostName,
-  isHost,
+  readyCount,
+  readyNeeded,
+  nextRoundIn,
   secondsLeft,
   totalSeconds,
   deadline,
@@ -1415,11 +1616,13 @@ function TurnBar({
   nextName: string | null;
   /** The player on the clock has gone silent. Only ever seen by the others. */
   quiet: boolean;
-  /** Who has the button that ends a review, so the wait can be attributed. */
-  hostName: string | null;
-  isHost: boolean;
+  /** How many have asked for the next round, and how many it takes. */
+  readyCount: number;
+  readyNeeded: number;
+  /** Seconds until the round begins, or null while nothing is counting. */
+  nextRoundIn: number | null;
   secondsLeft: number | null;
-  /** What the clock started from, for the bar. Null while reviewing. */
+  /** What the clock started from, for the bar. */
   totalSeconds: number | null;
   /**
    * The wall-clock instant the turn ends. The bar needs this rather than
@@ -1447,7 +1650,9 @@ function TurnBar({
           )}
         >
           {reviewing
-            ? "Round over"
+            ? nextRoundIn !== null
+              ? "Get ready"
+              : "Round over"
             : isMyTurn
               ? hasSelection
                 ? "Now pick a category"
@@ -1463,9 +1668,9 @@ function TurnBar({
           )}
         >
           {reviewing
-            ? isHost
-              ? "You start the next round when everyone is ready"
-              : `Waiting for ${hostName ?? "the host"} to start the next round`
+            ? nextRoundIn !== null
+              ? `The next round starts in ${Math.max(nextRoundIn, 0)}…`
+              : `${readyCount} of ${readyNeeded} ready for the next round`
             : isOut
               ? isCatchUp
                 ? "You had your share of the questions — this one is for the others"
@@ -1624,5 +1829,55 @@ function CategoryCard({
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * The one thing left to do once a game is over: ask for another round.
+ *
+ * Only the host can restart, so for everybody else the button sends nothing.
+ * It does not need to — the restart lands on every screen at once, and the
+ * lobby it lands in is this same lobby, so there is nothing to re-join and no
+ * request worth inventing. What the others get from pressing it is the answer
+ * to the only question they have, which is whether anything is happening.
+ *
+ * The asking is held here rather than in the room, so going back to the lobby
+ * unmounts it and there is nothing to clear.
+ */
+function NewRound({
+  isHost,
+  hostName,
+  busy,
+  onRestart,
+}: {
+  isHost: boolean;
+  hostName: string | null;
+  busy: boolean;
+  onRestart: () => void;
+}) {
+  const [asked, setAsked] = useState(false);
+  const waiting = !isHost && asked;
+
+  return (
+    <div className="w-full space-y-2.5">
+      <Button
+        size="lg"
+        className="h-14 w-full text-lg font-bold"
+        disabled={busy || waiting}
+        onClick={() => (isHost ? onRestart() : setAsked(true))}
+      >
+        {busy ? <Loader2 className="size-5 animate-spin" aria-hidden /> : null}
+        New round?
+      </Button>
+      {waiting ? (
+        <p
+          className="text-muted-foreground flex items-center justify-center gap-2 text-sm"
+          aria-live="polite"
+        >
+          <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+          Waiting for {hostName ?? "the host"} to re-create the lobby…
+        </p>
+      ) : null}
+    </div>
   );
 }

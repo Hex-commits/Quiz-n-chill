@@ -76,6 +76,8 @@ PRESENCE_TIMEOUT = timedelta(seconds=15)
 
 QUIET_AFTER = timedelta(seconds=6)
 
+NEXT_ROUND_COUNTDOWN = timedelta(seconds=3)
+
 BOARD_PAIRS = 10
 
 REPLAYABLE_PAIRS = BOARD_PAIRS * 3 // 2
@@ -279,6 +281,8 @@ def start_game(
         lobby.turn_credits = {}
         lobby.in_catch_up = False
         lobby.catch_up_left = {}
+        lobby.ready_ids = []
+        lobby.next_round_at = None
         for candidate in lobby.players:
             candidate.score = 0
         _begin_round(lobby, rounds[0])
@@ -305,6 +309,8 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         lobby.round_index = 0
         lobby.turn_cursor = 0
         lobby.last_move = None
+        lobby.ready_ids = []
+        lobby.next_round_at = None
         for candidate in lobby.players:
             candidate.score = 0
             candidate.is_active = True
@@ -369,25 +375,35 @@ def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
         return _view(lobby)
 
 
-def skip_review(code: str, player_id: UUID) -> LobbyView:
-    """Host leaves the between-rounds review and starts the next round.
+def ready_for_next_round(code: str, player_id: UUID) -> LobbyView:
+    """Say you are done reading the answers, and start the count if enough are.
 
-    The only way out of a review, now that it has no clock of its own. It still
-    cannot end a review that has not started, so it can never be used to rush
-    players past a board that is still in play.
+    The review used to end on the host's button alone, which made the one
+    person least likely to still be reading the only one who could move things
+    on -- and left everyone else with a screen they could not act on at all.
+    Anybody may press it now, and half of those present are enough.
+
+    Half rather than all, because a table of five does not need its slowest
+    reader to admit they are finished, and because a player who has wandered off
+    without their tab noticing would otherwise hold the game up until the
+    presence timeout caught them.
+
+    It still cannot end a review that has not started, so it can never be used
+    to rush players past a board that is still in play.
     """
     with _mutate(code) as lobby:
         player = lobby.player(player_id)
         _heartbeat(lobby, player_id)
         _refresh_presence(lobby)
 
-        if not player.is_host:
-            raise ConflictError("Only the host can start the next round.")
         if lobby.status is not LobbyStatus.reviewing:
-            raise ConflictError("There is no review to skip.")
+            raise ConflictError("There is no review to leave.")
 
-        _end_review(lobby)
-        lobby.touch()
+        if player.id not in lobby.ready_ids:
+            lobby.ready_ids.append(player.id)
+            lobby.touch()
+
+        _advance_review(lobby)
         return _view(lobby)
 
 
@@ -615,9 +631,11 @@ def _resync(lobby: Lobby) -> None:
     Without this a disconnected player would hold the turn forever: no one
     submits, so nothing would otherwise run to move it along.
 
-    A review is left alone: it ends when the host says so and at no other time,
-    so there is nothing here to notice.
+    A review is carried forward here too, for the same reason: nobody submits
+    anything while the answers are up, so the countdown it may be running has
+    only the players' polling to move it.
     """
+    _advance_review(lobby)
     if lobby.status is not LobbyStatus.playing:
         return
     if _current_player(lobby) is None:
@@ -779,8 +797,64 @@ def _has_another_round(lobby: Lobby) -> bool:
     return bool(_catch_up_owed(lobby))
 
 
+def _ready_ids(lobby: Lobby) -> list[UUID]:
+    """Who has asked for the next round and is still here to play it.
+
+    In seat order rather than the order they pressed, so the tally on every
+    screen lines up with the turn order beside it. A player who has since
+    dropped out or gone quiet is left out: their vote cannot keep counting
+    towards a majority they are no longer part of.
+    """
+    return [
+        player.id
+        for player in lobby.players
+        if player.is_connected and player.id in lobby.ready_ids
+    ]
+
+
+def _ready_needed(lobby: Lobby) -> int:
+    """How many have to ask before the next round is counted in.
+
+    Half the players who are actually present, rounded up -- so two of three,
+    but also one of one. Measured against the connected players rather than
+    every seat, which is what stops a closed tab from holding a review open
+    until the presence timeout notices it.
+    """
+    present = sum(1 for player in lobby.players if player.is_connected)
+    return max(1, ceil(present / 2))
+
+
+def _advance_review(lobby: Lobby) -> None:
+    """Move a review along: start the countdown, then act on it.
+
+    Both halves are re-decided from scratch on every read, because the
+    arithmetic underneath them moves on its own -- somebody leaving or going
+    quiet lowers the bar, and can carry a review that was one vote short.
+
+    Nothing here fires by itself. The server has no timers, so the countdown is
+    a deadline that the next request to arrive finds passed, exactly as a turn's
+    is. The clients' polling is what knocks, and the three seconds are what
+    everyone spends looking at the same number before the board changes.
+    """
+    if lobby.status is not LobbyStatus.reviewing:
+        return
+
+    if lobby.next_round_at is None:
+        if len(_ready_ids(lobby)) < _ready_needed(lobby):
+            return
+        lobby.next_round_at = datetime.now(UTC) + NEXT_ROUND_COUNTDOWN
+        lobby.touch()
+        return
+
+    if datetime.now(UTC) >= lobby.next_round_at:
+        _end_review(lobby)
+        lobby.touch()
+
+
 def _end_review(lobby: Lobby) -> None:
     """Leave the review and start whatever comes next."""
+    lobby.ready_ids = []
+    lobby.next_round_at = None
     lobby.status = LobbyStatus.playing
 
     if lobby.round_index + 1 < len(lobby.rounds):
@@ -902,6 +976,9 @@ def _view(lobby: Lobby) -> LobbyView:
         current_player_id=current_player.id if current_player else None,
         turn_seconds_left=_turn_seconds_left(lobby),
         turn_seconds=(lobby.turn_allowance or lobby.turn_seconds) if current_player else None,
+        ready_ids=_ready_ids(lobby),
+        ready_needed=_ready_needed(lobby),
+        next_round_in=_next_round_in(lobby),
         timed_out=lobby.timed_out,
         history=list(lobby.history),
         round_view=_round_view(lobby),
@@ -920,6 +997,18 @@ def _turn_seconds_left(lobby: Lobby) -> int | None:
     if _current_player(lobby) is None:
         return None
     return max(0, ceil((lobby.turn_expires_at - datetime.now(UTC)).total_seconds()))
+
+
+def _next_round_in(lobby: Lobby) -> int | None:
+    """Seconds until the next round, or None while nothing is counting.
+
+    A remaining duration rather than the deadline itself, for the same reason
+    the turn clock sends one: a device with a wrong clock still counts down
+    correctly from it.
+    """
+    if lobby.status is not LobbyStatus.reviewing or lobby.next_round_at is None:
+        return None
+    return max(0, ceil((lobby.next_round_at - datetime.now(UTC)).total_seconds()))
 
 
 def _is_quiet(lobby: Lobby, current_player: Player | None) -> bool:

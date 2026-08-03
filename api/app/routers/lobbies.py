@@ -79,13 +79,13 @@ def submit_turn(code: str, payload: TurnSubmit) -> LobbyView:
 
 
 @router.post("/{code}/next-round", response_model=LobbyView)
-def skip_review(code: str, payload: PlayerAction) -> LobbyView:
-    """Host ends the between-rounds review and starts the next round.
+def ready_for_next_round(code: str, payload: PlayerAction) -> LobbyView:
+    """Any player says they are done reading the answers.
 
-    The review has no timer, so this is the only thing that moves the game on
-    from it.
+    Once half of those present have said so a three-second countdown starts,
+    and the round begins when it runs out. Nothing else moves a review on.
     """
-    return service.skip_review(code, payload.player_id)
+    return service.ready_for_next_round(code, payload.player_id)
 
 
 @router.post("/{code}/restart", response_model=LobbyView)

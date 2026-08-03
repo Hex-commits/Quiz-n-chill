@@ -113,6 +113,12 @@ Rules, as implemented in `api/app/services/lobbies.py`:
 - A correct placement scores **1 point**. Spotting a fake counts.
 - A round ends when every item is placed **or** nobody is left active — so the
   last player standing keeps going alone while items remain.
+- Between rounds the answers go up with a **Next round** button on every screen.
+  It is a vote, not the host's alone: once **half of the connected players**
+  have pressed it a **three-second countdown** runs on every device at once and
+  the next round starts when it reaches zero. Half rather than all, so one
+  player who has wandered off cannot hold the table up — and a vote from
+  somebody whose tab has since gone stops counting.
 - The host picks **subjects and a round count**, not individual questions. The
   server draws that many at random, spread as evenly as possible across the
   chosen subjects — 5 rounds over 3 subjects gives 2/2/1, and which subject
@@ -192,6 +198,9 @@ GET  /lobbies/{code}?player_id=   poll + heartbeat           -> LobbyView
 POST /lobbies/{code}/start        {player_id, subject_slugs[], round_count}
                                                              -> LobbyView  (host)
 POST /lobbies/{code}/turns        {player_id, item_id, category_id}
+POST /lobbies/{code}/next-round   {player_id}                -> LobbyView
+                                  ("I have read the answers" — half of those
+                                   present starts the three-second countdown)
 POST /lobbies/{code}/away         {player_id}                -> 204  (tab closing)
 POST /lobbies/{code}/leave        {player_id}                -> 204  (permanent)
 POST /lobbies/{code}/restart      {player_id}                -> LobbyView  (host)
