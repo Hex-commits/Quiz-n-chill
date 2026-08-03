@@ -80,6 +80,11 @@ def write_question(
     client to draw each category as a photograph. Setting it here rather than
     inferring it later means the flag and the picture columns are written in the
     same transaction, so a quiz can never claim to be one and lack the other.
+
+    `origin` is written explicitly even though the column defaults to it. This
+    is the one place in the codebase that generates a question, and a marker
+    saying "written by a model" should be stated by the thing doing the writing
+    rather than inherited from a default that a later migration could change.
     """
     subject = (
         client.table("subjects")
@@ -103,6 +108,7 @@ def write_question(
                 "source_url": article.url,
                 "source_title": article.title,
                 "category_kind": "image" if images else "text",
+                "origin": "ingest",
             }
         )
         .execute()

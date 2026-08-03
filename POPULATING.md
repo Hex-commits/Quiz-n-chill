@@ -176,6 +176,10 @@ wrong category, and the result is a question that marks a correct player wrong.
 docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
   -c "select category_kind, count(*) from quizzes group by 1;"
 
+# Who wrote them: 'seed' = by hand in supabase/seed.sql, 'ingest' = the model
+docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
+  -c "select origin, count(*) from quizzes group by 1;"
+
 # Pool balance across subjects — the thing that decides whether the game is fun
 docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
   -c "select s.slug, count(q.id) from subjects s
@@ -210,6 +214,10 @@ docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
 docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
   -c "delete from quizzes where category_kind = 'image';"
 
+# Every machine-written question, leaving the hand-written pool alone
+docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
+  -c "delete from quizzes where origin = 'ingest';"
+
 # Everything (categories and items cascade)
 docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
   -c "truncate quizzes cascade;"
@@ -217,6 +225,11 @@ docker exec supabase_db_Quiz_Quiz psql -U postgres -d postgres \
 
 Deleting a quiz cascades to its categories and items. Subjects are seeded by
 migration and survive.
+
+`origin` is what makes the third command safe. Both kinds of question carry a
+Wikipedia `source_url` and fill the same columns, so before that column existed
+there was no way to clear a bad ingest run without hand-listing slugs — and
+`created_at` is no help, since `db reset` re-stamps the seeded rows.
 
 ---
 

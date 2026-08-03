@@ -9,6 +9,14 @@ rather than a silently half-filled prompt.
 work: the first pass fills it with nothing, and each rejected attempt appends
 the model's own answer plus the complaints about it, so attempt three still sees
 everything that went wrong in attempts one and two.
+
+The rules here come in two kinds, and the difference is worth keeping straight.
+What makes a question *correct* is stated -- one answer per category, everything
+from the article -- because `validate.py` and the reviewer enforce the same
+thing afterwards. What makes a question *ours* is shown instead, out of
+`examples.py`: told to write a good title a small model writes
+"Periodensystem-Zuordnung", and no amount of prose fixes that, while four real
+titles from the seeded pool do.
 """
 
 from __future__ import annotations
@@ -16,6 +24,7 @@ from __future__ import annotations
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 
 from ..domain.rules import MAX_ITEM_WORDS, MAX_PAIRS, MIN_PAIRS
+from .examples import render_explanations, render_questions
 
 EXTRACT_SYSTEM = f"""\
 Du erstellst Zuordnungsfragen für ein deutschsprachiges Quiz.
@@ -90,6 +99,33 @@ Schwierigkeit:
 - medium: solides Allgemeinwissen nötig.
 - hard: Detailwissen oder Fachkenntnis nötig.
 
+STIL -- SO SEHEN UNSERE FRAGEN AUS:
+
+- Die Frage handelt von einer KLASSE von Dingen, nicht vom Artikel. Der Artikel
+  ist der Steinbruch, nicht das Thema. Aus dem Artikel "Periodensystem" wird
+  "Chemische Elemente", niemals "Periodensystem-Zuordnung".
+- `title`: zwei oder drei Wörter, keine Frage, kein Doppelpunkt, kein
+  Artikelname. Entweder beide Seiten der Zuordnung mit & verbunden
+  ("Gemälde & Maler") oder eine Sammelbezeichnung im Plural
+  ("Chemische Elemente").
+- `slug`: der Titel klein geschrieben, ohne &, mit Bindestrichen, Umlaute
+  ausgeschrieben -- "gemaelde-maler", "hauptstaedte-europas". Nie ein Anhängsel
+  wie "-zuordnung" und nie der Titel des Artikels.
+- `description`: GENAU EINE Frage mit Fragezeichen, höchstens acht Wörter. Sie
+  nennt die KATEGORIE im Singular mit Artikel und fragt nach der ANTWORT --
+  Kategorie "Italien", Antwort "Rom" ergibt "Welche Stadt ist die Hauptstadt des
+  Landes?". Sprich den Spieler nicht an ("Ordne zu ..."), und nenne kein Wort,
+  das in den Paaren vorkommt.
+- Kategorien und Antworten stehen ohne Artikel und ohne Zusatz in Klammern da.
+- Antworten sind so kurz, wie sie eindeutig sein können: "Goethe", nicht
+  "Johann Wolfgang von Goethe"; "Fe", nicht "Fe (Eisen)".
+
+Vier echte Fragen aus unserem Bestand. Übernimm ihre Machart -- Zuschnitt,
+Titel, Anleitung, Kürze der Antworten -- aber NIEMALS ihren Inhalt: deine Frage
+kommt aus dem Artikel unten.
+
+{render_questions()}
+
 Antworte ausschließlich mit dem geforderten JSON-Objekt.
 """
 
@@ -146,19 +182,21 @@ Schreibe dafür:
 
 REGELN:
 - Deutsch.
-- Der Titel nennt beide Seiten der Zuordnung.
-- Die Anleitung ist GENAU EIN kurzer Satz, höchstens 12 Wörter. Sie spricht das
-  Bild an und fragt nach der ANTWORT -- also nach dem, was der Spieler dem Bild
-  zuordnen soll. Nimm die Wörter aus den Paaren unten, nicht aus dieser
-  Anleitung.
+- Der Titel nennt beide Seiten der Zuordnung, mit & verbunden, zwei oder drei
+  Wörter: "Städte & Länder", "Elemente & Symbole". Keine Frage, kein
+  Doppelpunkt, kein Artikelname.
+- Die Anleitung ist EIN Satz mit Fragezeichen, höchstens acht Wörter. Sie
+  spricht das Bild an und fragt nach der ANTWORT -- also nach dem, was der
+  Spieler dem Bild zuordnen soll. Nimm die Wörter aus den Paaren unten, nicht
+  aus dieser Anleitung.
 - Ändere KEINE Paare. Erfinde nichts dazu.
 
 Die Beispiele hier sind NUR das Format, niemals der Inhalt:
   Paare "Paris -> Frankreich", "Rom -> Italien"   (Bild = die Stadt)
-    title:       "Städte und ihre Länder"
+    title:       "Städte & Länder"
     description: "In welchem Land liegt diese Stadt?"
   Paare "Eisen -> Fe", "Sauerstoff -> O"          (Bild = das Element)
-    title:       "Elemente und ihre Symbole"
+    title:       "Elemente & Symbole"
     description: "Welches Symbol gehört zu diesem Element?"
 """
 
@@ -179,7 +217,7 @@ REFRAME = ChatPromptTemplate.from_messages(
     ]
 )
 
-EXPLAIN_SYSTEM = """\
+EXPLAIN_SYSTEM = f"""\
 Du schreibst zu jeder Antwort einer Zuordnungsfrage eine sehr kurze Begründung.
 
 Sie wird dem Spieler erst NACH dem Antworten gezeigt, direkt neben der Antwort.
@@ -189,11 +227,16 @@ REGELN:
 - Höchstens EIN kurzer Satz, maximal 12 Wörter. Kein Nebensatzgeflecht.
 - Kein einleitendes Gerede ("Diese Antwort ist richtig, weil ..."). Direkt zur
   Sache.
-- Nenne den entscheidenden Fakt, nicht die Spielregel.
+- Nenne den entscheidenden Fakt, nicht die Spielregel. Am besten ist eine harte
+  Angabe: eine Jahreszahl, ein Ort, die Herkunft des Namens, das eine Merkmal.
+- Ein Satz ohne Verb ist erlaubt und oft der bessere ("Vom lateinischen
+  aurum."). Punkt am Ende.
 - Deutsch.
 
-Beispiel: Antwort "Berlin", Kategorie "Deutschland"
-          -> "Hauptstadt Deutschlands seit 1990."
+So sehen unsere Begründungen aus -- oben das Paar, darunter die Begründung zu
+seiner Antwort:
+
+{render_explanations()}
 
 Schreibe für JEDE Antwort genau eine Begründung.
 """

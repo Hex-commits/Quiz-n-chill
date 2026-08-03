@@ -24,6 +24,11 @@
 -- Every source_url here was read back from the Wikipedia API rather than
 -- assembled by hand, so each one resolves.
 --
+-- Every question here is also marked `origin = 'seed'`. That is what separates
+-- this pool from what `tools/ingest/` generates: both kinds carry a Wikipedia
+-- source_url and fill the same columns, so without the marker a row gives no
+-- clue whether a person wrote it or a model did.
+--
 -- The one thing to watch when editing: **an answer must fit only one category
 -- on its own board.** "Wasser" under "Anorganische Stoffe" is fine until
 -- "Reduktionsmittel" is also on the board -- then the player who picks the
@@ -361,11 +366,14 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ouzo", "Griechenland", "Anisschnaps, der sich mit Wasser trübt."]]'::jsonb)
 ),
 
+-- `origin` is a literal rather than a column of `spec`: every question in this
+-- file is hand-written by definition, and the value is what separates them from
+-- the machine's afterwards.
 new_quizzes as (
     insert into quizzes (subject_id, slug, title, description,
-                         difficulty, source_title, source_url)
+                         difficulty, source_title, source_url, origin)
     select s.id, sp.slug, sp.title, sp.description,
-           sp.difficulty::difficulty, sp.source_title, sp.source_url
+           sp.difficulty::difficulty, sp.source_title, sp.source_url, 'seed'
       from spec sp
       join subjects s on s.slug = sp.subject_slug
     returning id, slug
