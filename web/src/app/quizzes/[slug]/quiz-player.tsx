@@ -176,7 +176,7 @@ export function QuizPlayer({ quiz }: { quiz: QuizDetail }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{quiz.title}</h1>

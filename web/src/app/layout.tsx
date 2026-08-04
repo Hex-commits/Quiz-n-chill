@@ -36,7 +36,23 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${outfit.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      {/*
+        The shell is exactly the viewport, and never scrolls itself.
+
+        A page-level scrollbar on a game board is a real cost: half the board
+        below the fold means every player is scrolling to see the thing they are
+        being asked about, and on a shared screen they are scrolling past each
+        other. So the chrome is pinned and `main` is the one scrolling box —
+        which means a page that fits shows no scrollbar at all, and a page that
+        genuinely cannot fit (the answers at the end of a game, a phone in
+        landscape) still scrolls, just without moving the header out of reach.
+
+        `h-dvh` rather than `h-screen`: on mobile `100vh` is the viewport with
+        the browser chrome *hidden*, so a shell sized to it is taller than what
+        is actually on screen — the bottom is cut off until the address bar
+        slides away.
+      */}
+      <body className="flex h-dvh flex-col overflow-hidden">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -44,10 +60,16 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SiteHeader />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+          <main
+            data-scroll-root
+            /* No width cap here: a page in a scrolling box cannot break out of
+               one, and the board wants the whole screen while everything else
+               wants a reading measure. Each page states its own. */
+            className="flex w-full min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:py-6 lg:py-3"
+          >
             {children}
           </main>
-          <footer className="text-muted-foreground border-t px-4 py-6 text-center text-xs">
+          <footer className="text-muted-foreground shrink-0 border-t px-4 py-3 text-center text-xs">
             Hier könnte ihre Werbung stehen!
           </footer>
           <Toaster />

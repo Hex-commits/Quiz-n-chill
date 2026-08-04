@@ -66,11 +66,19 @@ export function CategoryPicture({
               }
         }
       >
+        {/*
+          Taken out of flow on purpose. In flow, a photograph reports its own
+          scaled height as the smallest it can be, and a card that says "I am at
+          least 190px tall" cannot give way to the board around it — every
+          picture round would push the answers off the screen. Absolute, the
+          frame decides the size and the picture fills whatever it is given; the
+          frame always has one, from its aspect ratio or from the row it sits in.
+        */}
         <img
           src={image.src}
           alt={label}
           loading="lazy"
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
         <button
           type="button"
@@ -127,11 +135,16 @@ function Lightbox({
       if (event.key === "Escape") close();
     };
     document.addEventListener("keydown", onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+
+    /* The page itself no longer scrolls — the shell pins the chrome and scrolls
+       `main` instead — so freezing the body would freeze nothing. */
+    const scroller =
+      document.querySelector<HTMLElement>("[data-scroll-root]") ?? document.body;
+    const previous = scroller.style.overflow;
+    scroller.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
+      scroller.style.overflow = previous;
     };
   }, [close]);
 

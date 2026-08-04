@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
  */
 export function ApiErrorNotice({ message }: { message: string }) {
   return (
-    <Alert variant="destructive">
+    <Alert variant="destructive" className="mx-auto w-full max-w-5xl">
       <AlertCircle className="size-4" aria-hidden />
       <AlertTitle>Could not load data from the API</AlertTitle>
       <AlertDescription>

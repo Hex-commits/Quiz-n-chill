@@ -43,6 +43,17 @@ export function useCountdown(
 
   useEffect(() => {
     if (deadline === null) return;
+    /**
+     * Read the clock before waiting for the first tick.
+     *
+     * Nothing ticks while there is no deadline, so `now` still holds whatever
+     * it was when the last clock stopped — the length of a whole review, or of
+     * the game so far. Counting a brand new deadline against that instant is
+     * what put an arbitrary-looking number on screen ("43") until the first
+     * tick snapped it to three.
+     */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNow(Date.now());
     const tick = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(tick);
   }, [deadline]);

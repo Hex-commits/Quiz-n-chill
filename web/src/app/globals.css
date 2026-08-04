@@ -86,7 +86,6 @@
   --chart-5: oklch(0.269 0 0);
   --radius: 1rem;
   --header-h: 3.5rem;
-  --sticky-top: calc(var(--header-h) + 0.5rem);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -168,6 +167,36 @@
   }
 }
 
+/**
+ * The two halves of a count-in swapping one number for the next.
+ *
+ * They overlap deliberately: the number leaving grows and dissolves while the
+ * one arriving is already coming up underneath it, so a second reads as a
+ * hand-off rather than a cut. `quiz-pop` is the wrong shape here — it is 220ms
+ * of snap, meant for something appearing once, and at ten rem it flickers.
+ */
+@keyframes quiz-count-in {
+  0% {
+    transform: scale(0.62);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes quiz-count-out {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
 @keyframes quiz-shake {
   0%,
   100% {
@@ -228,6 +257,14 @@
 
 .animate-quiz-pop {
   animation: quiz-pop 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.animate-quiz-count-in {
+  animation: quiz-count-in 420ms var(--ease-soft) both;
+}
+
+.animate-quiz-count-out {
+  animation: quiz-count-out 560ms var(--ease-soft) both;
 }
 
 .animate-quiz-shake {
@@ -358,6 +395,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* The number leaving is only ever off screen because its animation takes it
+     there, so switching that off has to hide it some other way. */
+  .animate-quiz-count-out {
+    animation: none;
+    opacity: 0;
+  }
+  .animate-quiz-count-in,
   .animate-quiz-pop,
   .animate-quiz-shake,
   .animate-quiz-wobble,

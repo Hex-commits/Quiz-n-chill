@@ -404,10 +404,27 @@ export function LobbyRoom({
 
   if (!playerId) return <RejoinForm code={code} />;
 
+  /**
+   * A running game gets a smaller version of the room header.
+   *
+   * The lobby code is what the screen is *for* while people are still joining,
+   * and once they have joined it is a label nobody reads again — but the
+   * controls beside it (leave, sound) have to stay reachable. So it shrinks
+   * rather than goes, and only where height is being fought over.
+   */
+  const playing = lobby.status === "playing" || lobby.status === "reviewing";
+
   const header = (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <p className="text-muted-foreground text-sm">Lobby code</p>
+        <p
+          className={cn(
+            "text-muted-foreground text-sm",
+            playing && "lg:hidden",
+          )}
+        >
+          Lobby code
+        </p>
         <button
           type="button"
           onClick={copyInvite}
@@ -419,6 +436,7 @@ export function LobbyRoom({
             key={copiedAt ?? "idle"}
             className={cn(
               "font-mono text-3xl font-bold tracking-widest",
+              playing && "lg:text-xl",
               copiedAt !== null && "animate-quiz-wobble",
             )}
           >
@@ -451,7 +469,10 @@ export function LobbyRoom({
 
   if (lobby.status === "lobby") {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      /* Tight enough that the start button is on the screen with the settings
+         it starts: a host who has to scroll to it has to scroll back to change
+         their mind. */
+      <div className="mx-auto w-full max-w-2xl space-y-4">
         {header}
 
         <Card>
@@ -579,7 +600,7 @@ export function LobbyRoom({
     );
 
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto w-full max-w-2xl space-y-4">
         {header}
 
         <Card>
@@ -725,12 +746,31 @@ export function LobbyRoom({
         )}
         aria-hidden
       />
-      <div className="space-y-4">
-        {header}
+      {/*
+        From `lg` up the board is sized to the screen rather than to its own
+        contents: the shell hands this column the exact height that is left, the
+        parts that must be read whole (the turn bar, the question) take what they
+        need, and the categories divide the remainder between them. Below that
+        breakpoint none of it applies — a phone cannot fit a board however it is
+        laid out, and pretending otherwise would shrink the answers to nothing
+        rather than let the page scroll like a page.
+      */}
+      {/*
+        And it takes the whole screen, not the reading measure the rest of the
+        app is set in.
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-          <div className="min-w-0 space-y-4">
-            <div className="sticky top-(--sticky-top) z-20">
+        Everywhere else a column of prose wants to stay narrow. A board is the
+        opposite: width is what buys height back, because every extra column of
+        categories is one row fewer to find room for. On a 1440-wide screen that
+        is the difference between four rows of cards and three, and between the
+        answers wrapping onto a second line and not.
+      */}
+      <div className="mx-auto w-full max-w-5xl space-y-3 lg:flex lg:min-h-0 lg:max-w-[110rem] lg:flex-1 lg:flex-col lg:gap-2 lg:space-y-0">
+        <div className="lg:shrink-0">{header}</div>
+
+        <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-w-0 space-y-3 lg:flex lg:min-h-0 lg:flex-col lg:gap-3 lg:space-y-0">
+            <div className="sticky top-0 z-20 lg:static lg:shrink-0">
               <TurnBar
                 isMyTurn={isMyTurn}
                 isOut={Boolean(me && !me.is_active)}
@@ -752,6 +792,7 @@ export function LobbyRoom({
             <Card
               className={cn(
                 "animate-quiz-rise relative isolate overflow-hidden",
+                "lg:shrink-0 lg:[--card-spacing:--spacing(3)]",
                 lit && "border-primary/50 shadow-lg",
               )}
             >
@@ -762,7 +803,7 @@ export function LobbyRoom({
                 )}
                 aria-hidden
               />
-              <CardHeader className="space-y-2 text-center">
+              <CardHeader className="space-y-1.5 text-center lg:space-y-1">
                 <p
                   className={cn(
                     "text-xs font-medium tracking-wide uppercase",
@@ -773,13 +814,16 @@ export function LobbyRoom({
                     ? "Settling round"
                     : `Round ${lobby.round_index + 1} of ${lobby.round_count}`}
                 </p>
-                <h1 className="text-4xl font-black tracking-tight text-balance sm:text-5xl">
+                {/* Deliberately smaller from `lg` than below it: on a phone
+                    this headline has the screen to itself, on a laptop it is
+                    sharing a fixed height with the board it belongs to. */}
+                <h1 className="text-3xl font-black tracking-tight text-balance sm:text-4xl lg:text-2xl xl:text-3xl">
                   {round.title}
                 </h1>
                 {round.description ? (
                   <p
                     className={cn(
-                      "mx-auto max-w-prose text-base text-balance sm:text-lg",
+                      "mx-auto max-w-prose text-base text-balance lg:text-sm xl:text-base",
                       overGlow,
                     )}
                   >
@@ -812,8 +856,11 @@ export function LobbyRoom({
 
               <CardContent>
                 {reviewing ? (
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <p className="flex items-center gap-2 text-base font-semibold">
+                  <div className="flex flex-col items-center gap-4 text-center lg:gap-2">
+                    {/* A signpost for a screen you have to scroll. Where the
+                        answers are already in view it is only taking their
+                        room, and the turn bar has said "Round over" anyway. */}
+                    <p className="flex items-center gap-2 text-base font-semibold lg:hidden">
                       <BookOpen className="size-4 shrink-0" aria-hidden />
                       Round over — the answers are below
                     </p>
@@ -837,7 +884,7 @@ export function LobbyRoom({
                           key={item.id}
                           size="lg"
                           className={cn(
-                            "quiz-shine h-auto min-h-14 px-6 py-3 text-lg font-semibold whitespace-normal",
+                            "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-semibold whitespace-normal",
                             "ease-(--ease-soft) transition-all duration-200",
                             "hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
                             "active:translate-y-0 active:scale-[0.98] active:duration-75",
@@ -868,7 +915,15 @@ export function LobbyRoom({
               </CardContent>
             </Card>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/*
+              The height left over, divided between the categories: equal rows
+              (`auto-rows-fr`) that are allowed to be shorter than their contents
+              (`minmax(0,…)`, which is what Tailwind's `fr` row means here), so
+              the pictures give way rather than the board growing past the
+              screen. `overflow-y-auto` is the last resort and nothing more —
+              ten categories on a laptop in landscape will still find the floor.
+            */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:auto-rows-[minmax(min-content,1fr)] lg:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] lg:gap-2 lg:overflow-y-auto">
               {categories.map((category, index) => {
                 const solved = solvedIn(category.id);
                 const full = solved.length > 0;
@@ -896,8 +951,8 @@ export function LobbyRoom({
             </div>
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-(--sticky-top)">
-            <Card>
+          <aside className="space-y-4 lg:flex lg:min-h-0 lg:flex-col lg:gap-3 lg:space-y-0">
+            <Card className="lg:shrink-0">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-1.5 text-sm">
                   <Users className="size-4" aria-hidden />
@@ -968,14 +1023,16 @@ export function LobbyRoom({
             </Card>
 
             {lobby.history.length > 0 ? (
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="lg:min-h-0 lg:flex-1">
+                <CardHeader className="pb-3 lg:shrink-0">
                   <CardTitle className="flex items-center gap-1.5 text-sm">
                     <History className="size-4" aria-hidden />
                     This round
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="max-h-72 space-y-1 overflow-y-auto">
+                {/* The one list on the board with no end to it, so it takes
+                    whatever the column has left and scrolls inside that. */}
+                <CardContent className="max-h-72 space-y-1 overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
                   {[...lobby.history].reverse().map((move, index) => (
                     <div
                       key={`${move.item_label}-${lobby.history.length - index}`}
@@ -1352,7 +1409,7 @@ function LobbySetup({
             : "Questions are drawn at random from whatever you choose, spread as evenly as possible across them."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-4">
         <section className="space-y-2.5">
           <SetupLabel
             title="Subjects"
@@ -1416,7 +1473,7 @@ function LobbySetup({
           </div>
         </section>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <section className="space-y-2.5">
             <SetupLabel title="Rounds" />
             <Segmented
@@ -1499,9 +1556,9 @@ function NextRoundVote({
   const counting = secondsLeft !== null;
 
   return (
-    <div className="w-full max-w-sm space-y-3">
+    <div className="w-full max-w-sm space-y-3 lg:space-y-2">
       {counting ? (
-        <div className="border-primary bg-primary text-primary-foreground animate-quiz-glow flex h-16 w-full items-center justify-center gap-3 rounded-(--radius) border">
+        <div className="border-primary bg-primary text-primary-foreground animate-quiz-glow flex h-16 w-full items-center justify-center gap-3 rounded-(--radius) border lg:h-12">
           <span className="text-sm font-bold tracking-wide uppercase">
             Next round in
           </span>
@@ -1517,7 +1574,7 @@ function NextRoundVote({
           size="lg"
           variant={ready ? "outline" : "default"}
           className={cn(
-            "ease-(--ease-soft) h-16 w-full text-xl font-bold transition-all duration-200",
+            "ease-(--ease-soft) h-16 w-full text-xl font-bold transition-all duration-200 lg:h-12",
             !ready &&
               "quiz-shine hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-xl active:translate-y-0 active:scale-[0.99]",
           )}
@@ -1565,6 +1622,28 @@ function NextRoundVote({
  * everything else.
  */
 function NextRoundCountdown({ secondsLeft }: { secondsLeft: number }) {
+  const shown = secondsLeft > 0 ? String(secondsLeft) : "Go!";
+
+  /**
+   * The number that has just been replaced, kept on screen while it leaves.
+   *
+   * Re-keying one element swaps the text within a single frame: the old number
+   * is gone before the new one has started, which is the cut this avoids. Two
+   * elements in the same grid cell can overlap instead, the outgoing one fading
+   * out over the incoming one's rise.
+   *
+   * It is never unmounted — its animation ends at opacity zero and stays there,
+   * and re-keying it is what replays that. Clearing it on a timer would buy an
+   * invisible element's worth of nothing, and cost a timer per second.
+   */
+  const [swap, setSwap] = useState({ shown, leaving: null as string | null });
+  if (swap.shown !== shown) setSwap({ shown, leaving: swap.shown });
+
+  const size = (value: string) =>
+    value === "Go!"
+      ? "text-6xl sm:text-8xl"
+      : "font-mono text-[7rem] tabular-nums sm:text-[10rem]";
+
   return (
     <div
       className="bg-background/70 pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
@@ -1573,16 +1652,27 @@ function NextRoundCountdown({ secondsLeft }: { secondsLeft: number }) {
       <p className="text-muted-foreground text-xs font-bold tracking-[0.3em] uppercase">
         Next round
       </p>
-      <span
-        key={secondsLeft}
-        className={cn(
-          "animate-quiz-pop text-primary leading-none font-black",
-          secondsLeft > 0
-            ? "font-mono text-[7rem] tabular-nums sm:text-[10rem]"
-            : "text-6xl sm:text-8xl",
-        )}
-      >
-        {secondsLeft > 0 ? secondsLeft : "Go!"}
+      <span className="grid place-items-center">
+        {swap.leaving !== null ? (
+          <span
+            key={`out-${swap.leaving}`}
+            className={cn(
+              "animate-quiz-count-out text-primary col-start-1 row-start-1 leading-none font-black",
+              size(swap.leaving),
+            )}
+          >
+            {swap.leaving}
+          </span>
+        ) : null}
+        <span
+          key={shown}
+          className={cn(
+            "animate-quiz-count-in text-primary col-start-1 row-start-1 leading-none font-black",
+            size(shown),
+          )}
+        >
+          {shown}
+        </span>
       </span>
     </div>
   );
@@ -1750,6 +1840,7 @@ function CategoryCard({
     <Card
       className={cn(
         "animate-quiz-rise",
+        "lg:min-h-0 lg:[--card-spacing:--spacing(2)]",
         armed &&
           "ring-primary/60 hover:ring-primary cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl",
         full && !reveal && "bg-muted/50 opacity-60",
@@ -1760,16 +1851,27 @@ function CategoryCard({
       aria-disabled={full || undefined}
     >
       {image ? (
-        <div className="px-6">
+        /*
+         * The picture is the give in a category card. Everything else on it is
+         * words that have to stay whole, so on a board sized to the screen the
+         * photograph takes what is left of the card instead of dictating the
+         * card's height — a fixed 4:3 in a row that has to fit would push the
+         * labels off the bottom. Below `lg` the board is not height-bound and
+         * the aspect ratio is what stops the image from collapsing.
+         */
+        /* A floor, so a picture round never ends up with no pictures — scaled
+           to how much height there is to give. Under it the grid scrolls, which
+           on a board of ten photographs is the honest outcome. */
+        <div className="px-6 lg:min-h-16 lg:flex-1 lg:px-4 lg:[@media(min-height:860px)]:min-h-20">
           <CategoryPicture
             image={image}
             label={title ?? "Bild"}
             armed={armed}
-            className="aspect-[4/3] w-full rounded-(--radius-sm)"
+            className="aspect-[4/3] w-full rounded-(--radius-sm) lg:aspect-auto lg:h-full"
           />
         </div>
       ) : null}
-      <CardHeader>
+      <CardHeader className="lg:shrink-0">
         <CardTitle className="flex items-center gap-2 text-base">
           {full ? (
             <Check
@@ -1785,7 +1887,7 @@ function CategoryCard({
         </CardTitle>
         {image ? <ImageCredit image={image} /> : null}
       </CardHeader>
-      <CardContent className="min-h-14 space-y-2">
+      <CardContent className="min-h-14 space-y-2 lg:min-h-8 lg:shrink-0">
         <div className="flex flex-wrap gap-2">
           {reveal ? (
             <Badge variant={missed ? "outline" : "secondary"}>
