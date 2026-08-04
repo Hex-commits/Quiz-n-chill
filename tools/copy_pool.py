@@ -49,8 +49,6 @@ class CopyError(RuntimeError):
     """Something went wrong that the operator has to decide about."""
 
 
-# -- reading the source --------------------------------------------------
-
 
 def read_pool(client: Client) -> tuple[list[dict], list[dict], dict, dict]:
     """Everything needed to rebuild the pool elsewhere, in four reads."""
@@ -67,8 +65,6 @@ def read_pool(client: Client) -> tuple[list[dict], list[dict], dict, dict]:
 
     return subjects, quizzes, categories, items
 
-
-# -- writing the target --------------------------------------------------
 
 
 def sync_subjects(target: Client, subjects: list[dict], *, commit: bool) -> dict[str, str]:
@@ -152,8 +148,6 @@ def copy_question(
             .data
         )
 
-        # Source category id -> target category id, matched on label. Labels are
-        # unique within a quiz (one category, one answer), so this is exact.
         by_label = {row["label"]: row["id"] for row in written_categories}
         target_id = {
             category["id"]: by_label[category["label"]]
@@ -168,8 +162,6 @@ def copy_question(
                     "category_id": target_id[item["category_id"]],
                     "label": item["label"],
                     "position": item["position"],
-                    # The whole point of carrying these across: a round that
-                    # ends teaches nothing without them.
                     "explanation": item.get("explanation"),
                 }
                 for item in items
@@ -179,8 +171,6 @@ def copy_question(
         target.table("quizzes").delete().eq("id", quiz_id).execute()
         raise
 
-
-# -- the run -------------------------------------------------------------
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -219,10 +209,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    # Read from the environment by preference. argparse prints the whole argv
-    # back on a usage error, so a key passed as a flag can be echoed into a
-    # terminal, a CI log or a chat transcript -- which is exactly how the
-    # service-role key for this project first leaked.
     target_key = os.environ.get("COPY_POOL_TARGET_KEY") or args.target_key
     if not target_key:
         print(

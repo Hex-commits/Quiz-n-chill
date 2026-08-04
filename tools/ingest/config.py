@@ -34,12 +34,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OLLAMA_URL = "http://localhost:11435"
 DEFAULT_MODEL = "glm4:9b"
 
-# Anything a person would plausibly type meaning yes. Deliberately generous,
-# and deliberately not "anything non-empty" -- `INGEST_VET=false` in a `.env`
-# has to mean off, and it is exactly what someone writes when they want it off.
 TRUTHY = frozenset({"1", "true", "yes", "on"})
+"""Anything a person would plausibly type meaning yes.
 
-# Only applied to the fallback, and only for the hostname compose injects.
+Deliberately generous, and deliberately not "anything non-empty" --
+`INGEST_VET=false` in a `.env` has to mean off, and it is exactly what someone
+writes when they want it off.
+"""
+
 CONTAINER_HOST = "host.docker.internal"
 LOCALHOST = "127.0.0.1"
 
@@ -94,7 +96,6 @@ def supabase_url(override: str | None = None) -> str:
             "No Supabase URL. Set INGEST_SUPABASE_URL (or SUPABASE_URL) in the "
             "repo-root .env, or pass --supabase-url."
         )
-    # The compose value names a host only containers can resolve.
     return base.replace(CONTAINER_HOST, LOCALHOST).rstrip("/")
 
 

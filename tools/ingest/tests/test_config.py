@@ -4,6 +4,10 @@ The Supabase URL is the one setting with a real trap in it: `.env` holds the
 value the *containers* use, and this tool runs on the host. Getting the
 precedence wrong means silently talking to the wrong database -- or, with the
 old hardcoded rewrite, being unable to talk to a remote one at all.
+
+`INGEST_VET` and `INGEST_JUDGE_MODEL` describe the machine rather than the run,
+so they are environment-only by design and there is nothing on the command line
+to override them with. The tests for them go through the environment alone.
 """
 
 from __future__ import annotations
@@ -32,8 +36,6 @@ def clean_env(monkeypatch):
     for name in VARS:
         monkeypatch.delenv(name, raising=False)
 
-
-# -- the Supabase URL ----------------------------------------------------
 
 
 def test_the_flag_beats_everything(monkeypatch):
@@ -79,8 +81,6 @@ def test_no_url_at_all_says_how_to_fix_it():
     assert "INGEST_SUPABASE_URL" in str(caught.value)
 
 
-# -- the rest ------------------------------------------------------------
-
 
 def test_a_missing_service_role_key_says_where_to_find_it():
     with pytest.raises(ConfigError) as caught:
@@ -88,8 +88,6 @@ def test_a_missing_service_role_key_says_where_to_find_it():
 
     assert "service_role" in str(caught.value)
 
-
-# -- the key, which has to name the same project as the URL --------------
 
 
 def test_the_key_flag_beats_everything(monkeypatch):
@@ -162,8 +160,6 @@ def test_flags_beat_the_environment_for_every_setting(monkeypatch):
     assert settings.model == "flag-model"
 
 
-# -- the .env reader -----------------------------------------------------
-
 
 def test_an_exported_value_wins_over_the_file(monkeypatch, tmp_path):
     """Exporting a variable for one run must not mean editing .env."""
@@ -186,10 +182,8 @@ def test_comments_and_blank_lines_are_ignored(monkeypatch, tmp_path):
 
 
 def test_a_missing_file_is_not_an_error(tmp_path):
-    load_dotenv(tmp_path / "nope.env")  # must not raise
+    load_dotenv(tmp_path / "nope.env")
 
-
-# -- console encoding ----------------------------------------------------
 
 
 def test_the_console_is_switched_to_utf8(monkeypatch):
@@ -223,7 +217,7 @@ def test_a_stream_that_cannot_be_reconfigured_is_not_fatal(monkeypatch):
     monkeypatch.setattr("tools.ingest.cli.sys.stdout", Awkward())
     monkeypatch.setattr("tools.ingest.cli.sys.stderr", object())
 
-    _speak_utf8()  # must not raise
+    _speak_utf8()
 
 
 @pytest.fixture
@@ -231,13 +225,6 @@ def resolvable(monkeypatch):
     """Enough for `Settings.resolve()` to get as far as the settings under test."""
     monkeypatch.setenv("INGEST_SUPABASE_URL", "http://127.0.0.1:54321")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key")
-
-
-# -- the two settings that have no flag --------------------------------------
-#
-# `INGEST_VET` and `INGEST_JUDGE_MODEL` describe the machine rather than the
-# run, so they are environment-only by design and there is nothing on the
-# command line to override them with.
 
 
 def test_vetting_is_off_unless_asked_for(monkeypatch, resolvable):

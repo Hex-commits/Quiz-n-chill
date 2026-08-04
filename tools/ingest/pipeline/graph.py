@@ -53,8 +53,6 @@ from ..domain.validate import only_needs_more_pairs
 from .augment import merge
 from .vet import MAX_ROUNDS
 from .illustrate import flip, keep_illustrated
-# Aliased: `explain` is also the name of a node and of this module's
-# build_graph parameter, and the shadowing is silent until it bites.
 from .llm import explain as describe_failure
 
 # How many rejected attempts stay in the extract conversation. Each one is a
@@ -99,19 +97,10 @@ class IngestState(BaseModel):
     review: Review | None = None
     attempt: int = 1
     max_attempts: int = 3
-    # Set by `illustrate`: the pictures for this question's categories, keyed
-    # by category label, and whether the pairing was turned round to get them
-    # there. Empty means it stays a text question, which is not a failure.
     images: dict = Field(default_factory=dict)
     flipped: bool = False
-    # Set when there is nothing left to repair -- the model declined, or the
-    # transport failed. A verdict, not a defect: retrying only wastes calls.
     stop: bool = False
-    # Why the explain step produced nothing, if it failed. Recorded rather
-    # than swallowed: the step is allowed to fail without costing the
-    # question, but a silent failure hid a genuine bug once already.
     explain_error: str = ""
-    # Why illustration produced nothing, in words, for the trace.
     illustrate_detail: str = ""
     illustrate_error: str = ""
     # The direction `reframe` said it was writing for, kept for the trace: it is
@@ -145,8 +134,6 @@ class Outcome(BaseModel):
     steps: list[str] = Field(default_factory=list)
     attempts: int = 1
     seconds: float = 0.0
-    # Pictures for the categories, keyed by category label. Empty for a text
-    # question, which is the common case and not a failure.
     images: dict = Field(default_factory=dict)
     flipped: bool = False
     # Titles of the articles that supplied extra pairs, for the report. Empty
@@ -197,6 +184,15 @@ def build_graph(
     `extract` and starts at `check` -- which is how `run_all` puts a question
     `select` kept but did not put first through the rest of the pipeline, without
     a second graph or a second copy of the gates.
+
+    `illustrate` is where a clean question goes; `explain` is where it goes after
+    that. Both are terminal decorations with one outgoing edge and no say in
+    whether the question survives.
+
+    END stays in every target list even when `explain` is present. A clean
+    question routes to `explain`, but a rejected one with no attempts left goes
+    straight to END from the same branch -- leave END out and LangGraph raises
+    `KeyError: '__end__'` on exactly that path.
     """
 
     def extract_node(state: IngestState) -> dict:
@@ -359,6 +355,14 @@ def build_graph(
         A lookup failure is treated exactly like "no pictures found": the
         question is already correct and already past both gates, so a Wikidata
         outage must cost it its illustrations and nothing else.
+
+        The title is renamed for *every* picture question, not only flipped
+        ones. The model wrote "Ordne jedem Land seine Hauptstadt zu" for a board
+        of words; played with photographs the player is not reading a capital,
+        they are looking at one, and the instruction has to say so. A flip
+        additionally makes the old title describe the wrong direction. Failing
+        to rename is not worth losing the pictures over -- a stale title is a
+        blemish, a lost board is not.
         """
         try:
             decision = illustrate.invoke(
@@ -373,17 +377,8 @@ def build_graph(
         question = state.question
         if decision.flipped:
             question = flip(question)
-        # After the flip, so the images are keyed by what is now the category.
         question = keep_illustrated(question, decision)
 
-        # Renamed for *every* picture question, not only flipped ones. The
-        # model wrote "Ordne jedem Land seine Hauptstadt zu" for a board of
-        # words; played with photographs the player is not reading a capital,
-        # they are looking at one, and the instruction has to say so. A flip
-        # additionally makes the old title describe the wrong direction.
-        #
-        # Failing to rename is not worth losing the pictures over -- a stale
-        # title is a blemish, a lost board is not.
         detail = ""
         if reframe is not None:
             try:
@@ -445,8 +440,6 @@ def build_graph(
             "repairs": repair.invoke({"raw": state.raw, "problems": state.problems}),
             "attempt": state.attempt + 1,
         }
-
-    # -- routing: the three "what now" decisions, each answered in one place --
 
     def retry_or_stop(state: IngestState) -> str:
         return "repair" if state.attempt < state.max_attempts else END
@@ -522,16 +515,6 @@ def build_graph(
     else:
         builder.add_conditional_edges("extract", after_extract, ["check", "repair", END])
 
-    # `explain` is a terminal decoration, so it has one outgoing edge and no say
-    # in whether the question survives.
-    #
-    # END stays in every target list even when `explain` is present. A clean
-    # question routes to `explain`, but a rejected one with no attempts left
-    # goes straight to END from the same branch -- leave END out and LangGraph
-    # raises `KeyError: '__end__'` on exactly that path.
-    # `illustrate` is where a clean question goes; `explain` is where it goes
-    # after that. Both are terminal decorations with one outgoing edge and no
-    # say in whether the question survives.
     exits = []
     if explain is not None:
         builder.add_node("explain", explain_node)
@@ -630,36 +613,21 @@ def run_article(
     )
     steps: list[str] = []
 
-    # `repair -> extract` is two supersteps per attempt plus the gates, so the
-    # default limit of 25 would cap out around five attempts. Scale it with the
-    # budget the caller actually asked for.
     config = {"recursion_limit": max_attempts * 6 + 10}
 
-    # Two stream modes at once, because neither is enough alone: `updates` says
-    # which node ran but only what it changed, `values` carries the whole state
-    # but not whose work it was. Together they remove any need to re-apply the
-    # updates here -- LangGraph stays the single place that knows how state is
-    # merged, reducers included.
-    #
-    # They arrive interleaved as (mode, chunk), the node name just ahead of the
-    # state it produced, after one opening `values` for the initial state.
     pending: str | None = None
 
-    # Timed per node, because "which step is slow" is the first question anyone
-    # asks of a long run, and the two model calls dominate by orders of
-    # magnitude over the free local check.
     started = time.monotonic()
     last = started
 
     for mode, chunk in graph.stream(state, config=config, stream_mode=["updates", "values"]):
         if mode == "updates":
-            # One node per superstep: nothing in this graph runs in parallel.
             pending = next(iter(chunk), None)
             continue
 
         state = IngestState.model_validate(chunk)
         if pending is None:
-            continue  # the opening state, before any node has run
+            continue
 
         now = time.monotonic()
         line = f"{pending:<9}{now - last:>6.1f}s  {_describe(pending, state)}"

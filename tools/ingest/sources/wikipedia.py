@@ -23,12 +23,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-# Wikimedia asks for a descriptive UA with contact details; anonymous scripts
-# get rate limited hard. Override via IngestSettings.user_agent.
 DEFAULT_USER_AGENT = "quiz-quiz/0.1 (https://github.com/example/quiz-quiz)"
 
-# Namespace/meta pages that top the charts every single day and make terrible
-# quiz material.
 BORING_PREFIXES = (
     "Spezial:",
     "Hauptseite",
@@ -44,18 +40,8 @@ BORING_PREFIXES = (
     "Main_Page",
 )
 
-# The top list also carries script and asset paths (`wiki.phtml`, `index.php`)
-# that are not articles at all and would otherwise cost a fetch each.
 BORING_SUFFIXES = (".php", ".phtml", ".html", ".htm", ".js", ".css")
 
-# Adult sites and sex topics sit permanently near the top of the German
-# pageview charts -- they are the single most consistent presence after
-# "Deutschland". This is a general-audience quiz, so they are dropped.
-#
-# A blocklist is a blunt instrument and this one is deliberately narrow: it
-# matches whole titles, plus a handful of substrings for site families that come
-# in endless variants. It will not catch everything, and the Markdown report is
-# still the place where a person sees what was actually generated.
 BLOCKED_TITLES = frozenset(
     {
         "sex",
@@ -93,10 +79,6 @@ def is_quiz_material(title: str) -> bool:
     return not any(bad in lowered for bad in BLOCKED_SUBSTRINGS)
 
 
-# German Wikipedia files every biography under these, and nothing else uses
-# them -- a birth year, and a gender category. It is the cheapest reliable
-# "is this a person?" signal available, and it costs no extra request because
-# the categories ride along with the text.
 BIOGRAPHY_CATEGORIES = ("Kategorie:Mann", "Kategorie:Frau", "Kategorie:Geboren", "Kategorie:Gestorben")
 
 
@@ -161,11 +143,7 @@ class WikipediaClient:
         self.max_attempts = max_attempts
         self.cache_dir = cache_dir
         self._last_call = 0.0
-        # Articles are fetched from several worker threads; without this the
-        # pacing below is per-thread and the rate limiter sees a burst.
         self._pacing = threading.Lock()
-
-    # -- HTTP -------------------------------------------------------------
 
     def _get(self, url: str) -> dict:
         for attempt in range(1, self.max_attempts + 1):
@@ -194,8 +172,6 @@ class WikipediaClient:
             time.sleep(2.0 * attempt)
 
         raise WikipediaError(f"Gave up on {url}")
-
-    # -- Endpoints --------------------------------------------------------
 
     def top_titles(self, *, day: datetime | None = None, limit: int = 50) -> list[str]:
         """Most-read articles for a day, cleaned of namespace and meta pages.
@@ -304,13 +280,10 @@ class WikipediaClient:
         today = datetime.now(UTC)
 
         for offset in range(1, months + 1):
-            # Step back whole months by pinning the day, so the sample is not
-            # dragged out of alignment by 30-day arithmetic.
             year, month = _months_back(today.year, today.month, offset)
             try:
                 rows = self._daily_top(year, month, day_of_month)
             except WikipediaError:
-                # One unavailable day should not lose the other twenty-three.
                 continue
             for title, count in rows:
                 appearances[title] = appearances.get(title, 0) + 1
@@ -366,7 +339,6 @@ class WikipediaClient:
         try:
             return [(t, int(v)) for t, v in json.loads(path.read_text(encoding="utf-8"))]
         except (ValueError, TypeError):
-            # A corrupt cache file is not worth failing a run over.
             return None
 
     def _write_cache(self, year: int, month: int, day: int, rows: list[tuple[str, int]]) -> None:
@@ -414,11 +386,6 @@ class WikipediaClient:
         if summary.get("type", "").endswith("not_found"):
             raise WikipediaError(f"No such article: {title}")
 
-        # Plain-text extract of the article body. `exintro` keeps it to the lead
-        # section, which is dense with the factual pairings a Zuordnungsfrage
-        # needs and short enough to stay cheap.
-        # Text and categories in one request: the categories are what identify a
-        # biography, and a second round trip per article is not worth paying.
         query = self._get(
             f"https://{self.lang}.wikipedia.org/w/api.php?"
             + urllib.parse.urlencode(

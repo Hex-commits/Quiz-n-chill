@@ -25,11 +25,6 @@ from collections.abc import Callable, Iterable
 
 from .wikipedia import WikipediaClient, WikipediaError
 
-# Categories that hold articles *directly* -- verified against the live API, not
-# guessed. German Wikipedia uses many pure container categories whose members
-# are all subcategories; those come back empty from a namespace-0 query and are
-# useless here, which is why the obvious names (`Kategorie:Epoche`,
-# `Kategorie:Speise`, `Kategorie:Säugetier`) are absent.
 SUBJECT_CATEGORIES: dict[str, tuple[str, ...]] = {
     "geografie": ("Staat in Europa", "Hauptstadt in Europa", "Staat in Afrika"),
     "geschichte": ("Friedensvertrag", "Historisches Territorium (Europa)", "Zeitalter"),
@@ -42,19 +37,14 @@ SUBJECT_CATEGORIES: dict[str, tuple[str, ...]] = {
     "essen-trinken": ("Käsesorte", "Backware", "Getränk"),
 }
 
-# Peer-reviewed on German Wikipedia: checked by other editors for accuracy and
-# completeness. The best sources available, at the cost of skewing obscure.
 VETTED_CATEGORIES = ("Wikipedia:Exzellent", "Wikipedia:Lesenswert")
 
-# German list articles are titled "Liste der ...", "Liste von ...".
 LIST_PREFIXES = ("Liste_", "Liste ")
 
 
 def is_list_article(title: str) -> bool:
     return title.startswith(LIST_PREFIXES)
 
-
-# -- the strategies ------------------------------------------------------
 
 
 def recent(wiki: WikipediaClient, *, limit: int, **_: object) -> list[str]:
@@ -151,8 +141,6 @@ def candidates(name: str, wiki: WikipediaClient, **kwargs: object) -> list[str]:
         raise ValueError(f"Unknown strategy {name!r}. Try one of {sorted(STRATEGIES)}.") from None
     return strategy(wiki, **kwargs)
 
-
-# -- helpers -------------------------------------------------------------
 
 
 def _members(wiki: WikipediaClient, category: str) -> list[str]:

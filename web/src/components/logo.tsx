@@ -45,15 +45,8 @@ export function LogoMark({ className }: { className?: string }) {
       aria-label="Quiz & Chill"
     >
       <g fill="none" strokeWidth={34} strokeLinecap="butt">
-        {/* The strip twists at the top and the bottom of the ring; the split
-            falls where the twist is, which is what gives it a reason to be
-            there. An earlier version split the ring arbitrarily and used a
-            third colour for the tail, and both read as decoration. */}
         <path d="M122 70 A 52 52 0 0 0 122 174" stroke={RIBBON.front} />
         <path d="M122 70 A 52 52 0 0 1 122 174" stroke={RIBBON.back} />
-        {/* Wholly right of centre, so it merges into the back face rather than
-            cutting across the front one. Crosses the band (r=35..69) from
-            inside the counter at r=23 out to r=96. */}
         <path d="M138 138 L190 190" stroke={RIBBON.back} />
       </g>
     </svg>
@@ -77,10 +70,7 @@ export function Logo({
       <LogoMark className="size-[1.35em]" />
       <span
         className={cn(
-          // 900 with the tracking pulled well in: the letters nearly touch,
-          // which is what makes a wordmark read as one shape.
           "font-black tracking-[-0.055em] uppercase",
-          // `inline-block` so the transform below has a box to act on.
           arched && "inline-block [transform:perspective(320px)_rotateX(14deg)]",
         )}
       >

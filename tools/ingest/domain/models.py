@@ -22,8 +22,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .rules import DIFFICULTIES, MAX_PAIRS, MIN_PAIRS
 
-# -- what the generator produces -----------------------------------------
-
 
 class GeneratedPair(BaseModel):
     """One category and the single answer that belongs to it."""
@@ -44,8 +42,6 @@ class GeneratedQuestion(BaseModel):
     difficulty: str = Field(default="medium", description="easy, medium oder hard")
     pairs: list[GeneratedPair] = Field(default_factory=list)
 
-    # Filled by the explain step, not by the extract grammar -- which is why it
-    # is absent from `question_schema`. Keyed by answer label.
     explanations: dict[str, str] = Field(default_factory=dict)
 
     @property
@@ -56,8 +52,6 @@ class GeneratedQuestion(BaseModel):
     def answers(self) -> list[str]:
         return [pair.answer for pair in self.pairs]
 
-    # Kept for the callers that just want "everything on the board". With no
-    # extras left, that is simply the answers.
     all_items = answers
 
 
@@ -85,24 +79,15 @@ class Extraction(BaseModel):
         return self.questions[0] if self.questions else None
 
 
-# -- what the reviewer produces ------------------------------------------
-
 
 class Review(BaseModel):
     """The second pass's verdict on one question."""
 
     ok: bool = True
     problems: list[str] = Field(default_factory=list)
-    # The only content defect a pairing can have: an answer sitting beside the
-    # wrong category. With no extras on the board there is nothing else to get
-    # wrong -- which is why `bad_fakes` and `weak_fakes` are gone.
     misplaced_items: list[str] = Field(default_factory=list)
-    # True when the reviewer could not run at all. The question is kept, but the
-    # report has to say it went unchecked rather than imply it passed.
     skipped: bool = False
 
-
-# -- the grammars handed to Ollama ---------------------------------------
 
 
 # How many drafts one extract call asks for. Two rather than four: the whole
@@ -136,7 +121,33 @@ def questions_schema(subject_slugs: list[str], count: int = DEFAULT_DRAFTS) -> d
 
 
 def question_schema(subject_slugs: list[str]) -> dict:
-    """Constrains one draft. Every field required; enums where possible."""
+    """Constrains one draft. Every field required; enums where possible.
+
+    `pairs` holds one object per pairing, so the grammar itself makes "two
+    answers in one category" unrepresentable rather than merely invalid.
+
+    There is no `minItems`, and that is the opposite of what it looks like.
+    `MIN_PAIRS` was here, and Ollama does enforce it -- which made a short reply
+    *unrepresentable*, so a model with too little material could not take the
+    way out the prompt offers it. Measured on glm4:9b with a four-fact article,
+    three runs each:
+
+        minItems=10 -> `usable: true`, 10-12 pairs, 0/3/8 of the answers
+                       duplicated -- it padded the board by repeating itself,
+                       and `validate` then reports a duplicate answer, which the
+                       repair loop argues with for three attempts before the
+                       article is dropped for the wrong reason.
+        minItems=0  -> four clean pairs, every time.
+
+    And it bought nothing where it looked like it might. On the real leads of
+    `Schach` and `Kaffee`, three runs each: ten pairs and no duplicates with the
+    floor and without it, 3/3 acceptable both ways. The floor was not the
+    pressure keeping boards full.
+
+    So the floor is a *validator* rule, and it has to stay one -- falling below
+    it is how the model declines and how `augment` gets a question to top up.
+    `maxItems` stays, because a ceiling needs no escape hatch.
+    """
     return {
         "type": "object",
         "additionalProperties": False,
@@ -158,32 +169,6 @@ def question_schema(subject_slugs: list[str]) -> dict:
             "title": {"type": "string", "minLength": 3},
             "description": {"type": "string"},
             "difficulty": {"type": "string", "enum": list(DIFFICULTIES)},
-            # One object per pairing, so the grammar itself makes "two answers
-            # in one category" unrepresentable rather than merely invalid.
-            #
-            # No `minItems`, and that is the opposite of what it looks like.
-            # `MIN_PAIRS` was here, and Ollama does enforce it -- which made a
-            # short reply *unrepresentable*, so a model with too little material
-            # could not take the way out the prompt offers it. Measured on
-            # glm4:9b with a four-fact article, three runs each:
-            #
-            #   minItems=10 -> `usable: true`, 10-12 pairs, 0/3/8 of the answers
-            #                  duplicated -- it padded the board by repeating
-            #                  itself, and `validate` then reports a duplicate
-            #                  answer, which the repair loop argues with for
-            #                  three attempts before the article is dropped for
-            #                  the wrong reason.
-            #   minItems=0  -> four clean pairs, every time.
-            #
-            # And it bought nothing where it looked like it might. On the real
-            # leads of `Schach` and `Kaffee`, three runs each: ten pairs and no
-            # duplicates with the floor and without it, 3/3 acceptable both ways.
-            # The floor was not the pressure keeping boards full.
-            #
-            # So the floor is a *validator* rule, and it has to stay one --
-            # falling below it is how the model declines and how `augment` gets a
-            # question to top up. `maxItems` stays, because a ceiling needs no
-            # escape hatch.
             "pairs": {
                 "type": "array",
                 "maxItems": MAX_PAIRS,
@@ -201,9 +186,6 @@ def question_schema(subject_slugs: list[str]) -> dict:
     }
 
 
-# Roughly one line beside the answer. Enforced at decoding time rather than
-# checked afterwards, because "keep it short" in a prompt is a suggestion and a
-# `maxLength` in the grammar is not. The database repeats it as a constraint.
 MAX_EXPLANATION_CHARS = 120
 
 
@@ -241,19 +223,6 @@ def explanation_schema(answers: list[str]) -> dict:
     }
 
 
-# Bounded at decoding time rather than asked for in words. "Genau ein kurzer
-# Satz" in a prompt is a suggestion a 9B model ignores -- it returned three
-# sentences, one of them the prompt's own example pasted verbatim. A `maxLength`
-# in the grammar is not a suggestion.
-#
-# `shown` and `asked` come first, and constrained decoding emits properties in
-# declaration order, so the model has to name which side is the photograph and
-# which side the player supplies *before* it may write the instruction that
-# depends on that. Same trick as `VET_SCHEMA`, for the same reason: this is the
-# one model output nothing downstream can check, because it is prose a player
-# reads rather than data a validator sees. Getting the direction backwards --
-# "Welches Land gehört zu dieser Hauptstadt?" over photographs of countries --
-# is the failure it exists to prevent.
 REFRAME_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -265,6 +234,21 @@ REFRAME_SCHEMA = {
         "description": {"type": "string", "minLength": 3, "maxLength": 80},
     },
 }
+"""Bounded at decoding time rather than asked for in words.
+
+"Genau ein kurzer Satz" in a prompt is a suggestion a 9B model ignores -- it
+returned three sentences, one of them the prompt's own example pasted verbatim.
+A `maxLength` in the grammar is not a suggestion.
+
+`shown` and `asked` come first, and constrained decoding emits properties in
+declaration order, so the model has to name which side is the photograph and
+which side the player supplies *before* it may write the instruction that
+depends on that. Same trick as `VET_SCHEMA`, for the same reason: this is the
+one model output nothing downstream can check, because it is prose a player
+reads rather than data a validator sees. Getting the direction backwards --
+"Welches Land gehört zu dieser Hauptstadt?" over photographs of countries -- is
+the failure it exists to prevent.
+"""
 
 
 def more_pairs_schema(needed: int) -> dict:

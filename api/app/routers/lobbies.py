@@ -6,6 +6,7 @@ from app.schemas import (
     LobbyCreate,
     LobbyIdentity,
     LobbyJoin,
+    LobbySettingsUpdate,
     LobbyStart,
     LobbyView,
     PlayerAction,
@@ -42,6 +43,16 @@ def get_lobby(code: str, player_id: UUID | None = None) -> LobbyView:
     return service.get_view(code, player_id)
 
 
+@router.post("/{code}/settings", response_model=LobbyView)
+def set_settings(code: str, payload: LobbySettingsUpdate) -> LobbyView:
+    """Record the host's choices for the next game, for everyone to see.
+
+    Separate from starting one: the players waiting are entitled to know what
+    is being set up for them, and only the host may write it.
+    """
+    return service.set_settings(code, payload.player_id, payload.settings)
+
+
 @router.post("/{code}/start", response_model=LobbyView)
 def start_game(code: str, payload: LobbyStart) -> LobbyView:
     """Start a game drawn from the chosen subjects.
@@ -68,13 +79,13 @@ def submit_turn(code: str, payload: TurnSubmit) -> LobbyView:
 
 
 @router.post("/{code}/next-round", response_model=LobbyView)
-def skip_review(code: str, payload: PlayerAction) -> LobbyView:
-    """Host cuts the between-rounds review short.
+def ready_for_next_round(code: str, payload: PlayerAction) -> LobbyView:
+    """Any player says they are done reading the answers.
 
-    The review ends on its own timer regardless, so this only ever shortens the
-    wait -- it is not required for the game to progress.
+    Once half of those present have said so a three-second countdown starts,
+    and the round begins when it runs out. Nothing else moves a review on.
     """
-    return service.skip_review(code, payload.player_id)
+    return service.ready_for_next_round(code, payload.player_id)
 
 
 @router.post("/{code}/restart", response_model=LobbyView)

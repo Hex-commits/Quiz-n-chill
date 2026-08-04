@@ -12,7 +12,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from tools.ingest.domain.models import GeneratedQuestion, question_schema
 from tools.ingest.domain.validate import validate
-from tools.ingest.pipeline.prompts import EXTRACT, REPAIR, REVIEW
+from tools.ingest.pipeline.examples import EXAMPLES, EXPLANATION_EXAMPLES
+from tools.ingest.pipeline.prompts import EXPLAIN, EXTRACT, REFRAME, REPAIR, REVIEW
 from tools.ingest.domain import rules
 
 
@@ -87,10 +88,8 @@ def test_the_repair_prompt_asks_for_removal_rather_than_invention():
 
     assert "answers appear more than once" in rendered
     assert "lieber ganz weg" in rendered
-    assert "usable" in rendered  # the way out when a fix drops it below six
+    assert "usable" in rendered
 
-
-# -- the grammar handed to Ollama ----------------------------------------
 
 
 @pytest.mark.parametrize("key", ["usable", "pairs", "difficulty", "subject_slug"])
@@ -179,3 +178,69 @@ def test_the_extract_prompt_rejects_single_subject_questions():
     system = EXTRACT.messages[0].prompt.template
 
     assert "MEHRERE gleichartige Dinge" in system
+
+
+
+def test_the_extract_prompt_shows_real_questions_rather_than_describing_them():
+    """Style is the half of the brief that prose cannot carry. Asked in words
+    for a good title the model wrote 'Periodensystem-Zuordnung'; the fix is
+    four titles from the pool sitting in front of it."""
+    system = EXTRACT.messages[0].prompt.template
+
+    for example in EXAMPLES:
+        assert example.title in system
+        assert example.description in system
+        assert example.slug in system
+
+
+def test_the_examples_do_not_undercut_the_pair_count():
+    """The exemplars come from the seed, whose boards are shorter than the floor
+    this pipeline enforces. Shown whole they would teach seven pairs, so the
+    prompt has to carry the abbreviation with them."""
+    system = EXTRACT.messages[0].prompt.template
+
+    assert "gekürzt" in system
+    assert f"{rules.MIN_PAIRS} bis {rules.MAX_PAIRS} Paare" in system
+
+
+def test_the_examples_are_marked_as_style_and_not_as_content():
+    """A model shown Berlin and asked about coffee will offer Berlin."""
+    system = EXTRACT.messages[0].prompt.template
+
+    assert "NIEMALS ihren Inhalt" in system
+
+
+def test_the_extract_prompt_names_the_slug_shape_it_keeps_getting_wrong():
+    """`kaffee-zuordnung`, `periodensystem-zuordnung`: the article's name plus a
+    suffix. The pool's slugs are the question's own title."""
+    system = EXTRACT.messages[0].prompt.template
+
+    assert "-zuordnung" in system
+    assert "nie der Titel des Artikels" in system
+
+
+def test_the_extract_prompt_says_which_side_the_description_asks_about():
+    """A description that names the category and asks for the answer is the one
+    thing every question in the pool has in common."""
+    system = EXTRACT.messages[0].prompt.template
+
+    assert "nennt die KATEGORIE im Singular" in system
+    assert "fragt nach der ANTWORT" in system
+
+
+def test_the_explain_prompt_carries_the_seed_explanations():
+    """The seed's third element *is* the house style for an explanation --
+    telegraphic, one hard fact, often verbless."""
+    system = EXPLAIN.messages[0].prompt.template
+
+    for pair in EXPLANATION_EXAMPLES:
+        assert pair.why in system
+
+
+def test_the_reframe_prompt_titles_a_picture_question_the_same_way():
+    """It overwrites title and description, so a style rule it does not share is
+    a style rule that only holds for text questions."""
+    system = REFRAME.messages[0].prompt.template
+
+    assert "Städte & Länder" in system
+    assert "höchstens acht Wörter" in system

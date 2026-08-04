@@ -21,7 +21,6 @@ def read_requirements(name: str) -> set[str]:
     return {
         line.strip()
         for line in lines
-        # `-r` includes another file; comments and blanks are not requirements.
         if line.strip() and not line.startswith(("#", "-"))
     }
 

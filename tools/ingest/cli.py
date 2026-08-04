@@ -89,7 +89,6 @@ pointed at it -- the URL and the key have to name the same project:
 The model still runs locally; only the finished rows leave the machine.
 """
 
-# An article shorter than this has no room for a set of clean pairings.
 MIN_ARTICLE_CHARS = 600
 
 
@@ -222,7 +221,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--trace",
         action="store_true",
-        help=argparse.SUPPRESS,  # kept so older commands still run; now the default
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--commit",
@@ -239,6 +238,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Resolve settings, run the pipeline, write the reports.
+
+    The header says the environment-only settings out loud, because they are no
+    longer flags anyone typed: a setting that lives in `.env` is one you can
+    forget is on, and `INGEST_VET` costs a model call per borrowed pair. The
+    same goes for what `select` is allowed to do -- "may only sort" and "may
+    drop the article" are very different steps and the difference is a setting.
+
+    Vetting being *off* is announced for the opposite reason: nothing else will.
+    `review` cannot tell whether a borrowed pair belongs to this question -- it
+    judges pairs, and that is a property of the board -- so with vetting off the
+    report is the only place a drifted pair gets caught. See
+    `pipeline/augment.py`. The Supabase target is printed because a run aimed at
+    a hosted project from this machine looks exactly like a local one until the
+    rows are already there.
+    """
     args = build_parser().parse_args(argv)
     _speak_utf8()
 
@@ -254,10 +269,6 @@ def main(argv: list[str] | None = None) -> int:
         print(exc, file=sys.stderr)
         return 2
 
-    # The first thing that actually touches the network. A mistyped or
-    # unreachable URL surfaces here, and it is the most likely thing to be wrong
-    # now that it is configurable -- so it gets a message rather than a
-    # traceback from three libraries down.
     db = connect(settings.supabase_url, settings.supabase_key)
     try:
         known_subjects = subjects(db)
@@ -280,7 +291,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     subject_slugs = {slug for slug, _ in known_subjects}
 
-    # Fail here rather than after fetching a dozen articles.
     try:
         installed = available_models(settings.ollama_url)
     except LLMError as exc:
@@ -308,13 +318,8 @@ def main(argv: list[str] | None = None) -> int:
     ]
     print("=" * 72)
     print(f"  Model      {settings.model}  via {settings.ollama_url}  [{_processor(settings.ollama_url)}]")
-    # Said out loud because it is no longer a flag anyone typed: a setting that
-    # lives in `.env` is one you can forget is on, and this one costs a model
-    # call per borrowed pair.
     judged_by = "same model" if settings.judge_model == settings.model else settings.judge_model
     if selecting:
-        # Said out loud, because "may only sort" and "may drop the article" are
-        # very different steps and the difference is a setting, not a flag.
         powers = (
             "may reject the batch"
             if settings.judge_model != settings.model
@@ -324,13 +329,7 @@ def main(argv: list[str] | None = None) -> int:
     if settings.vet and not args.no_augment:
         print(f"  Vetting    on  (INGEST_VET)  judged by {judged_by}")
     elif not args.no_augment:
-        # Said out loud because nothing else will. `review` cannot tell whether a
-        # borrowed pair belongs to this question -- it judges pairs, and that is a
-        # property of the board -- so with vetting off the report is the only
-        # place a drifted pair gets caught. See `pipeline/augment.py`.
         print("  Vetting    off  (INGEST_VET)  borrowed pairs are unjudged -- read the report")
-    # Said out loud, because a run aimed at a hosted project from this machine
-    # looks exactly like a local one until the rows are already there.
     where = "" if is_local(settings.supabase_url) else "   [REMOTE PROJECT]"
     print(f"  Supabase   {settings.supabase_url}{where}")
     print(f"  Source     {args.source}" + (f", {args.months} months" if args.source in ("mixed", "evergreen", "lists") else ""))
@@ -339,17 +338,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  Mode       {'COMMIT -- questions will be written' if args.commit else 'dry run -- nothing is written'}")
     print("=" * 72)
 
-    # Past pageview counts never change, so the cache next to the reports makes
-    # the evergreen scan free on every run after the first.
-    #
-    # Built before the graph because `augment` searches through it: the step
-    # that looks for missing pairs in other articles needs the same client, the
-    # same pacing and the same rate-limit backoff as the main run.
     wiki = WikipediaClient(lang=args.lang, cache_dir=args.out / ".cache")
 
-    # One model, one graph, reused for every article -- nothing in either is
-    # article-specific, and rebuilding them per article would only re-derive the
-    # same JSON Schema.
     model = chat_model(base_url=settings.ollama_url, model=settings.model)
     # Same weights, no sampling. Every step that *judges* rather than writes runs
     # on this one: a reviewer whose verdict moves between runs is not a gate, and
@@ -417,11 +407,9 @@ def main(argv: list[str] | None = None) -> int:
         with seen_lock:
             already = article.url in seen_sources
         if already:
-            # Re-running is additive, not duplicating.
             return _Attempt(article.title, skip="already sourced")
         if len(article.text) < MIN_ARTICLE_CHARS:
             return _Attempt(article.title, skip=f"only {len(article.text)} chars")
-        # Before the model, because this is the skip that saves real time.
         if article.is_biography and not args.include_people:
             return _Attempt(article.title, skip="biography")
 
@@ -443,7 +431,6 @@ def main(argv: list[str] | None = None) -> int:
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         in_flight: dict = {}
         while queue or in_flight:
-            # Only keep work in flight while more questions are still wanted.
             while queue and len(in_flight) < args.workers and len(accepted) < args.limit:
                 title = queue.popleft()
                 in_flight[pool.submit(process, title)] = title
@@ -467,9 +454,6 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"         {line}")
 
                 article = attempt.article
-                # One article can yield more than one question: `select` keeps
-                # every draft worth playing, and each was put through the gates on
-                # its own.
                 for outcome in attempt.outcomes:
                     question = outcome.question
                     record = {
@@ -478,15 +462,10 @@ def main(argv: list[str] | None = None) -> int:
                         "problems": outcome.problems,
                         "review": outcome.review.model_dump() if outcome.review else None,
                         "steps": outcome.steps,
-                        # Keyed by category label, so the report can put each picture
-                        # beside the pairing it belongs to.
                         "images": {
                             label: asdict(image) for label, image in outcome.images.items()
                         },
                         "flipped": outcome.flipped,
-                        # Which articles pairs were borrowed from. In the record
-                        # because with `INGEST_VET` off nothing judged whether they
-                        # belong, and the report is where that gets caught.
                         "borrowed_from": outcome.borrowed_from,
                         "vetted": settings.vet and not args.no_augment,
                         "select_detail": outcome.select_detail,
@@ -499,9 +478,6 @@ def main(argv: list[str] | None = None) -> int:
                         )
                         continue
 
-                    # Writing happens here, on one thread, rather than in the
-                    # worker: the Supabase client is shared and the ordered
-                    # insert-with-rollback is not worth making concurrent.
                     if args.commit:
                         written = write_question(db, question, article, outcome.images)
                         record["written"] = asdict(written)
@@ -520,8 +496,6 @@ def main(argv: list[str] | None = None) -> int:
                         seen_sources.add(article.url)
                     accepted.append(record)
 
-                # A running tally after every article, so a long run never
-                # leaves you guessing how far along it is or how it is going.
                 print(f"         {_progress(accepted, rejected, skipped, args.limit, run_started)}\n")
 
             if len(accepted) >= args.limit and not in_flight:
@@ -558,7 +532,7 @@ def _speak_utf8() -> None:
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # not a real console; already fine
+        except (AttributeError, ValueError):
             pass
 
 
@@ -573,8 +547,6 @@ def _progress(accepted, rejected, skipped, limit, started) -> str:
     parts = [f"{done}/{limit} accepted", f"{len(rejected)} dropped", f"{skipped} skipped"]
 
     if done and done < limit:
-        # Rate per accepted question is the only honest basis for an estimate:
-        # the skips are nearly free and the drops are not.
         remaining = (elapsed / done) * (limit - done)
         parts.append(f"~{_clock(remaining)} left")
     parts.append(f"{_clock(elapsed)} elapsed")
@@ -626,8 +598,6 @@ def _candidates(wiki: WikipediaClient, args, subject_slugs: set[str]) -> list[st
     if titles:
         return titles
 
-    # Every source was unreachable. Today's list is worse material, but it beats
-    # doing nothing.
     print("  (no candidates from that source; falling back to the current top list)")
     return wiki.top_titles(limit=wanted)
 
@@ -644,8 +614,6 @@ def _write_reports(
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     payload = {"accepted": accepted, "rejected": rejected, "committed": args.commit}
 
-    # JSON is the machine record; Markdown is the one a person actually reads to
-    # answer "is each fake really a fake?", which nothing automatic can.
     json_report = args.out / f"ingest-{stamp}.json"
     json_report.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 

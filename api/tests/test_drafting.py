@@ -51,7 +51,7 @@ def test_a_small_subject_does_not_short_change_the_count():
     drawn = draw_balanced(pools, 6, rng=random.Random(5))
 
     assert len(drawn) == 6
-    assert spread(drawn)["t"] == 1  # tiny contributed all it had
+    assert spread(drawn)["t"] == 1
 
 
 def test_a_single_subject_works():
@@ -87,13 +87,6 @@ def test_the_same_seed_reproduces_the_same_draw():
     a = draw_balanced(POOLS, 5, rng=random.Random(42))
     b = draw_balanced(POOLS, 5, rng=random.Random(42))
     assert a == b
-
-
-# -- avoiding what has already been played -----------------------------------
-#
-# A soft cap, not a filter. The client remembers what this group has played and
-# sends it along; the draw prefers anything else, but a table that has worked
-# through the pool must still get a game.
 
 
 def test_an_unplayed_question_is_preferred_over_a_played_one():

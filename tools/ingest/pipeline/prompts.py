@@ -9,6 +9,14 @@ rather than a silently half-filled prompt.
 work: the first pass fills it with nothing, and each rejected attempt appends
 the model's own answer plus the complaints about it, so attempt three still sees
 everything that went wrong in attempts one and two.
+
+The rules here come in two kinds, and the difference is worth keeping straight.
+What makes a question *correct* is stated -- one answer per category, everything
+from the article -- because `validate.py` and the reviewer enforce the same
+thing afterwards. What makes a question *ours* is shown instead, out of
+`examples.py`: told to write a good title a small model writes
+"Periodensystem-Zuordnung", and no amount of prose fixes that, while four real
+titles from the seeded pool do.
 """
 
 from __future__ import annotations
@@ -16,15 +24,8 @@ from __future__ import annotations
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 
 from ..domain.rules import MAX_ITEM_WORDS, MAX_PAIRS, MIN_PAIRS
+from .examples import render_explanations, render_questions
 
-# -- extract -------------------------------------------------------------
-
-# Interpolated from `rules.py` rather than written out, because these numbers
-# appear in three places that must agree: the grammar Ollama decodes against,
-# the validator that rejects afterwards, and the prompt that tells the model
-# when to give up instead. The prompt was the one not bound to the source, and
-# it drifted the moment the range changed -- the model was still being told to
-# decline below six while the grammar demanded ten.
 EXTRACT_SYSTEM = f"""\
 Du erstellst Zuordnungsfragen für ein deutschsprachiges Quiz.
 
@@ -110,6 +111,33 @@ ist schlechter als keine zweite Frage.
 Gibt der Artikel überhaupt nichts her, gib eine einzige Frage mit
 `usable: false` zurück.
 
+STIL -- SO SEHEN UNSERE FRAGEN AUS:
+
+- Die Frage handelt von einer KLASSE von Dingen, nicht vom Artikel. Der Artikel
+  ist der Steinbruch, nicht das Thema. Aus dem Artikel "Periodensystem" wird
+  "Chemische Elemente", niemals "Periodensystem-Zuordnung".
+- `title`: zwei oder drei Wörter, keine Frage, kein Doppelpunkt, kein
+  Artikelname. Entweder beide Seiten der Zuordnung mit & verbunden
+  ("Gemälde & Maler") oder eine Sammelbezeichnung im Plural
+  ("Chemische Elemente").
+- `slug`: der Titel klein geschrieben, ohne &, mit Bindestrichen, Umlaute
+  ausgeschrieben -- "gemaelde-maler", "hauptstaedte-europas". Nie ein Anhängsel
+  wie "-zuordnung" und nie der Titel des Artikels.
+- `description`: GENAU EINE Frage mit Fragezeichen, höchstens acht Wörter. Sie
+  nennt die KATEGORIE im Singular mit Artikel und fragt nach der ANTWORT --
+  Kategorie "Italien", Antwort "Rom" ergibt "Welche Stadt ist die Hauptstadt des
+  Landes?". Sprich den Spieler nicht an ("Ordne zu ..."), und nenne kein Wort,
+  das in den Paaren vorkommt.
+- Kategorien und Antworten stehen ohne Artikel und ohne Zusatz in Klammern da.
+- Antworten sind so kurz, wie sie eindeutig sein können: "Goethe", nicht
+  "Johann Wolfgang von Goethe"; "Fe", nicht "Fe (Eisen)".
+
+Vier echte Fragen aus unserem Bestand. Übernimm ihre Machart -- Zuschnitt,
+Titel, Anleitung, Kürze der Antworten -- aber NIEMALS ihren Inhalt: deine Frage
+kommt aus dem Artikel unten.
+
+{render_questions()}
+
 Antworte ausschließlich mit dem geforderten JSON-Objekt.
 """
 
@@ -130,46 +158,9 @@ EXTRACT = ChatPromptTemplate.from_messages(
     [
         ("system", EXTRACT_SYSTEM),
         ("human", EXTRACT_HUMAN),
-        # Empty on the first attempt; every repair appends the rejected answer
-        # and the complaints about it.
         MessagesPlaceholder("repairs", optional=True),
     ]
 )
-
-# -- select --------------------------------------------------------------
-#
-# `extract` writes several drafts of one article; this picks the ones worth
-# playing. It is not a correctness check -- `check` and `review` do that, and this
-# runs before both, on drafts nothing has vetted yet. The judgement is narrower
-# and it is the one no other step makes: **does answering this teach the player
-# anything?**
-#
-# The two failure modes it exists to catch, neither of which is a rule violation:
-#
-#   1. The trivial board. "Deutschland -> Berlin" for ten European capitals is
-#      well-formed, factual, unambiguous and worth nothing to anyone who has been
-#      to school. Every gate downstream passes it.
-#   2. The arbitrary board. Ten obscure list entries paired with their catalogue
-#      numbers is equally well-formed and equally worthless -- there is nothing to
-#      *know*, only something to have read.
-#
-# Keeping several is expected and is the point of asking for several: one article
-# usually holds more than one good question, and the pipeline used to take
-# whichever the model happened to write first.
-#
-# **What it is worth today.** On `glm4:9b`, not much: asked about two drafts of
-# `Periodensystem` it kept both and called them "gut geeignet für ein Quiz", one
-# of which was two pairs long with the same answer under both categories. That is
-# the same agreement bias measured for the homogeneity judgement below and for
-# `vet.py` -- a small model asked "is this good?" says yes.
-#
-# It is wired to `INGEST_JUDGE_MODEL` for that reason, alongside `vet`: the
-# mechanism is sound and the judge is the part to upgrade. The step cannot admit
-# a *malformed* question whatever it thinks, because `check` and `review` are both
-# downstream of it -- the broken draft above was duly dropped. What a weak judge
-# costs is the filtering: it keeps drafts that are merely dull, so the pool grows
-# faster than it improves. `--drafts 1` is the way back to one question per
-# article, and it skips this step entirely.
 
 SELECT_SYSTEM = """\
 Du wählst aus mehreren Entwürfen für Quiz-Fragen die aus, die es wert sind,
@@ -219,11 +210,39 @@ SELECT = ChatPromptTemplate.from_messages(
         ("human", SELECT_HUMAN),
     ]
 )
+"""Picks which of `extract`'s drafts are worth playing.
 
-# -- repair --------------------------------------------------------------
+Not a correctness check -- `check` and `review` do that, and this runs before
+both, on drafts nothing has vetted yet. The judgement is narrower and it is the
+one no other step makes: **does answering this teach the player anything?**
 
-# `{{problems}}` survives the f-string as a literal `{problems}`, which is what
-# PromptTemplate then fills in. The pair count is baked in here and now.
+The two failure modes it exists to catch, neither of which is a rule violation:
+
+    1. The trivial board. "Deutschland -> Berlin" for ten European capitals is
+       well-formed, factual, unambiguous and worth nothing to anyone who has
+       been to school. Every gate downstream passes it.
+    2. The arbitrary board. Ten obscure list entries paired with their catalogue
+       numbers is equally well-formed and equally worthless -- there is nothing
+       to *know*, only something to have read.
+
+Keeping several is expected and is the point of asking for several: one article
+usually holds more than one good question, and the pipeline used to take
+whichever the model happened to write first.
+
+**What it is worth today.** On `glm4:9b`, not much: asked about two drafts of
+`Periodensystem` it kept both and called them "gut geeignet für ein Quiz", one
+of which was two pairs long with the same answer under both categories. That is
+the same agreement bias measured for the homogeneity judgement in `REVIEW` and
+for `vet.py` -- a small model asked "is this good?" says yes.
+
+It is wired to `INGEST_JUDGE_MODEL` for that reason, alongside `vet`: the
+mechanism is sound and the judge is the part to upgrade. The step cannot admit a
+*malformed* question whatever it thinks, because `check` and `review` are both
+downstream of it. What a weak judge costs is the filtering: it keeps drafts that
+are merely dull, so the pool grows faster than it improves. `--drafts 1` is the
+way back to one question per article, and it skips this step entirely.
+"""
+
 REPAIR = PromptTemplate.from_template(
     f"""\
 Deine letzte Antwort verletzt diese Regeln:
@@ -237,21 +256,6 @@ kann: lass es lieber ganz weg, statt es durch etwas Erfundenes zu ersetzen.
 Fällst du dabei unter {MIN_PAIRS} Paare, setze `usable` auf false.
 """
 )
-
-# -- reframe -------------------------------------------------------------
-#
-# Runs on every question that becomes a picture question. `extract` wrote the
-# title and the instruction for a board of words -- "Ordne jedem Land seine
-# Hauptstadt zu" -- and played with photographs the player is not reading a
-# capital, they are looking at one.
-#
-# A flipped question needs it twice over: the pairing survives a flip, because
-# `Eisen -> Fe` and `Fe -> Eisen` are the same fact, but "Elemente und ihre
-# Symbole" is simply wrong once the symbol is what you are given.
-#
-# The pairs go in already in their final direction and the model is told only to
-# rename, never to change them. It cannot: nothing downstream reads a pair back
-# out of this reply.
 
 REFRAME_SYSTEM = """\
 Du benennst eine bestehende Zuordnungsfrage um.
@@ -278,23 +282,25 @@ du sie verdrehst, fragt die Anleitung nach dem, was der Spieler schon sieht.
 
 REGELN:
 - Deutsch.
-- Der Titel nennt beide Seiten der Zuordnung.
-- Die Anleitung ist GENAU EIN kurzer Satz, höchstens 12 Wörter. Sie spricht das
-  Bild an und fragt nach der ANTWORT -- also nach dem, was der Spieler dem Bild
-  zuordnen soll. Nimm die Wörter aus den Paaren unten, nicht aus dieser
-  Anleitung.
+- Der Titel nennt beide Seiten der Zuordnung, mit & verbunden, zwei oder drei
+  Wörter: "Städte & Länder", "Elemente & Symbole". Keine Frage, kein
+  Doppelpunkt, kein Artikelname.
+- Die Anleitung ist EIN Satz mit Fragezeichen, höchstens acht Wörter. Sie
+  spricht das Bild an und fragt nach der ANTWORT -- also nach dem, was der
+  Spieler dem Bild zuordnen soll. Nimm die Wörter aus den Paaren unten, nicht
+  aus dieser Anleitung.
 - Ändere KEINE Paare. Erfinde nichts dazu.
 
 Die Beispiele hier sind NUR das Format, niemals der Inhalt:
   Paare "Paris -> Frankreich", "Rom -> Italien"   (Bild = die Stadt)
     shown:       "eine Stadt"
     asked:       "das Land"
-    title:       "Städte und ihre Länder"
+    title:       "Städte & Länder"
     description: "In welchem Land liegt diese Stadt?"
   Paare "Eisen -> Fe", "Sauerstoff -> O"          (Bild = das Element)
     shown:       "ein chemisches Element"
     asked:       "das Symbol"
-    title:       "Elemente und ihre Symbole"
+    title:       "Elemente & Symbole"
     description: "Welches Symbol gehört zu diesem Element?"
 """
 
@@ -314,20 +320,6 @@ REFRAME = ChatPromptTemplate.from_messages(
         ("human", REFRAME_HUMAN),
     ]
 )
-
-# -- augment -------------------------------------------------------------
-#
-# Runs only when a question failed the pair count and nothing else. The model is
-# reading a DIFFERENT article from the one the question came from, so the two
-# risks here are not the ones the extract prompt guards against:
-#
-#   1. Drifting off the relation. Given "Fluss -> Länge" and an article about a
-#      river, a model will happily offer "Fluss -> Quellgebiet". That is a fine
-#      pairing and the wrong one, and mixed into a board it makes the question
-#      unanswerable.
-#   2. Filling the gap. It is told exactly how many are missing, which is an
-#      invitation to invent that many. Saying "fewer is fine, none is fine" is
-#      the only thing that reliably stops it.
 
 AUGMENT_SYSTEM = """\
 Du ergänzt eine bestehende Zuordnungsfrage um weitere Paare.
@@ -371,22 +363,19 @@ AUGMENT = ChatPromptTemplate.from_messages(
         ("human", AUGMENT_HUMAN),
     ]
 )
+"""Asks for further pairs from a *different* article.
 
-# -- vet -----------------------------------------------------------------
-#
-# Judges ONE borrowed pair against the board. Per pair rather than per board,
-# because a model asked "are these all the same kind of thing" answers about the
-# set and says yes; asked about a single pair it at least has something specific
-# to be wrong about.
-#
-# `relation` comes first in the schema and constrained decoding emits properties
-# in order, so the model has to name what the board asks before it may rule on
-# the candidate. That is the difference between judging meaning and judging
-# shape -- without it, `Mosel -> Rhein` passes a board of river lengths because
-# it looks the same.
-#
-# Measured at roughly chance on glm4:9b. See the note in `vet.py`; the step is
-# off by default for that reason.
+Runs only when a question failed the pair count and nothing else, so the two
+risks here are not the ones the extract prompt guards against:
+
+    1. Drifting off the relation. Given "Fluss -> Länge" and an article about a
+       river, a model will happily offer "Fluss -> Quellgebiet". That is a fine
+       pairing and the wrong one, and mixed into a board it makes the question
+       unanswerable.
+    2. Filling the gap. It is told exactly how many are missing, which is an
+       invitation to invent that many. Saying "fewer is fine, none is fine" is
+       the only thing that reliably stops it.
+"""
 
 VET_SYSTEM = """\
 Auf einem Quiz-Spielfeld stehen Paare. Jedes beantwortet dieselbe Frage über
@@ -429,10 +418,23 @@ VET = ChatPromptTemplate.from_messages(
         ("human", VET_HUMAN),
     ]
 )
+"""Judges ONE borrowed pair against the board.
 
-# -- explain -------------------------------------------------------------
+Per pair rather than per board, because a model asked "are these all the same
+kind of thing" answers about the set and says yes; asked about a single pair it
+at least has something specific to be wrong about.
 
-EXPLAIN_SYSTEM = """\
+`relation` comes first in the schema and constrained decoding emits properties
+in order, so the model has to name what the board asks before it may rule on the
+candidate. That is the difference between judging meaning and judging shape --
+without it, `Mosel -> Rhein` passes a board of river lengths because it looks
+the same.
+
+Measured at roughly chance on glm4:9b. See the note in `vet.py`; the step is off
+by default for that reason.
+"""
+
+EXPLAIN_SYSTEM = f"""\
 Du schreibst zu jeder Antwort einer Zuordnungsfrage eine sehr kurze Begründung.
 
 Sie wird dem Spieler erst NACH dem Antworten gezeigt, direkt neben der Antwort.
@@ -442,11 +444,16 @@ REGELN:
 - Höchstens EIN kurzer Satz, maximal 12 Wörter. Kein Nebensatzgeflecht.
 - Kein einleitendes Gerede ("Diese Antwort ist richtig, weil ..."). Direkt zur
   Sache.
-- Nenne den entscheidenden Fakt, nicht die Spielregel.
+- Nenne den entscheidenden Fakt, nicht die Spielregel. Am besten ist eine harte
+  Angabe: eine Jahreszahl, ein Ort, die Herkunft des Namens, das eine Merkmal.
+- Ein Satz ohne Verb ist erlaubt und oft der bessere ("Vom lateinischen
+  aurum."). Punkt am Ende.
 - Deutsch.
 
-Beispiel: Antwort "Berlin", Kategorie "Deutschland"
-          -> "Hauptstadt Deutschlands seit 1990."
+So sehen unsere Begründungen aus -- oben das Paar, darunter die Begründung zu
+seiner Antwort:
+
+{render_explanations()}
 
 Schreibe für JEDE Antwort genau eine Begründung.
 """
@@ -470,8 +477,6 @@ EXPLAIN = ChatPromptTemplate.from_messages(
         ("human", EXPLAIN_HUMAN),
     ]
 )
-
-# -- review --------------------------------------------------------------
 
 REVIEW_SYSTEM = """\
 Du prüfst eine Zuordnungsfrage für ein Quiz gegen den Quelltext.
@@ -515,29 +520,32 @@ Die Zuordnung:
 Prüfe die Frage.
 """
 
-# Three things, not four. Homogeneity -- "are all these pairs the same kind of
-# pairing" -- belongs here in principle and was tried here in practice, and
-# glm4:9b cannot do it. Measured on five boards, including
-#
-#     Deutschland -> Berlin, Frankreich -> Baguette, Italien -> Rom
-#
-# it answered `same_kind: true` every time, and justified that one as
-# "Land -> Hauptstadt". A dedicated single-purpose prompt with three worked
-# examples did no better than a fourth bullet in this one, so it is not a
-# question of wording: the model is agreement-biased and this judgement is past
-# it. Adding the bullet anyway would lengthen a prompt it already struggles with
-# and document a check that does not happen.
-#
-# So the board's consistency is still caught by a person reading the Markdown
-# report before `--commit`, which is what that report is for. Worth retrying on
-# a larger reviewer model.
-
-# No MessagesPlaceholder here, and that is the point: the reviewer sees the
-# article and the finished question, never the generator's transcript. A model
-# re-reading its own reasoning mostly agrees with itself.
 REVIEW = ChatPromptTemplate.from_messages(
     [
         ("system", REVIEW_SYSTEM),
         ("human", REVIEW_HUMAN),
     ]
 )
+"""Checks three things, not four.
+
+Homogeneity -- "are all these pairs the same kind of pairing" -- belongs here in
+principle and was tried here in practice, and glm4:9b cannot do it. Measured on
+five boards, including
+
+    Deutschland -> Berlin, Frankreich -> Baguette, Italien -> Rom
+
+it answered `same_kind: true` every time, and justified that one as
+"Land -> Hauptstadt". A dedicated single-purpose prompt with three worked
+examples did no better than a fourth bullet in this one, so it is not a question
+of wording: the model is agreement-biased and this judgement is past it. Adding
+the bullet anyway would lengthen a prompt it already struggles with and document
+a check that does not happen.
+
+So the board's consistency is still caught by a person reading the Markdown
+report before `--commit`, which is what that report is for. Worth retrying on a
+larger reviewer model.
+
+There is no MessagesPlaceholder here, and that is the point: the reviewer sees
+the article and the finished question, never the generator's transcript. A model
+re-reading its own reasoning mostly agrees with itself.
+"""

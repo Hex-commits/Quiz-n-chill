@@ -47,7 +47,6 @@ export function RejoinForm({ code }: { code: string }) {
       const identity = await joinLobby(code, name);
       rememberNickname(name);
       rememberPlayer(identity.code, identity.player_id);
-      // Reload so the room picks the identity up from storage.
       router.refresh();
       window.location.reload();
     } catch (cause) {

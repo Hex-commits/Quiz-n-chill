@@ -11,6 +11,7 @@ import type {
   CheckResult,
   Difficulty,
   LobbyIdentity,
+  LobbySettings,
   LobbyView,
   QuizDetail,
   QuizSummary,
@@ -29,14 +30,6 @@ function baseUrl(): string {
       ? (process.env.API_URL ?? DEFAULT_API_URL)
       : (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL);
 
-  // Trailing slashes are stripped because every path below starts with one, and
-  // `https://api.example.com/` + `/lobbies` is `//lobbies` -- a different path,
-  // which the server answers with a redirect to the real one.
-  //
-  // That is fatal rather than untidy: a browser will not follow a redirect on a
-  // CORS *preflight*, so the request fails with "Redirect is not allowed for a
-  // preflight request" and reads as a CORS misconfiguration. It is not one, and
-  // no amount of correcting the allowed origins fixes it.
   return configured.replace(/\/+$/, "");
 }
 
@@ -67,13 +60,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         "Content-Type": "application/json",
         ...init?.headers,
       },
-      // Quiz content changes rarely but must not be stale after an edit, so
-      // opt out of Next's fetch cache and let page-level revalidation decide.
       cache: "no-store",
     });
   } catch (cause) {
-    // Keep the original cause attached -- "fetch failed" alone does not
-    // distinguish a refused connection from a DNS miss.
     throw new ApiError(
       `Cannot reach the API at ${baseUrl()}. Is the backend running?`,
       503,
@@ -97,8 +86,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-// --- Quizzes ---------------------------------------------------------------
-
 export function listSubjects(): Promise<Subject[]> {
   return request<Subject[]>("/subjects");
 }
@@ -113,8 +100,6 @@ export function listQuizzes(subjectSlugs?: string[]): Promise<QuizSummary[]> {
 export function getQuiz(slugOrId: string): Promise<QuizDetail> {
   return request<QuizDetail>(`/quizzes/${encodeURIComponent(slugOrId)}`);
 }
-
-// --- Checking --------------------------------------------------------------
 
 /**
  * Grade an assignment. Stateless on the server: nothing about this attempt is
@@ -132,12 +117,6 @@ export function checkAssignment(
     },
   );
 }
-
-// --- Lobbies ---------------------------------------------------------------
-//
-// Lobby state lives in the API process, not the database. It is gone when the
-// backend restarts, and it needs a single long-lived process -- see the README
-// note about Vercel's serverless runtime.
 
 export function createLobby(nickname: string): Promise<LobbyIdentity> {
   return request<LobbyIdentity>("/lobbies", {
@@ -189,8 +168,25 @@ export function markAway(code: string, playerId: string): void {
       keepalive: true,
     }).catch(() => {});
   } catch {
-    // Ignore: unload is not a place to surface errors.
   }
+}
+
+/**
+ * Publish what the host has picked, so the rest of the table can see it.
+ *
+ * Refused for anyone but the host, and once the game is running. The players
+ * waiting have no other source for this: until it is sent, the choices exist
+ * only in the host's browser.
+ */
+export function updateLobbySettings(
+  code: string,
+  playerId: string,
+  settings: LobbySettings,
+): Promise<LobbyView> {
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/settings`, {
+    method: "POST",
+    body: JSON.stringify({ player_id: playerId, settings }),
+  });
 }
 
 /**
@@ -239,8 +235,17 @@ export function submitTurn(
   });
 }
 
-/** Host cuts the between-rounds review short. It ends on its own timer anyway. */
-export function skipReview(code: string, playerId: string): Promise<LobbyView> {
+/**
+ * Say you are done reading the answers. Anyone in the lobby may.
+ *
+ * Once half of those present have said so the server starts a three-second
+ * countdown and the round begins when it runs out. Nothing else moves a review
+ * on -- it has no timer of its own until somebody asks.
+ */
+export function readyForNextRound(
+  code: string,
+  playerId: string,
+): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/next-round`, {
     method: "POST",
     body: JSON.stringify({ player_id: playerId }),

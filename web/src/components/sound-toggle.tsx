@@ -29,9 +29,6 @@ export function SoundToggle() {
     const next = !muted;
     setMuted(next);
     if (!next) {
-      // This click is a user gesture, which is the only moment the browser will
-      // let an AudioContext start -- and a confirmation is the natural thing to
-      // hear when you switch sound back on.
       unlock();
       play("correct");
     }

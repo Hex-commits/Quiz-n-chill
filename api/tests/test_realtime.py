@@ -90,7 +90,6 @@ def test_the_payload_carries_the_state_and_its_version(monkeypatch):
     message = captured["json"]["messages"][0]
     assert message["topic"] == "lobby:TR3X"
     assert message["payload"]["version"] == 7
-    # Sent whole, so a client can render it without asking for anything.
     assert message["payload"]["state"]["code"] == "TR3X"
     assert captured["url"].endswith("/realtime/v1/api/broadcast")
 
@@ -101,8 +100,6 @@ def test_the_broadcast_never_carries_an_unplaced_answer(monkeypatch):
     still in the pool must not name its category, and no explanation may appear
     before the round is over."""
     enable(monkeypatch)
-    # The round is stubbed the same way test_lobbies stubs it, so this runs
-    # without a database and the answer key is known here.
     monkeypatch.setattr(lobbies, "_load_round", make_round)
     monkeypatch.setattr(lobbies, "_subject_names", lambda slugs: list(slugs))
     monkeypatch.setattr(
@@ -131,8 +128,6 @@ def test_the_broadcast_never_carries_an_unplaced_answer(monkeypatch):
     state = captured["json"]["messages"][0]["payload"]["state"]
     round_view = state["round_view"]
 
-    # Berlin is placed, so it may name its category. Nothing still in the pool
-    # may, and no reason may appear before the round is over.
     assert [solved["label"] for solved in round_view["solved_items"]] == ["Berlin"]
     assert [item["label"] for item in round_view["remaining_items"]] == [
         "Paris",

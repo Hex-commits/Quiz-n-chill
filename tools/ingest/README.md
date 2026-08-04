@@ -258,6 +258,7 @@ tools/ingest/
 ├── pipeline/          turning an article into a question
 │   ├── llm.py           the local model as a LangChain chat model
 │   ├── prompts.py       every word sent to it, as prompt templates
+│   ├── examples.py      the house style, as questions from the seed
 │   ├── chains.py        one LCEL chain per step
 │   └── graph.py         the LangGraph state machine
 ├── sources/           where articles come from
@@ -367,7 +368,7 @@ per article).
         check       0.0s  ok
         review      2.1s  ok
         explain     6.9s  11/11 answers explained
-        ACCEPTED   30s  kaffee-zuordnung (11 pairs, medium)
+        ACCEPTED   30s  kaffeesorten-herkunft (11 pairs, medium)
 ```
 
 That is enough to tell a bad article from a bad prompt from a flaky model, which
@@ -416,6 +417,66 @@ second pass often enough that without the loop the accept rate is poor.
 The model can also decline outright: `usable: false` with a reason, for articles
 that hold no clean set of pairings. That is a verdict, not a defect, so it stops
 immediately rather than burning the remaining attempts arguing with it.
+
+### Style comes from the seed, not from adjectives
+
+The rules in the prompt make a question *correct*. They do not make it **ours** —
+and correctness was never the part that read as machine-written. Told in prose to
+write a good title, glm4 wrote `Periodensystem-Zuordnung`; told to write one
+sentence of instruction, it wrote instructions to the player rather than a
+question about the board.
+
+So the half of the brief that prose cannot carry is *shown* instead.
+`supabase/seed.sql` holds the questions this project started with — written by
+hand, read back, played — and `examples.py` carries four of them verbatim into
+the extract prompt:
+
+```
+Beispiel 3  (subject_slug: kunst-kultur, difficulty: medium)
+  slug:        gemaelde-maler
+  title:       Gemälde & Maler
+  description: Wer hat das Gemälde gemalt?
+  pairs:       Mona Lisa -> Leonardo da Vinci
+               Guernica -> Pablo Picasso
+               ... (hier gekürzt -- deine Frage braucht 10 bis 14 Paare)
+```
+
+Four, because between them they have to calibrate more than one thing: all three
+difficulties, four subjects, both title shapes (`X & Y` and a plain plural), and
+four different ways of opening the question. One example calibrates one style,
+and a pipeline that writes every question the same way whatever the article is
+the failure being fixed.
+
+Read off those questions and stated alongside them:
+
+| field | the pool's shape |
+| --- | --- |
+| `title` | two or three words, no verb and no question mark. `Gemälde & Maler`, `Chemische Elemente` |
+| `slug` | exactly `slugify(title)` — never the article's name, never a `-zuordnung` suffix |
+| `description` | one question, ≤ 8 words, naming the **category** in the singular and asking for the **answer**: `Welche Stadt ist die Hauptstadt des Landes?` |
+| answers | as short as they can be and stay unambiguous — `Goethe`, not `Johann Wolfgang von Goethe` |
+| explanations | one hard fact, often verbless: `Vom lateinischen aurum.` |
+
+The last row is the seed's third element, which the `explain` step reproduces —
+six of them go into that prompt written in the same `label -> answer` shape the
+step is actually handed, so nothing has to be translated across.
+
+**The question is about a class of things, not about the article.** That is the
+single rule the examples do the most work for: the article is the quarry, not the
+subject, so `Periodensystem` yields `Chemische Elemente`.
+
+Two things the examples are not allowed to teach, both enforced by tests:
+
+- **Content.** The prompt says so in as many words — a model shown Berlin and
+  asked about coffee will offer Berlin.
+- **How many pairs.** The seed's boards hold seven or eight and this pipeline's
+  floor is ten, so every block is cut short and says so. An example may not
+  appear to endorse a count the validator would reject.
+
+`tests/test_examples.py` reads `seed.sql` back and fails if an exemplar drifts
+from it by a word. An example nobody checks stops being a question from the pool
+and becomes an invented one that merely looks like it, which is the whole thing
+this is meant to prevent.
 
 ## What makes a good pairing
 
@@ -574,6 +635,16 @@ quizzes → categories → items, so a failure part-way deletes the quiz row (wh
 cascades). Otherwise a question could end up with no answers and still be dealt
 into a round.
 
+**Every generated question is marked `origin = 'ingest'`.** The hand-written
+pool in `seed.sql` says `'seed'`. Nothing else in a row distinguishes them —
+both carry a Wikipedia `source_url`, both fill the same columns, and
+`created_at` is no help because `db reset` re-stamps the seeded rows. The
+marker is what makes `delete from quizzes where origin = 'ingest'` a safe way to
+clear a bad batch, and what tells you which of `chemische-elemente` and
+`chemische-elemente-2` was vetted by a person. `store.py` writes it explicitly
+rather than leaning on the column default: the claim "a model wrote this" should
+come from the code that ran the model.
+
 **Re-running is safe.** Articles whose URL is already a `source_url` are
 skipped, so a second run adds new questions rather than duplicates.
 
@@ -583,10 +654,10 @@ skipped, so a second run adds new questions rather than duplicates.
 python -m pytest tools/ingest/tests -q
 ```
 
-177 tests: settings resolution, source strategies, the validation rules, slugification (German umlauts spelled out:
+244 tests: settings resolution, source strategies, the validation rules, slugification (German umlauts spelled out:
 `Flüsse` → `fluesse`, not `flusse`), the article/junk-title filter, the prompt
-templates, the graph's control flow, the reviewer's verdict handling, and the
-Markdown report.
+templates, the style exemplars against `seed.sql`, the graph's control flow, the
+reviewer's verdict handling, and the Markdown report.
 
 Only the *model* is faked, never the chain — the graph tests swap in a
 `FakeChatModel` and let the real `ChatPromptTemplate`, the real parser and the

@@ -127,8 +127,6 @@ export interface ApiErrorBody {
   detail?: string;
 }
 
-// --- Lobbies (ephemeral, never stored in the database) ---------------------
-
 export type LobbyStatus = "lobby" | "playing" | "reviewing" | "finished";
 
 export interface PlayerPublic {
@@ -195,6 +193,20 @@ export interface RoundView {
   solved_items: SolvedItem[];
 }
 
+/**
+ * The game the host has set up, before there is a game to play.
+ *
+ * Lives on the lobby rather than in the host's browser, so the players waiting
+ * can see what they are about to play and someone joining late has missed
+ * nothing. Only the host may write it — see `updateLobbySettings`.
+ */
+export interface LobbySettings {
+  subject_slugs: string[];
+  difficulties: Difficulty[];
+  round_count: number;
+  turn_seconds: number;
+}
+
 export interface LobbyView {
   code: string;
   status: LobbyStatus;
@@ -219,8 +231,6 @@ export interface LobbyView {
   catch_up_left: Record<string, number>;
   /** The player on the clock has gone silent but has not timed out yet. */
   current_player_quiet: boolean;
-  /** Seconds until the next round starts. Only set while reviewing. */
-  review_seconds_left: number | null;
   /**
    * Seconds the player on the clock has left, and how long they got. Both null
    * when nobody is on the clock. Sent as a remaining duration, not a deadline,
@@ -228,6 +238,20 @@ export interface LobbyView {
    */
   turn_seconds_left: number | null;
   turn_seconds: number | null;
+  /**
+   * Who has asked for the next round while the answers are up, in seat order.
+   * Only players who are still connected — a vote from a tab that has gone
+   * away stops counting, so it can never hold a review open on its own.
+   */
+  ready_ids: string[];
+  /** How many of those asks start the countdown: half of those present, rounded up. */
+  ready_needed: number;
+  /**
+   * Seconds until the next round begins, once enough have asked. Null while
+   * nothing is counting. A remaining duration rather than a deadline, so a
+   * device with a wrong clock still counts down correctly.
+   */
+  next_round_in: number | null;
   /** Who last lost their turn to the clock. Cleared by the next real move. */
   timed_out: string | null;
   /** Every placement this round, oldest first. Reset when a round starts. */
@@ -236,6 +260,7 @@ export interface LobbyView {
   finished_rounds: FinishedRound[];
   last_move: LastMove | null;
   winner_ids: string[];
+  settings: LobbySettings;
   /** Bumped on every mutation, so polling can skip unchanged state. */
   version: number;
 }
