@@ -255,6 +255,18 @@ supabase db push
 | `INGEST_SUPABASE_URL` | `--supabase-url` | `SUPABASE_URL` with `host.docker.internal` → `127.0.0.1` |
 | `OLLAMA_URL` | `--ollama-url` | `http://localhost:11435` |
 | `INGEST_MODEL` | `--model` | `glm4:9b` |
+| `INGEST_VET` | *(none)* | `false` |
+| `INGEST_JUDGE_MODEL` | *(none)* | whatever `INGEST_MODEL` is |
+
+The last two have **no command-line form on purpose** — they describe the
+machine rather than the run. `INGEST_VET=true` turns on the step that judges
+each borrowed pair against the board and rejects the ones asking a different
+question; a rejection sends the question back to search another article.
+
+It is off by default because the judgement measures at roughly chance on
+`glm4:9b`. Point `INGEST_JUDGE_MODEL` at something larger before switching it
+on, and check the run header — it prints `Vetting on` when it is active, since a
+setting in `.env` is one you can forget about.
 
 `INGEST_SUPABASE_URL` exists because `.env` sets `SUPABASE_URL` for the
 *containers*, where the stack answers to `host.docker.internal` — a name that

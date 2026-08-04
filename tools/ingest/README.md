@@ -39,6 +39,11 @@ resident) on an RTX 4070:
 | RTX 4070, 1 worker | ~12s | ~25s |
 | RTX 4070, 4 workers | — | **~18s** |
 
+Measured when `extract` wrote one question per call. It now writes `--drafts` of
+them (default 2) and `select` chooses, so the extract call is longer and the
+per-*article* cost is higher — but an article that yields two keepers pays for one
+extraction across both, and these numbers have not been re-measured since.
+
 Four parallel slots is the measured sweet spot on a 12 GB card: 8.6 GB resident
 with 4.4 GB still free, and 18s per accepted question against 32s at two. The
 compose file sets `OLLAMA_NUM_PARALLEL=4` plus flash attention and a `q8_0` KV
@@ -120,21 +125,27 @@ Every step prints as it happens, timed, with a running tally after each article:
 ```
 ========================================================================
   Model      glm4:9b  via http://localhost:11435  [100% GPU]
+  Vetting    off  (INGEST_VET)  borrowed pairs are unjudged -- read the report
   Supabase   http://127.0.0.1:54321
   Source     mixed, 24 months
-  Pipeline   extract -> check -> review -> explain   (3 attempts per article)
+  Pipeline   extract x2 -> select -> check -> review -> explain   (3 attempts per article)
   Mode       dry run -- nothing is written
 ========================================================================
 40 candidates; aiming for 10 questions.
 
 [  1/40] Periodensystem
         127,578 chars from https://de.wikipedia.org/wiki/Periodensystem
-        extract    10.5s  12 pairs
+        extract    18.2s  2 drafts, 12 pairs
+        select      2.4s  kept 2/2 -- beide fragen echtes Detailwissen ab
         check       0.0s  ok
         review      1.8s  ok
         explain     7.1s  12/12 answers explained
-        ACCEPTED  19s  periodensystem-zuordnung (12 pairs, medium)
-        -> 1/10 accepted  |  0 dropped  |  0 skipped  |  ~3m01s left  |  20s elapsed
+        check       0.0s  ok
+        review      2.0s  ok
+        explain     6.8s  11/11 answers explained
+        ACCEPTED  30s  periodensystem-zuordnung (12 pairs, medium)
+        ACCEPTED  39s  elementsymbole (11 pairs, hard)
+        -> 2/10 accepted  |  0 dropped  |  0 skipped  |  ~2m36s left  |  39s elapsed
 ```
 
 The per-step timings are the useful part: `check` is free, the three model calls
@@ -270,25 +281,40 @@ to remember to do in order. `chains.py` knows how to run a step and nothing abou
 what comes next; `graph.py` knows what comes next and never touches a prompt or a
 schema.
 
-One article goes in; a question that passed both gates comes out, or a list of
+One article goes in; every question that passed both gates comes out, or a list of
 reasons it did not.
 
 ```
-START ─▶ extract ─▶ check ──(clean)──▶ review ──(clean)──▶ END
-            │         │                   │
-            │     (problems)          (problems)
-            │         │                   │
-            └─────────┴──▶ repair ◀───────┘
-                             │        (if attempts left, else END)
-                             └──▶ back to extract
+START ─▶ extract ─▶ select ─▶ check ──(clean)──▶ review ──(clean)──▶ END
+            │                   │                   │
+            │               (problems)          (problems)
+            │                   │                   │
+            └───────────────────┴──▶ repair ◀───────┘
+                                       │      (if attempts left, else END)
+                                       └──▶ back to extract
 ```
 
 | node | what it does | cost |
 | --- | --- | --- |
-| `extract` | one model call: the pairings, subject, difficulty | slow |
+| `extract` | one model call: `--drafts` questions, each with pairings, subject, difficulty | slow |
+| `select` | one model call: which drafts are worth playing — may keep several, or none | slow |
 | `check` | `validate.py` — is it well-formed? | free |
 | `review` | second model call, fresh context — is it *true*? | slow |
 | `repair` | re-ask with the previous answer and the complaints attached | — |
+
+**One article can yield more than one question.** `extract` writes several drafts
+from the same article and `select` says which are worth a board — before either
+gate, because "does answering this teach the player anything?" is worth knowing
+before paying to review it. The first kept draft goes on down the graph; the rest
+come back in `Outcome.spares`, and `run_all` puts each of those *back into the
+same graph* through a conditional `START` edge that lands at `check`. So a spare
+is written on the strength of passing the same gates, not of having been chosen.
+A spare gets one attempt: the repair edge leads to `extract`, which would
+regenerate the whole batch and discard the spare.
+
+`select` keeping nothing is a verdict on the article, like `usable: false` — the
+drafts were well-formed and just not interesting, and asking the same model again
+gets the same drafts. So it stops rather than repairing.
 
 **Why a graph and not one long chain.** The interesting behaviour here is not
 "call the model, parse the answer" — it is *what happens when the answer is
@@ -300,12 +326,19 @@ counter, two `if`s and an early `return`. As edges, the control flow is the
 thing you read.
 
 **The repair loop is a `MessagesPlaceholder`.** `EXTRACT` ends with one, and the
-graph state carries `repairs` under an `add_messages` reducer. Each rejected
+graph state carries `repairs` under the `recent_repairs` reducer. Each rejected
 attempt appends the model's own answer plus the complaints about it, so attempt
 three still sees everything that went wrong in attempts one and two — the repair
 node returns only the two new turns and LangGraph does the accumulating. The
 rejected answer has to go back in: without it the model is being asked to fix
 something it can no longer see, and it starts over and reintroduces the fault.
+
+The reducer is `add_messages` with a window: the last `KEEP_REPAIRS` attempts,
+whole ones only. The transcript is the one part of that prompt with no bound of
+its own — it sits on top of a system prompt and 6000 characters of article — and
+unbounded, `--attempts 10` runs the extract call out of context, where the
+truncated reply is reported as a schema mismatch and reads like the model's
+fault. Two is what the default `--attempts 3` accumulates anyway.
 
 The graph state is a Pydantic model, so a node returning a key that does not
 exist is an error rather than a silent no-op.
@@ -359,6 +392,19 @@ restricts token sampling to strings that satisfy it. The reply parses by
 construction and always has the right keys. Without it a small model returns
 prose wrapped around its JSON, or trailing commas, or a plausible object with
 invented field names.
+
+It enforces array bounds too, and that cuts both ways — worth knowing before
+adding one. `minItems: 10` on `pairs` did not produce ten good pairs from a thin
+article, it produced ten pairs: measured on glm4:9b with a four-fact article, the
+model padded the board by repeating the same answers (up to eight of twelve
+duplicated) and still claimed `usable: true`, because a short reply was
+*unrepresentable* and the prompt's way out was therefore closed. Without the
+floor, four clean pairs every time.
+
+Nor was the floor holding boards full: on the real leads of `Schach` and `Kaffee`,
+three runs each, ten pairs and no duplicates with it and without it. So a bound
+whose violation the model needs to be able to express belongs in `validate.py`,
+not in the grammar — the ceiling is in both, the floor only in the validator.
 
 **A repair loop.** Schema-valid is not the same as correct. `validate.py` checks
 the rules and, when something fails, the complaints are fed back to the model
@@ -421,13 +467,16 @@ a glance.
 
 The consequence of the floor matters: an article that cannot support ten
 well-sourced pairs is **not** a small question, it is not a question, and the run
-moves on. The prompt says this explicitly and tells the model to answer
-`usable: false` instead — because the alternative, a model padding the board to
-reach the number, is exactly the failure this is meant to prevent. Rejecting an
-article is cheap; a question containing an invented fact is not.
+moves on — unless `augment` can find the missing pairs in a neighbouring article.
+The prompt says this explicitly and tells the model to answer `usable: false`
+instead, and the grammar deliberately lets it return a short board so that it can:
+with `minItems` in the grammar the model padded instead, which is the failure this
+is meant to prevent. Rejecting an article is cheap; a question containing an
+invented fact is not.
 
 `rules.py` holds the bounds once, shared by the JSON Schema and the validator so
-the two can never drift apart.
+the two can never drift apart — the ceiling in both, the floor in the validator
+alone, for the reason above.
 
 Slug collisions are resolved by the tool, not the model: `-2`, `-3`, and so on.
 
@@ -456,6 +505,42 @@ time per question).
 If the reviewer itself fails to run, the question is kept and marked unreviewed
 rather than discarded — a broken reviewer must not throw away work that already
 passed the structural checks.
+
+### What neither gate judges
+
+Two properties get past both, and it is worth knowing which, because both end up
+being caught by a person reading the Markdown report:
+
+**Whether the question is worth playing.** Well-formed, true, unambiguous and
+boring passes everything. That is what `select_step` is for, and why it asks about
+*knowledge* rather than correctness — but taste is not a gate, so it runs on the
+drafts and does not get a second look at the survivors.
+
+Measured on glm4:9b it is not there yet: one run kept both drafts of
+`Periodensystem`, one of which was two pairs long with the same answer under both
+categories; the next kept *none* of `Kaffee`, under a verdict saying in the same
+sentence that some of them asked real questions. So it runs on
+`INGEST_JUDGE_MODEL` alongside `vet`, and **an empty selection only condemns the
+article when that names a model other than the run's own** — a judge somebody
+chose gets to say no, an unproven one only gets to sort, because the cost of the
+second reading is a good article deleted on a coin toss. The run says which it is.
+`--drafts 1` skips the step and restores one question per article exactly.
+
+**Whether a borrowed pair belongs to this board.** `review` judges pairs one at a
+time; drift is a property of the *set*. `Donau -> Schwarzwald` on a board of river
+lengths is correctly paired, unambiguous and true, so every check the reviewer
+runs passes it. Homogeneity was tried in that prompt and glm4:9b could not do it.
+That judgement belongs to `vet`, which is **off by default** because it measures
+at about chance on the same model — so with `INGEST_VET` unset, the run says so
+out loud and the report names every question that borrowed and from where.
+
+**And the instruction on a picture question.** `reframe` rewrites the title and
+the one-sentence instruction after both gates, so nothing checks it — it is prose
+a player reads, not data a validator sees. What the schema can do is make the
+model state which side is the photograph *before* it writes the sentence that
+depends on that (`shown`, `asked`, then `title`, `description`, in decoding
+order); a reply that skipped it keeps the old title instead of renaming. The
+direction it wrote for goes in the trace, and the report has a checkbox for it.
 
 ## Design notes
 

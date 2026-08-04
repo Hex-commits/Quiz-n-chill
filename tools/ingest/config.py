@@ -4,6 +4,11 @@ One layer of precedence, the same everywhere: **command line > environment >
 repo-root `.env` > default.** The `.env` reader uses `setdefault`, so anything
 already exported wins over the file -- matching how the API's settings behave.
 
+Two settings have no command-line form at all -- `INGEST_VET` and
+`INGEST_JUDGE_MODEL`. They describe the machine rather than the run: whether a
+judge worth using is installed is a property of the box, not something to
+remember to type, and putting them in `.env` means every run there agrees.
+
 The Supabase URL is the one setting that genuinely needs two values. `.env` sets
 `SUPABASE_URL` for the *containers*, where the Supabase stack is reachable as
 `host.docker.internal`. This tool runs on the host, where that name usually does
@@ -29,6 +34,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OLLAMA_URL = "http://localhost:11435"
 DEFAULT_MODEL = "glm4:9b"
 
+# Anything a person would plausibly type meaning yes. Deliberately generous,
+# and deliberately not "anything non-empty" -- `INGEST_VET=false` in a `.env`
+# has to mean off, and it is exactly what someone writes when they want it off.
+TRUTHY = frozenset({"1", "true", "yes", "on"})
+
 # Only applied to the fallback, and only for the hostname compose injects.
 CONTAINER_HOST = "host.docker.internal"
 LOCALHOST = "127.0.0.1"
@@ -53,6 +63,17 @@ def load_dotenv(path: Path | None = None) -> None:
             continue
         key, _, value = line.partition("=")
         os.environ.setdefault(key.strip(), value.strip())
+
+
+def flag(name: str, *, default: bool = False) -> bool:
+    """An on/off setting from the environment.
+
+    Unset means the default; anything else is compared against `TRUTHY`, so a
+    typo reads as off rather than as on. The asymmetry is deliberate for a
+    setting that costs a model call per candidate.
+    """
+    raw = os.environ.get(name)
+    return default if raw is None else raw.strip().casefold() in TRUTHY
 
 
 def supabase_url(override: str | None = None) -> str:
@@ -121,6 +142,12 @@ class Settings:
     supabase_key: str
     ollama_url: str
     model: str
+    # Whether borrowed pairs are judged before they reach the board, and what
+    # judges them. Off by default: the judgement measures at about chance on
+    # `glm4:9b`, so it is worth having ready and not worth running blind.
+    # See the note in `pipeline/vet.py`.
+    vet: bool = False
+    judge_model: str = DEFAULT_MODEL
 
     @classmethod
     def resolve(
@@ -137,5 +164,9 @@ class Settings:
             ollama_url=(
                 ollama_url or os.environ.get("OLLAMA_URL") or DEFAULT_OLLAMA_URL
             ).rstrip("/"),
-            model=model or os.environ.get("INGEST_MODEL") or DEFAULT_MODEL,
+            model=(chosen := model or os.environ.get("INGEST_MODEL") or DEFAULT_MODEL),
+            vet=flag("INGEST_VET"),
+            # Falls back to the run's model rather than to the package default,
+            # so setting INGEST_MODEL alone still gives one consistent model.
+            judge_model=os.environ.get("INGEST_JUDGE_MODEL") or chosen,
         )

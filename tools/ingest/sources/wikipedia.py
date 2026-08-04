@@ -376,6 +376,34 @@ class WikipediaClient:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
 
+    def search(self, query: str, *, limit: int = 10, exclude: set[str] | None = None) -> list[str]:
+        """Article titles matching `query`, best first.
+
+        Namespace 0 only, so the results are articles rather than talk pages or
+        templates, and passed through the same title filters the candidate
+        strategies use -- a search is just another way of proposing titles, and
+        it should not be the one route that lets `Portal:` pages through.
+        """
+        payload = self._get(
+            f"https://{self.lang}.wikipedia.org/w/api.php?"
+            + urllib.parse.urlencode(
+                {
+                    "action": "query",
+                    "format": "json",
+                    "list": "search",
+                    "srsearch": query,
+                    "srnamespace": "0",
+                    "srlimit": str(max(1, min(limit, 50))),
+                }
+            )
+        )
+        skip = {t.lower() for t in (exclude or set())}
+        return [
+            hit["title"]
+            for hit in payload.get("query", {}).get("search", [])
+            if is_quiz_material(hit.get("title", "")) and hit["title"].lower() not in skip
+        ]
+
     def article(self, title: str) -> Article:
         """Summary + lead extract for one article, with its canonical URL."""
         quoted = urllib.parse.quote(title.replace(" ", "_"), safe="")
@@ -416,3 +444,47 @@ class WikipediaClient:
             extract=page.get("extract", ""),
             categories=tuple(c.get("title", "") for c in page.get("categories", [])),
         )
+
+
+class WikipediaRelated:
+    """`RelatedDocuments` over Wikipedia's search index.
+
+    Deliberately reuses the same two filters the main run applies -- the title
+    filters inside `search`, and the biography test here. A question that is
+    short on pairs is exactly the situation where it is tempting to accept
+    anything, and a biography will happily yield ten "pairs" that are one
+    person's life described from ten angles.
+
+    Fetching is sequential and stops as soon as the caller has enough, because
+    each article is an HTTP round trip against a rate limit that is already the
+    slowest part of a run.
+    """
+
+    def __init__(self, client: WikipediaClient, *, search_breadth: int = 3) -> None:
+        self.client = client
+        # More titles are searched than are fetched: the filters below reject a
+        # good proportion, and running out of candidates costs the whole feature.
+        self.search_breadth = search_breadth
+
+    def related(self, document, *, query: str, limit: int) -> list[Article]:
+        try:
+            titles = self.client.search(
+                query, limit=limit * self.search_breadth, exclude={document.title}
+            )
+        except WikipediaError:
+            # No neighbours is a normal answer, and a search outage must cost
+            # the augmentation rather than the article.
+            return []
+
+        found: list[Article] = []
+        for title in titles:
+            if len(found) >= limit:
+                break
+            try:
+                article = self.client.article(title)
+            except WikipediaError:
+                continue
+            if article.is_biography or not article.text.strip():
+                continue
+            found.append(article)
+        return found

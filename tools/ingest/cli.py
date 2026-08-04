@@ -37,7 +37,10 @@ from .output.store import (
     write_question,
 )
 from .sources.wikimedia_images import WikimediaImages
+from .domain.models import DEFAULT_DRAFTS
 from .pipeline.chains import (
+    augment_step,
+    vet_step,
     check_step,
     explain_step,
     extract_step,
@@ -45,11 +48,12 @@ from .pipeline.chains import (
     reframe_step,
     repair_step,
     review_step,
+    select_step,
 )
-from .pipeline.graph import build_graph, run_article
-from .pipeline.llm import LLMError, available_models, chat_model
+from .pipeline.graph import build_graph, run_all
+from .pipeline.llm import JUDGE_TEMPERATURE, LLMError, available_models, chat_model
 from .sources.strategies import STRATEGIES, candidates
-from .sources.wikipedia import WikipediaClient, WikipediaError
+from .sources.wikipedia import WikipediaClient, WikipediaError, WikipediaRelated
 
 DESCRIPTION = """\
 Fill the question pool from Wikipedia.
@@ -154,11 +158,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="Tries per article before giving up (each re-feeds the complaints).",
     )
     parser.add_argument(
+        "--drafts",
+        type=int,
+        default=DEFAULT_DRAFTS,
+        help=(
+            f"Questions to draft per article before choosing. Default {DEFAULT_DRAFTS}. "
+            "One article usually holds more than one good question; a second pass "
+            "then keeps the ones worth playing, and may keep several."
+        ),
+    )
+    parser.add_argument(
+        "--no-select",
+        action="store_true",
+        help=(
+            "Skip the pass that chooses between the drafts. The first draft is "
+            "used, as it was before the step existed."
+        ),
+    )
+    parser.add_argument(
         "--no-explain",
         action="store_true",
         help=(
             "Skip the pass that writes a one-line reason per answer. Costs one "
             "model call per accepted question."
+        ),
+    )
+    parser.add_argument(
+        "--no-augment",
+        action="store_true",
+        help=(
+            "Skip the pass that looks for missing pairs in other articles. "
+            "A medium or hard question that is short then simply fails."
         ),
     )
     parser.add_argument(
@@ -265,15 +295,40 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
+    selecting = not args.no_select and args.drafts > 1
     steps_on = [
-        "extract",
+        f"extract x{args.drafts}" if args.drafts > 1 else "extract",
+        *(["select"] if selecting else []),
         "check",
+        *([] if args.no_augment else ["augment?"]),
+        *(["vet"] if settings.vet and not args.no_augment else []),
         *([] if args.no_review else ["review"]),
         *([] if args.no_pictures else ["illustrate"]),
         *([] if args.no_explain else ["explain"]),
     ]
     print("=" * 72)
     print(f"  Model      {settings.model}  via {settings.ollama_url}  [{_processor(settings.ollama_url)}]")
+    # Said out loud because it is no longer a flag anyone typed: a setting that
+    # lives in `.env` is one you can forget is on, and this one costs a model
+    # call per borrowed pair.
+    judged_by = "same model" if settings.judge_model == settings.model else settings.judge_model
+    if selecting:
+        # Said out loud, because "may only sort" and "may drop the article" are
+        # very different steps and the difference is a setting, not a flag.
+        powers = (
+            "may reject the batch"
+            if settings.judge_model != settings.model
+            else "advisory -- set INGEST_JUDGE_MODEL to let it reject"
+        )
+        print(f"  Selecting  {args.drafts} drafts, judged by {judged_by}, {powers}")
+    if settings.vet and not args.no_augment:
+        print(f"  Vetting    on  (INGEST_VET)  judged by {judged_by}")
+    elif not args.no_augment:
+        # Said out loud because nothing else will. `review` cannot tell whether a
+        # borrowed pair belongs to this question -- it judges pairs, and that is a
+        # property of the board -- so with vetting off the report is the only
+        # place a drifted pair gets caught. See `pipeline/augment.py`.
+        print("  Vetting    off  (INGEST_VET)  borrowed pairs are unjudged -- read the report")
     # Said out loud, because a run aimed at a hosted project from this machine
     # looks exactly like a local one until the rows are already there.
     where = "" if is_local(settings.supabase_url) else "   [REMOTE PROJECT]"
@@ -284,23 +339,59 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  Mode       {'COMMIT -- questions will be written' if args.commit else 'dry run -- nothing is written'}")
     print("=" * 72)
 
+    # Past pageview counts never change, so the cache next to the reports makes
+    # the evergreen scan free on every run after the first.
+    #
+    # Built before the graph because `augment` searches through it: the step
+    # that looks for missing pairs in other articles needs the same client, the
+    # same pacing and the same rate-limit backoff as the main run.
+    wiki = WikipediaClient(lang=args.lang, cache_dir=args.out / ".cache")
+
     # One model, one graph, reused for every article -- nothing in either is
     # article-specific, and rebuilding them per article would only re-derive the
     # same JSON Schema.
     model = chat_model(base_url=settings.ollama_url, model=settings.model)
+    # Same weights, no sampling. Every step that *judges* rather than writes runs
+    # on this one: a reviewer whose verdict moves between runs is not a gate, and
+    # the temperature the generator needs is there to stop it repeating a rejected
+    # answer -- a reason that applies to `extract` and to nothing else.
+    decider = chat_model(
+        base_url=settings.ollama_url, model=settings.model, temperature=JUDGE_TEMPERATURE
+    )
+    # The vet judge is its own model on top of that: it is the judgement that most
+    # needs a stronger one, and paying for that on every extract call would not be
+    # worth it.
+    judge = (
+        decider
+        if settings.judge_model == settings.model
+        else chat_model(
+            base_url=settings.ollama_url,
+            model=settings.judge_model,
+            temperature=JUDGE_TEMPERATURE,
+        )
+    )
     pipeline = build_graph(
-        extract=extract_step(model, sorted(subject_slugs)),
+        extract=extract_step(model, sorted(subject_slugs), drafts=args.drafts),
         check=check_step(subject_slugs=subject_slugs, taken_slugs=taken_slugs),
-        review=None if args.no_review else review_step(model),
+        # On the judge rather than the run's model: choosing between drafts is
+        # taste, and a 9B model asked "is this good?" is measured at noise -- see
+        # the note in `prompts.py`. `INGEST_JUDGE_MODEL` already exists for
+        # exactly this and falls back to the run's model. Whether that judge may
+        # throw a whole batch away depends on whether it is one somebody chose.
+        select=(
+            select_step(judge, may_reject=settings.judge_model != settings.model)
+            if selecting
+            else None
+        ),
+        review=None if args.no_review else review_step(decider),
+        augment=None if args.no_augment else augment_step(model, WikipediaRelated(wiki)),
+        vet=vet_step(judge) if settings.vet and not args.no_augment else None,
         illustrate=None if args.no_pictures else illustrate_step(WikimediaImages()),
         reframe=None if args.no_pictures else reframe_step(model),
         explain=None if args.no_explain else explain_step(model),
         repair=repair_step(),
     )
 
-    # Past pageview counts never change, so the cache next to the reports makes
-    # the evergreen scan free on every run after the first.
-    wiki = WikipediaClient(lang=args.lang, cache_dir=args.out / ".cache")
     titles = _candidates(wiki, args, subject_slugs)
     print(f"{len(titles)} candidate articles; aiming for {args.limit} questions.\n")
 
@@ -337,14 +428,14 @@ def main(argv: list[str] | None = None) -> int:
         if not args.quiet:
             lines.append(f"{len(article.text):,} chars from {article.url}")
 
-        outcome = run_article(
+        outcomes = run_all(
             pipeline,
             article,
             known_subjects,
             max_attempts=args.attempts,
             on_step=None if args.quiet else (lambda _node, line: lines.append(line)),
         )
-        return _Attempt(article.title, article=article, outcome=outcome, lines=lines)
+        return _Attempt(article.title, article=article, outcomes=outcomes, lines=lines)
 
     queue = deque(titles)
     done_count = 0
@@ -375,26 +466,39 @@ def main(argv: list[str] | None = None) -> int:
                 for line in attempt.lines:
                     print(f"         {line}")
 
-                outcome, article = attempt.outcome, attempt.article
-                question = outcome.question
-                record = {
-                    "article": {"title": article.title, "url": article.url},
-                    "question": question.model_dump(),
-                    "problems": outcome.problems,
-                    "review": outcome.review.model_dump() if outcome.review else None,
-                    "steps": outcome.steps,
-                    # Keyed by category label, so the report can put each picture
-                    # beside the pairing it belongs to.
-                    "images": {
-                        label: asdict(image) for label, image in outcome.images.items()
-                    },
-                    "flipped": outcome.flipped,
-                }
+                article = attempt.article
+                # One article can yield more than one question: `select` keeps
+                # every draft worth playing, and each was put through the gates on
+                # its own.
+                for outcome in attempt.outcomes:
+                    question = outcome.question
+                    record = {
+                        "article": {"title": article.title, "url": article.url},
+                        "question": question.model_dump(),
+                        "problems": outcome.problems,
+                        "review": outcome.review.model_dump() if outcome.review else None,
+                        "steps": outcome.steps,
+                        # Keyed by category label, so the report can put each picture
+                        # beside the pairing it belongs to.
+                        "images": {
+                            label: asdict(image) for label, image in outcome.images.items()
+                        },
+                        "flipped": outcome.flipped,
+                        # Which articles pairs were borrowed from. In the record
+                        # because with `INGEST_VET` off nothing judged whether they
+                        # belong, and the report is where that gets caught.
+                        "borrowed_from": outcome.borrowed_from,
+                        "vetted": settings.vet and not args.no_augment,
+                        "select_detail": outcome.select_detail,
+                    }
 
-                if outcome.problems:
-                    rejected.append(record)
-                    print(f"         DROPPED  {outcome.seconds:.0f}s  {outcome.problems[0][:100]}")
-                else:
+                    if outcome.problems:
+                        rejected.append(record)
+                        print(
+                            f"         DROPPED  {outcome.seconds:.0f}s  {outcome.problems[0][:100]}"
+                        )
+                        continue
+
                     # Writing happens here, on one thread, rather than in the
                     # worker: the Supabase client is shared and the ordered
                     # insert-with-rollback is not worth making concurrent.
@@ -428,11 +532,15 @@ def main(argv: list[str] | None = None) -> int:
 
 @dataclass
 class _Attempt:
-    """One article's fate, with its output held back until it can be printed."""
+    """One article's fate, with its output held back until it can be printed.
+
+    `outcomes` is a list because `select` may keep more than one question from the
+    same article, and each of them went through the gates separately.
+    """
 
     title: str
     article: object | None = None
-    outcome: object | None = None
+    outcomes: list = field(default_factory=list)
     skip: str | None = None
     lines: list[str] = field(default_factory=list)
 

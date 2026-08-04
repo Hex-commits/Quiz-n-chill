@@ -99,6 +99,17 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
         f"- **Source:** [{article.get('title', 'source')}]({article.get('url', '')})  ",
         f"- **Size:** {len(pairs)} pairs",
     ]
+    borrowed = record.get("borrowed_from") or []
+    if borrowed:
+        # Named, because nothing automatic decided these belong on this board.
+        # `review` checks that a pair is *true*; whether it answers the same
+        # question as the rest is a property of the set, and only `vet` looks at
+        # that -- when it is switched on.
+        judged = "judged by `vet`" if record.get("vetted") else "**unjudged** (`INGEST_VET` off)"
+        lines.append(
+            f"- **Pairs borrowed from:** {', '.join(f'_{title}_' for title in borrowed)}"
+            f" — {judged}"
+        )
     if images:
         turned = " · pairing was flipped to put the pictures on the answers" if flipped else ""
         lines.append(f"- **Answers:** pictures{turned}")
@@ -135,6 +146,12 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
             f"- [ ] Every picture actually shows the answer beside it",
             "- [ ] Every answer is an instance of what the question asks for",
             f"- [ ] All {len(pairs)} pairings check out against the source",
+            # The instruction above was rewritten by the model for a board of
+            # photographs, and it is the one thing in this pipeline no gate sees:
+            # it is prose a player reads, not data a validator checks. A flipped
+            # pairing is where it goes wrong -- the sentence then asks for what
+            # the player is already looking at.
+            "- [ ] The instruction asks for the **answer**, not for what the picture shows",
             "",
         ]
     else:
@@ -148,6 +165,11 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
         lines += [
             f"- [ ] All {len(pairs)} pairings check out against the source",
             "- [ ] No answer would fit a second category on this board",
+            *(
+                ["- [ ] The borrowed pairs answer the same question as the rest"]
+                if borrowed
+                else []
+            ),
             "",
         ]
     lines += _render_review(record.get("review"))

@@ -35,7 +35,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   getLobby,
   leaveLobby,
@@ -388,9 +387,9 @@ export function LobbyRoom({
 
   const header = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
+      <div className="flex items-baseline gap-2">
         <p className="text-muted-foreground text-sm">Lobby code</p>
-        <p className="font-mono text-3xl font-bold tracking-widest">
+        <p className="font-mono text-2xl font-bold tracking-widest">
           {lobby.code}
         </p>
       </div>
@@ -413,13 +412,21 @@ export function LobbyRoom({
 
   if (lobby.status === "lobby") {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
+      <div className="mx-auto flex max-w-5xl flex-col gap-3 lg:h-full lg:min-h-0">
+        {/*
+          The same shape as the playing screen: a column that fills rather than
+          a stack that grows. Header and player list are fixed furniture; the
+          options card takes what is left and scrolls inside itself when the
+          window is too short -- so `main` never scrolls at any resolution, and
+          the failure is scoped to the one panel that overflowed rather than to
+          the whole page.
+        */}
+        <div className="shrink-0">{header}</div>
 
-        <Card>
+        <Card className="shrink-0">
           <CardHeader>
             <CardTitle className="text-base">Players</CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
               Share the code above. The game starts when the host is ready.
             </CardDescription>
           </CardHeader>
@@ -455,15 +462,23 @@ export function LobbyRoom({
         </Card>
 
         {me?.is_host ? (
-          <Card>
-            <CardHeader>
+          /* Takes whatever the header and the player list left, and is the one
+             thing here allowed to scroll. */
+          <Card className="flex min-h-0 flex-1 flex-col">
+            <CardHeader className="shrink-0">
               <CardTitle className="text-base">Pick the subjects</CardTitle>
-              <CardDescription>
-                Questions are drawn at random from whatever you choose, spread
-                as evenly as possible across them.
+              <CardDescription className="text-xs">
+                Drawn at random from what you choose, spread evenly across them.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            {/*
+              Two columns, because five option groups in one was what pushed
+              this past the bottom of a 1366x768 window -- measured, not
+              guessed. Subjects are the tall group and get the flexible column;
+              everything else is a row of buttons and stacks beside them.
+            */}
+            <CardContent className="grid min-h-0 flex-1 content-start gap-x-10 gap-y-6 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_16rem]">
+              <div className="grid content-start gap-3 sm:grid-cols-2">
               <div className="grid gap-3 sm:grid-cols-2">
                 {subjects.map((subject) => (
                   <div key={subject.slug} className="flex items-start gap-3">
@@ -488,9 +503,9 @@ export function LobbyRoom({
                   </div>
                 ))}
               </div>
+              </div>
 
-              <Separator />
-
+              <div className="flex flex-col gap-5">
               {/*
                 Which ratings may be drawn. Ticked rather than a single choice
                 because "easy and medium" is the common want and a three-way
@@ -536,8 +551,6 @@ export function LobbyRoom({
                 </div>
               </div>
 
-              <Separator />
-
               <div className="space-y-2">
                 <Label>Rounds</Label>
                 <div className="flex flex-wrap gap-2">
@@ -579,9 +592,8 @@ export function LobbyRoom({
                     </Button>
                   ))}
                 </div>
-                <p className="text-muted-foreground text-sm">
-                  Run out of time and you are out for the round, the same as a
-                  wrong answer.
+                <p className="text-muted-foreground text-xs">
+                  Running out costs you the round, like a wrong answer.
                 </p>
               </div>
 
@@ -613,14 +625,14 @@ export function LobbyRoom({
                       Reset
                     </Button>
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    Remembered on this device only, and used up once nothing new
-                    is left.
+                  <p className="text-muted-foreground text-xs">
+                    This device only; used once nothing new is left.
                   </p>
                 </div>
               ) : null}
+              </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="shrink-0">
               <Button
                 onClick={() =>
                   playerId &&
@@ -798,6 +810,9 @@ export function LobbyRoom({
     ? (lobby.finished_rounds[lobby.finished_rounds.length - 1] ?? null)
     : null;
   const total = round.remaining_items.length + round.solved_items.length;
+  // Only affects how tightly the board may pack: a photograph reads at a
+  // narrower column than a worded category does.
+  const pictures = round.category_kind === "image";
   const solvedIn = (categoryId: string) =>
     round.solved_items.filter((item) => item.category_id === categoryId);
 
@@ -822,27 +837,39 @@ export function LobbyRoom({
   };
 
   return (
-    <div className="space-y-4">
-      {header}
+    /*
+      `h-full` and `min-h-0` all the way down, so the board sizes itself to the
+      space that is left rather than to its own contents. The shell already
+      refuses to scroll; this is the half that makes the refusal survivable.
+
+      Below `lg` it goes back to a normal document that scrolls -- a phone
+      cannot fit ten cards and a question at a readable size, and pretending
+      otherwise would mean shrinking them until nobody can read them. That is
+      the "minimal resolution" the no-scroll promise stops at.
+    */
+    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0">
+      <div className="shrink-0">{header}</div>
 
       {/*
         Two columns: the question has the room to itself, and everything that is
         *about* the players sits beside it rather than above it. Stacks on a
         phone, where the question still comes first.
       */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-        <div className="min-w-0 space-y-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-stretch">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
           {/*
             Whose turn it is, at the top of the column and stuck there. It used
             to be a line of body text inside the question card's header, which
             is exactly where a player scanning the board does not look --
             "hard to tell when I am up" was the complaint, and it was fair.
 
-            Sticky rather than merely first, because the board scrolls past it:
-            the answer to "am I up?" has to be on screen at every scroll
-            position, not only at the top of the page.
+            It used to be `sticky`, which was the right answer when the page
+            scrolled underneath it. Now the column is a fixed height and the bar
+            simply sits at the top of it, permanently on screen -- sticky
+            positioning against a parent that cannot scroll only costs a
+            stacking context.
           */}
-          <div className="sticky top-2 z-20">
+          <div className="shrink-0">
             <TurnBar
               isMyTurn={isMyTurn}
               isOut={Boolean(me && !me.is_active)}
@@ -865,7 +892,7 @@ export function LobbyRoom({
           */}
           <Card
             className={cn(
-              "animate-quiz-rise relative isolate overflow-hidden",
+              "animate-quiz-rise relative isolate flex min-h-0 shrink-0 flex-col overflow-hidden [--card-spacing:--spacing(3)]",
               // The board itself picks up the accent while you are on the
               // clock, so the signal is not confined to one strip.
               isMyTurn && !reviewing && "border-primary/50 shadow-lg",
@@ -874,8 +901,14 @@ export function LobbyRoom({
             {/* Lights the question from behind. Purely decorative, so it is
                 hidden from assistive tech and cannot be clicked. */}
             <div className="quiz-ambient" aria-hidden />
-            <CardHeader className="space-y-2 text-center">
-              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            <CardHeader className="shrink-0 space-y-1.5 text-center">
+              {/*
+                First thing dropped when the window is short. Measured: cards
+                grow a badge as answers land, which pushes a 1280x720 board
+                about 20px over -- and "which round is this" is the least
+                urgent thing on screen when the board will not fit.
+              */}
+              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase [@media(max-height:780px)]:hidden">
                 {lobby.is_catch_up
                   ? "Settling round"
                   : `Round ${lobby.round_index + 1} of ${lobby.round_count}`}
@@ -884,19 +917,32 @@ export function LobbyRoom({
                   tracking pulled in is a good part of what separates a game
                   from a form. Sized up again here: at 4xl it competed with the
                   answers rather than leading them. */}
-              <h1 className="text-4xl font-black tracking-tight text-balance sm:text-5xl">
+              {/*
+                Sized against the viewport height as well as its width. `4xl` is
+                right on a tall monitor and eats a third of a 768px laptop's
+                board, and the board is the part that cannot be allowed to
+                overflow.
+              */}
+              <h1 className="text-[clamp(1.25rem,3.4vh,2.25rem)] leading-tight font-black tracking-tight text-balance">
                 {round.title}
               </h1>
               {round.description ? (
-                <p className="text-muted-foreground mx-auto max-w-prose text-base text-balance sm:text-lg">
+                <p className="text-muted-foreground mx-auto max-w-prose text-[clamp(0.875rem,1.9vh,1.125rem)] text-balance">
                   {round.description}
                 </p>
               ) : null}
-              <div className="flex items-center justify-center gap-2 pt-1">
+              <div className="flex items-center justify-center gap-2">
                 <DifficultyBadge difficulty={round.difficulty} />
                 <span className="text-muted-foreground font-mono text-xs tabular-nums">
                   {round.solved_items.length}/{total}
                 </span>
+                {/* Was a full-width bar on its own row. Inline and short: it is
+                    a progress hint next to the number it duplicates, not a
+                    heading, and a row of its own cost the board 20px. */}
+                <Progress
+                  value={(round.solved_items.length / Math.max(total, 1)) * 100}
+                  className="h-1 w-24"
+                />
               </div>
               {/*
                 Said plainly, because a round where most of the table cannot
@@ -911,10 +957,6 @@ export function LobbyRoom({
                   the difference back now — everyone else sits this one out.
                 </p>
               ) : null}
-              <Progress
-                value={(round.solved_items.length / Math.max(total, 1)) * 100}
-                className="h-1.5"
-              />
             </CardHeader>
 
             <CardContent>
@@ -949,13 +991,13 @@ export function LobbyRoom({
                   {/* The answers are read across a room, so they are sized to
                       be legible at a glance rather than packed in. Always words
                       now: the photographs are the categories. */}
-                  <div className="flex flex-wrap justify-center gap-2.5">
+                  <div className="flex flex-wrap justify-center gap-2">
                     {round.remaining_items.map((item) => (
                       <Button
                         key={item.id}
                         size="lg"
                         className={cn(
-                          "quiz-shine h-auto min-h-14 px-6 py-3 text-lg font-semibold whitespace-normal",
+                          "quiz-shine h-auto min-h-11 px-5 py-2 text-base font-semibold whitespace-normal",
                           // Lifts and grows a little under the cursor, settles
                           // under the press. The shared easing is what stops
                           // this reading as a separate widget from everything
@@ -990,7 +1032,25 @@ export function LobbyRoom({
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/*
+            The one part that may scroll, and only once the window is genuinely
+            too small for it. `auto-fill` rather than a fixed column count so
+            the grid spends whatever width the screen has: ten cards land as
+            5x2 on a wide monitor, 4x3 on a laptop, 2x5 on a tablet -- without
+            a breakpoint per size.
+          */}
+          <div
+            className={cn(
+              "-mx-1 grid min-h-0 flex-1 auto-rows-[minmax(5rem,1fr)] gap-3 overflow-y-auto px-1 py-1",
+              // Floors chosen by measurement, not by eye. The board column is
+              // 960px at 1280px wide; a 12rem floor gives four columns there
+              // and ten cards become three rows, an 11rem floor gives five and
+              // two. Two rows is what fits at 720px tall, so 11rem it is.
+              pictures
+                ? "grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]"
+                : "grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]",
+            )}
+          >
             {round.categories.map((category, index) => {
               const solved = solvedIn(category.id);
               // A category holds exactly one answer, so once it is filled there
@@ -1037,8 +1097,8 @@ export function LobbyRoom({
           Everything about the players, out of the way of the question. Sticky
           so the order stays visible while the board is scrolled.
         */}
-        <aside className="space-y-4 lg:sticky lg:top-20">
-          <Card>
+        <aside className="flex min-h-0 flex-col gap-3">
+          <Card className="shrink-0">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-1.5 text-sm">
                 <Users className="size-4" aria-hidden />
@@ -1119,16 +1179,20 @@ export function LobbyRoom({
             </CardContent>
           </Card>
 
-          {/* What has been played this round, newest first. */}
+          {/* What has been played this round, newest first. Flexes into
+              whatever the turn-order panel above it did not take. */}
           {lobby.history.length > 0 ? (
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="flex min-h-0 flex-1 flex-col">
+              <CardHeader className="shrink-0 pb-3">
                 <CardTitle className="flex items-center gap-1.5 text-sm">
                   <History className="size-4" aria-hidden />
                   This round
                 </CardTitle>
               </CardHeader>
-              <CardContent className="max-h-72 space-y-1 overflow-y-auto">
+              {/* Takes whatever the turn-order panel above it left, rather
+                  than a fixed 18rem that is too tall on a laptop and wastes
+                  half the column on a monitor. */}
+              <CardContent className="min-h-0 flex-1 space-y-1 overflow-y-auto">
                 {[...lobby.history].reverse().map((move, index) => (
                   <div
                     key={`${move.item_label}-${lobby.history.length - index}`}
@@ -1402,7 +1466,7 @@ function CategoryCard({
   return (
     <Card
       className={cn(
-        "animate-quiz-rise",
+        "animate-quiz-rise min-h-0 overflow-hidden [--card-spacing:--spacing(3)]",
         // Rises to meet the cursor only when it can actually take the answer,
         // so the movement means something rather than decorating everything.
         armed &&
@@ -1433,7 +1497,7 @@ function CategoryCard({
         </div>
       ) : null}
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-base leading-snug">
           {full ? (
             <Check
               className="size-4 shrink-0 text-success"
@@ -1443,16 +1507,22 @@ function CategoryCard({
           {/*
             Null while a picture round runs: naming the bridge answers the
             question the photograph asks. The name arrives with the review.
+
+            Clamped to two lines because the grid sizes each row to its tallest
+            card: one long category name makes every card in its row taller, and
+            at 1280x720 that was the whole difference between fitting and not.
           */}
-          {title ?? (
-            <span className="text-muted-foreground font-normal">
-              Was ist das?
-            </span>
-          )}
+          <span className="line-clamp-2 min-w-0">
+            {title ?? (
+              <span className="text-muted-foreground font-normal">
+                Was ist das?
+              </span>
+            )}
+          </span>
         </CardTitle>
         {image ? <ImageCredit image={image} /> : null}
       </CardHeader>
-      <CardContent className="min-h-14 space-y-2">
+      <CardContent className="min-h-0 flex-1 space-y-2 overflow-y-auto">
         <div className="flex flex-wrap gap-2">
           {reveal ? (
             <Badge variant={missed ? "outline" : "secondary"}>

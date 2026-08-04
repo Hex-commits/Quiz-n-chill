@@ -18,9 +18,13 @@ from langchain_core.runnables import RunnableLambda
 from pydantic import Field
 
 from tools.ingest.pipeline.chains import check_step, extract_step, repair_step, review_step
-from tools.ingest.pipeline.graph import build_graph, run_article
-from tools.ingest.domain.models import GeneratedQuestion
+from tools.ingest.pipeline.augment import Augmentation
+from tools.ingest.pipeline.illustrate import Illustration
+from tools.ingest.pipeline.vet import MAX_ROUNDS, Verdict
+from tools.ingest.pipeline.graph import KEEP_REPAIRS, build_graph, run_article
+from tools.ingest.domain.models import GeneratedPair, GeneratedQuestion
 from tools.ingest.domain.rules import MIN_PAIRS
+from tools.ingest.sources.protocols import Document
 from tools.ingest.sources.wikipedia import Article
 
 ARTICLE = Article(
@@ -441,3 +445,348 @@ def test_a_failing_explainer_says_why_in_the_trace():
 
     assert outcome.accepted
     assert any("no such field" in line for line in outcome.steps)
+
+# -- topping up a short question from other articles ---------------------
+#
+# The routing, not the searching -- `test_augment.py` covers what may be added.
+# What matters here is which questions get sent looking, and that a search which
+# finds nothing cannot put the graph in a loop.
+
+
+class StubAugment:
+    """Stands in for `augment_step`, recording what it was asked for."""
+
+    def __init__(self, *pairs: tuple[str, str], documents=()):
+        self.pairs = pairs
+        self.documents = documents
+        self.calls: list[int] = []
+
+    def invoke(self, state, *args, **kwargs):
+        self.calls.append(state["needed"])
+        return Augmentation(
+            pairs=tuple(
+                GeneratedPair(label=label, answer=answer) for label, answer in self.pairs
+            ),
+            documents=tuple(self.documents),
+            detail=f"{len(self.pairs)} pair(s) from elsewhere",
+        )
+
+
+def short(n: int, **overrides) -> dict:
+    """A payload with `n` pairs -- fewer than the validator will accept."""
+    return payload(
+        pairs=[{"label": f"Kat{i}", "answer": f"Ant{i}"} for i in range(n)],
+        **overrides,
+    )
+
+
+def run_with_augment(replies, augmenter, *, reviews=None, max_attempts=3):
+    generator = fake_model(replies)
+    reviewer = fake_model(reviews) if reviews is not None else None
+    graph = build_graph(
+        extract=extract_step(generator, sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        review=review_step(reviewer) if reviewer else None,
+        augment=augmenter,
+        repair=repair_step(),
+    )
+    return run_article(graph, ARTICLE, SUBJECTS, max_attempts=max_attempts)
+
+
+def test_a_short_medium_question_is_topped_up_and_accepted():
+    missing = MIN_PAIRS - 8
+    augmenter = StubAugment(*[(f"Extra{i}", f"Antwort{i}") for i in range(missing)])
+
+    outcome = run_with_augment([short(8)], augmenter)
+
+    assert augmenter.calls == [missing]
+    assert outcome.accepted, outcome.problems
+    assert len(outcome.question.pairs) == MIN_PAIRS
+
+
+def test_an_easy_question_is_left_to_fail():
+    """The step costs a search, several fetches and a model call each. That is
+    worth paying for a question someone will find interesting."""
+    augmenter = StubAugment(("Extra", "Antwort"))
+
+    outcome = run_with_augment([short(8, difficulty="easy")] * 3, augmenter)
+
+    assert augmenter.calls == []
+    assert not outcome.accepted
+
+
+def test_a_hard_question_is_topped_up_too():
+    missing = MIN_PAIRS - 9
+    augmenter = StubAugment(*[(f"Extra{i}", f"Antwort{i}") for i in range(missing)])
+
+    outcome = run_with_augment([short(9, difficulty="hard")], augmenter)
+
+    assert augmenter.calls == [missing]
+    assert outcome.accepted, outcome.problems
+
+
+def test_a_question_with_a_second_problem_is_not_sent_looking():
+    """Adding pairs cannot fix a duplicated answer, so this one belongs in the
+    repair loop instead."""
+    duplicated = short(8)
+    duplicated["pairs"][1]["answer"] = duplicated["pairs"][0]["answer"]
+    augmenter = StubAugment(("Extra", "Antwort"))
+
+    run_with_augment([duplicated] * 3, augmenter)
+
+    assert augmenter.calls == []
+
+
+def test_finding_nothing_does_not_loop():
+    """`augment` routes back into `check`, so without the one-shot guard a
+    question it cannot fix would bounce between them for ever."""
+    augmenter = StubAugment()  # finds nothing
+
+    outcome = run_with_augment([short(8)] * 3, augmenter)
+
+    assert augmenter.calls == [MIN_PAIRS - 8]
+    assert not outcome.accepted
+
+
+def test_a_failing_search_costs_the_pairs_and_nothing_else():
+    class Broken:
+        def invoke(self, state, *args, **kwargs):
+            raise RuntimeError("search is down")
+
+    outcome = run_with_augment([short(8)] * 3, Broken())
+
+    assert not outcome.accepted
+    assert "augment" in " ".join(outcome.steps)
+
+
+def test_the_reviewer_is_shown_the_articles_the_pairs_came_from():
+    """Without them it judges every added pair against an article that never
+    mentions it, and rejects the question this step exists to save."""
+    borrowed = Document(
+        id="2", title="Nachbarartikel", url="https://example.test/n", text="Belegtext hier."
+    )
+    missing = MIN_PAIRS - 8
+    augmenter = StubAugment(
+        *[(f"Extra{i}", f"Antwort{i}") for i in range(missing)], documents=[borrowed]
+    )
+    reviewer = fake_model([{"ok": True, "problems": [], "misplaced_items": []}])
+
+    graph = build_graph(
+        extract=extract_step(fake_model([short(8)]), sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        review=review_step(reviewer),
+        augment=augmenter,
+        repair=repair_step(),
+    )
+    outcome = run_article(graph, ARTICLE, SUBJECTS)
+
+    assert outcome.accepted, outcome.problems
+    sent = "".join(m.content for m in reviewer.seen[0])
+    assert "Belegtext hier." in sent
+    assert "Nachbarartikel" in sent
+    assert outcome.borrowed_from == ["Nachbarartikel"]
+
+
+def test_without_the_step_the_node_is_not_in_the_graph():
+    stub = RunnableLambda(lambda state: [])
+    assert "augment" not in build_graph(extract=stub, check=stub, repair=stub).get_graph().nodes
+
+
+# -- rejecting a borrowed pair and going back for a better one ------------
+
+
+class StubVet:
+    """Rules on candidates by label, and records what it was shown."""
+
+    def __init__(self, *accept: str):
+        self.accept = accept
+        self.seen: list[list[str]] = []
+
+    def invoke(self, state, *args, **kwargs):
+        candidates = list(state["candidates"])
+        self.seen.append([c.label for c in candidates])
+        kept = tuple(c for c in candidates if c.label in self.accept)
+        rejected = tuple(c for c in candidates if c.label not in self.accept)
+        return Verdict(kept, rejected, tuple((c.label, "different question") for c in rejected))
+
+
+class RoundedAugment:
+    """Yields a different batch of pairs on each pass, like a fresh search."""
+
+    def __init__(self, *rounds: list[tuple[str, str]]):
+        self.rounds = list(rounds)
+        self.skips: list[set] = []
+
+    def invoke(self, state, *args, **kwargs):
+        self.skips.append(set(state.get("skip") or set()))
+        batch = self.rounds.pop(0) if self.rounds else []
+        n = len(self.skips)
+        return Augmentation(
+            pairs=tuple(GeneratedPair(label=a, answer=b) for a, b in batch),
+            documents=(Document(id=str(n), title=f"Quelle {n}", url="u", text="t"),),
+            detail=f"{len(batch)} from Quelle {n}",
+        )
+
+
+def run_vetted(replies, augmenter, vetter, *, max_attempts=3):
+    graph = build_graph(
+        extract=extract_step(fake_model(replies), sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        augment=augmenter,
+        vet=vetter,
+        repair=repair_step(),
+    )
+    return run_article(graph, ARTICLE, SUBJECTS, max_attempts=max_attempts)
+
+
+def test_a_rejected_pair_sends_the_question_back_for_a_new_search():
+    """The behaviour the whole step exists for: a bad borrowing costs a search,
+    not the question."""
+    missing = MIN_PAIRS - 9
+    augmenter = RoundedAugment([("Schlecht", "falsch")], [("Gut", "1 km")] * missing)
+    vetter = StubVet("Gut")
+
+    outcome = run_vetted([short(9)], augmenter, vetter)
+
+    assert len(augmenter.skips) == 2, "should have searched twice"
+    assert augmenter.skips[1] == {"Quelle 1"}, "second search must read somewhere new"
+    assert vetter.seen == [["Schlecht"], ["Gut"]]
+    assert outcome.accepted, outcome.problems
+
+
+def test_only_the_vetted_pairs_reach_the_board():
+    augmenter = RoundedAugment([("Gut", "1 km"), ("Schlecht", "falsch")])
+    vetter = StubVet("Gut")
+
+    outcome = run_vetted([short(MIN_PAIRS - 1)], augmenter, vetter)
+
+    assert outcome.accepted, outcome.problems
+    assert "Gut" in outcome.question.labels
+    assert "Schlecht" not in outcome.question.labels
+
+
+def test_the_search_gives_up_after_two_rounds():
+    augmenter = RoundedAugment([("A", "x")], [("B", "y")], [("C", "z")])
+    vetter = StubVet()  # rejects everything
+
+    outcome = run_vetted([short(9)] * 3, augmenter, vetter)
+
+    assert len(augmenter.skips) == MAX_ROUNDS
+    assert not outcome.accepted
+
+
+def test_without_vet_there_is_only_one_search():
+    """Nothing rejects, so a second pass would only re-ask the same question."""
+    augmenter = RoundedAugment([("A", "x")], [("B", "y")])
+
+    run_vetted([short(9)] * 3, augmenter, None)
+
+    assert len(augmenter.skips) == 1
+
+
+# -- naming a picture question -------------------------------------------
+#
+# `reframe` is the one model output nothing downstream can check: it is prose a
+# player reads, not data a validator sees, and it runs after both gates. So the
+# model states which side is the photograph *before* it writes the instruction
+# that depends on that, and a reply that skipped it does not get to rename the
+# question.
+
+
+class StubIllustrate:
+    """Stands in for `illustrate_step`: pictures on the categories, no flip."""
+
+    def __init__(self, flipped=False):
+        self.flipped = flipped
+
+    def invoke(self, state, *args, **kwargs):
+        question = state["question"]
+        labels = question.answers if self.flipped else question.labels
+        return Illustration(
+            images={label: object() for label in labels},
+            flipped=self.flipped,
+            detail="alle illustriert",
+        )
+
+
+def run_illustrated(reframe_reply, *, flipped=False):
+    graph = build_graph(
+        extract=extract_step(fake_model([payload()]), sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        illustrate=StubIllustrate(flipped=flipped),
+        reframe=RunnableLambda(lambda _state: reframe_reply),
+        repair=repair_step(),
+    )
+    return run_article(graph, ARTICLE, SUBJECTS)
+
+
+def named(**overrides) -> dict:
+    base = {
+        "shown": "eine Kategorie",
+        "asked": "die Antwort",
+        "title": "Bilderfrage",
+        "description": "Was gehört zu diesem Bild?",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_a_picture_question_is_renamed_for_the_board_it_became():
+    outcome = run_illustrated(named())
+
+    assert outcome.accepted, outcome.problems
+    assert outcome.question.title == "Bilderfrage"
+    assert outcome.question.description == "Was gehört zu diesem Bild?"
+
+
+def test_the_direction_it_wrote_for_is_recorded_in_the_trace():
+    """The only trace of a judgement no gate makes."""
+    outcome = run_illustrated(named(shown="ein Fluss", asked="die Länge"))
+
+    assert any("Bild = ein Fluss, gefragt = die Länge" in line for line in outcome.steps)
+
+
+def test_a_rename_that_never_said_which_side_is_the_picture_is_not_used():
+    """Without the direction stated first, the instruction is a coin toss -- and
+    a stale title is a blemish where a backwards instruction is a broken game."""
+    outcome = run_illustrated(named(shown="", asked=""))
+
+    assert outcome.accepted, outcome.problems
+    assert outcome.question.title == "Testfrage"
+    assert any("did not say which side" in line for line in outcome.steps)
+
+
+def test_a_failing_rename_costs_the_title_and_not_the_pictures():
+    def boom(_state):
+        raise RuntimeError("no")
+
+    graph = build_graph(
+        extract=extract_step(fake_model([payload()]), sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        illustrate=StubIllustrate(),
+        reframe=RunnableLambda(boom),
+        repair=repair_step(),
+    )
+    outcome = run_article(graph, ARTICLE, SUBJECTS)
+
+    assert outcome.accepted
+    assert outcome.is_picture
+    assert outcome.question.title == "Testfrage"
+
+
+# -- the repair transcript is bounded ------------------------------------
+
+
+def test_the_transcript_keeps_whole_attempts_and_only_the_recent_ones():
+    """It is the one part of the extract prompt that grows: a rejected answer
+    plus its complaints, on top of a system prompt and 6000 characters of
+    article. Unbounded, `--attempts 10` runs the call out of context and the
+    truncated reply is reported as the model's fault."""
+    _outcome, generator, _ = run([broken()] * 6, max_attempts=6)
+
+    assert len(generator.seen) == 6
+    # system + human + KEEP_REPAIRS whole (ai, human) attempts, and no more.
+    assert len(generator.seen[-1]) == 2 + 2 * KEEP_REPAIRS
+    # Whole attempts only: never a complaint about an answer that has been
+    # dropped from the conversation.
+    assert [m.type for m in generator.seen[-1][2:]] == ["ai", "human"] * KEEP_REPAIRS

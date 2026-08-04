@@ -36,6 +36,13 @@ DEFAULT_TIMEOUT = 600.0
 # Low but not zero: at 0 a small model retries the same wrong answer on every
 # repair attempt, which makes the repair loop pointless.
 DEFAULT_TEMPERATURE = 0.3
+
+# Zero for anything that *judges* rather than writes. The reason above applies
+# to `extract` alone: a generator that repeats its rejected answer makes the
+# repair loop pointless, but a reviewer whose verdict changes between runs makes
+# the gate itself unrepeatable -- the same question passing on Tuesday and
+# failing on Wednesday is not a gate.
+JUDGE_TEMPERATURE = 0.0
 DEFAULT_NUM_CTX = 8192
 
 

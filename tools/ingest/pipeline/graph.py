@@ -3,12 +3,17 @@
 One article goes in; a Zuordnungsfrage that passed both gates comes out, or a
 list of reasons it did not.
 
-    START -> extract -> check --(clean)--> review --(clean)--> END
-                 |         |                  |
-                 |     (problems)         (problems)
-                 |         |                  |
-                 +---------+--> repair -------+
-                               (if attempts left, else END)
+    START -> extract -> select -> check --(clean)--> review --(clean)--> END
+                 |                  |                  |
+                 |              (problems)         (problems)
+                 |                  |                  |
+                 +------------------+--> repair -------+
+                                        (if attempts left, else END)
+
+`extract` writes several drafts from one article and `select` says which are
+worth playing -- it may keep more than one. The first goes on down the graph; the
+rest come back out in `Outcome.spares`, and `run_all` puts each of those in at
+`check` through the same conditional START edge.
 
 Every node here is four lines: run one step from `chains.py`, return what
 changed. No prompts, no schemas, no parsing -- those belong to the step. What
@@ -23,10 +28,10 @@ that logic was spread across a counter, two `if`s and an early `return`; as
 edges it is the thing you read.
 
 The state is a Pydantic model, so a node returning a key that does not exist is
-an error rather than a silent no-op. `repairs` carries an `add_messages`
+an error rather than a silent no-op. `repairs` carries the `recent_repairs`
 reducer: the repair node returns just the two new turns and LangGraph appends
 them, which is why attempt three still sees what went wrong in attempts one and
-two.
+two -- bounded, so `--attempts 10` cannot grow the prompt past the context.
 """
 
 from __future__ import annotations
@@ -43,10 +48,35 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..domain.models import GeneratedQuestion, Review
 from ..sources.wikipedia import Article
 from .chains import skipped_review
+from ..domain.rules import MIN_PAIRS
+from ..domain.validate import only_needs_more_pairs
+from .augment import merge
+from .vet import MAX_ROUNDS
 from .illustrate import flip, keep_illustrated
 # Aliased: `explain` is also the name of a node and of this module's
 # build_graph parameter, and the shadowing is silent until it bites.
 from .llm import explain as describe_failure
+
+# How many rejected attempts stay in the extract conversation. Each one is a
+# rejected answer plus the complaints about it, on top of a system prompt and
+# 6000 characters of article -- so the transcript is the one part of that prompt
+# that grows without a bound of its own. Two is what the default `--attempts 3`
+# accumulates anyway; the bound is what keeps `--attempts 10` from quietly
+# running the extract call out of context, where a truncated reply is reported as
+# a schema mismatch and looks like the model's fault.
+KEEP_REPAIRS = 2
+
+
+def recent_repairs(
+    existing: list[BaseMessage] | None, new: list[BaseMessage] | None
+) -> list[BaseMessage]:
+    """`add_messages`, with a sliding window over the last `KEEP_REPAIRS` tries.
+
+    Whole attempts, never half of one: the window is a multiple of two, so the
+    model is never shown complaints about an answer that has been dropped from
+    the conversation.
+    """
+    return add_messages(existing or [], new or [])[-2 * KEEP_REPAIRS :]
 
 
 class IngestState(BaseModel):
@@ -56,9 +86,15 @@ class IngestState(BaseModel):
 
     article: Article
     subjects: list[tuple[str, str]] = Field(default_factory=list)
-    repairs: Annotated[list[BaseMessage], add_messages] = Field(default_factory=list)
+    repairs: Annotated[list[BaseMessage], recent_repairs] = Field(default_factory=list)
     raw: dict = Field(default_factory=dict)
     question: GeneratedQuestion | None = None
+    # Every usable question `extract` wrote this attempt, and the ones `select`
+    # judged worth keeping beyond the first. `run_all` puts each spare back
+    # through the graph on its own.
+    drafts: list[GeneratedQuestion] = Field(default_factory=list)
+    spares: list[GeneratedQuestion] = Field(default_factory=list)
+    select_detail: str = ""
     problems: list[str] = Field(default_factory=list)
     review: Review | None = None
     attempt: int = 1
@@ -78,6 +114,24 @@ class IngestState(BaseModel):
     # Why illustration produced nothing, in words, for the trace.
     illustrate_detail: str = ""
     illustrate_error: str = ""
+    # The direction `reframe` said it was writing for, kept for the trace: it is
+    # the only model output no gate downstream can check.
+    reframe_detail: str = ""
+    # How many `augment` passes this question has had. A rejection sends it
+    # round again to look somewhere new, bounded by `vet.MAX_ROUNDS`. This is
+    # also what stops `augment -> check -> augment` looping.
+    augment_rounds: int = 0
+    # Titles already read, so a second pass does not re-read them.
+    read_titles: list = Field(default_factory=list)
+    vet_detail: str = ""
+    # The other articles pairs were taken from. Handed to `review`, which would
+    # otherwise judge them against an article that never mentions them.
+    extra_sources: list = Field(default_factory=list)
+    augment_detail: str = ""
+    augment_error: str = ""
+    # Borrowed pairs waiting on `vet`. Held off the question until judged, so a
+    # rejected pair never has to be removed from a board it was on.
+    candidates: list = Field(default_factory=list)
 
 
 class Outcome(BaseModel):
@@ -95,6 +149,15 @@ class Outcome(BaseModel):
     # question, which is the common case and not a failure.
     images: dict = Field(default_factory=dict)
     flipped: bool = False
+    # Titles of the articles that supplied extra pairs, for the report. Empty
+    # for the overwhelming majority, which never needed topping up.
+    borrowed_from: list = Field(default_factory=list)
+    # The other questions `select` kept from the same article, still unchecked.
+    # `run_all` runs each of these through the graph in turn; a caller using
+    # `run_article` directly gets them here and may ignore them.
+    spares: list[GeneratedQuestion] = Field(default_factory=list)
+    # What `select` made of the batch, in words, for the report.
+    select_detail: str = ""
 
     @property
     def accepted(self) -> bool:
@@ -105,11 +168,20 @@ class Outcome(BaseModel):
         return bool(self.images)
 
 
+# Which difficulties are worth searching other articles for. `easy` is left
+# out: the whole point of the step is to spend effort on questions that deserve
+# it, and a thin easy question is not one.
+AUGMENT_DIFFICULTIES = frozenset({"medium", "hard"})
+
+
 def build_graph(
     *,
     extract: Runnable,
     check: Runnable,
+    select: Runnable | None = None,
     review: Runnable | None = None,
+    augment: Runnable | None = None,
+    vet: Runnable | None = None,
     illustrate: Runnable | None = None,
     reframe: Runnable | None = None,
     explain: Runnable | None = None,
@@ -120,6 +192,11 @@ def build_graph(
     With `review=None` the review node is left out of the graph entirely rather
     than added and routed around, so a `--no-review` run *is* the smaller graph
     instead of merely behaving like one.
+
+    The entry edge is conditional. A state that already carries a question skips
+    `extract` and starts at `check` -- which is how `run_all` puts a question
+    `select` kept but did not put first through the rest of the pipeline, without
+    a second graph or a second copy of the gates.
     """
 
     def extract_node(state: IngestState) -> dict:
@@ -135,29 +212,146 @@ def build_graph(
                 "stop": True,
             }
 
-        if result.question is None:
+        if not result.questions:
             return {"raw": result.raw, "problems": [result.error]}
 
-        if not result.question.usable:
-            reason = result.question.reason or "no reason given"
+        # One reply, several drafts. The unusable ones are the model declining an
+        # angle, which is the right answer for that angle and says nothing about
+        # the others -- so they are dropped here and only a reply where *every*
+        # draft declined counts as a refusal of the article.
+        drafts = [question for question in result.questions if question.usable]
+        if not drafts:
+            declined = result.questions[0]
             return {
                 "raw": result.raw,
-                "question": result.question,
-                "problems": [f"model declined: {reason}"],
+                "question": declined,
+                "problems": [f"model declined: {declined.reason or 'no reason given'}"],
                 "stop": True,
             }
 
-        return {"raw": result.raw, "question": result.question, "problems": []}
+        # `question` is set to the first draft here as well as in `select`, so a
+        # run without the select step behaves exactly as it did when extract
+        # returned one question.
+        return {
+            "raw": result.raw,
+            "drafts": drafts,
+            "question": drafts[0],
+            "problems": [],
+        }
+
+    def select_node(state: IngestState) -> dict:
+        """Choose which of this attempt's drafts are worth a board. Never repairs.
+
+        The step exists because one article usually holds more than one question
+        and the drafts are not equally worth playing -- the model is asked which
+        teach the player something, and may keep several or none. Keeping none is
+        a verdict on the article, like `usable: false`, so it stops rather than
+        going round the repair loop: the drafts were well-formed, they were just
+        not interesting, and asking the same model again gets the same answer.
+        """
+        try:
+            kept = select.invoke({"article": state.article, "questions": state.drafts})
+        except Exception as exc:  # noqa: BLE001 - a dead judge must not cost the batch
+            # Falls through with the first draft, which is what a run without
+            # this step would have produced anyway.
+            return {"select_detail": f"kept 1 of {len(state.drafts)} -- {describe_failure(exc)}"}
+
+        if not kept.questions:
+            return {
+                "select_detail": kept.detail,
+                "problems": [f"none of {len(state.drafts)} drafts kept: {kept.detail}"],
+                "stop": True,
+            }
+
+        return {
+            "question": kept.questions[0],
+            "spares": list(kept.questions[1:]),
+            "select_detail": kept.detail,
+        }
 
     def check_node(state: IngestState) -> dict:
         return {"problems": check.invoke(state.question)}
 
     def review_node(state: IngestState) -> dict:
         try:
-            verdict = review.invoke({"article": state.article, "question": state.question})
+            verdict = review.invoke(
+                {
+                    "article": state.article,
+                    "question": state.question,
+                    # Empty unless `augment` borrowed pairs. Without these the
+                    # reviewer cannot see the text an added pair came from and
+                    # rejects every one of them.
+                    "extras": state.extra_sources,
+                }
+            )
         except Exception as exc:  # noqa: BLE001 - must not discard a passing question
             verdict = skipped_review(describe_failure(exc))
         return {"review": verdict, "problems": [] if verdict.ok else verdict.problems}
+
+    def augment_node(state: IngestState) -> dict:
+        """Look for the missing pairs in other articles. Never rejects.
+
+        Reached only from `check`, and only when the pair count is the single
+        thing wrong. Whatever happens the question goes back to `check`, so a
+        search that finds nothing costs the article a couple of fetches and
+        leaves it exactly as it was.
+        """
+        needed = MIN_PAIRS - len(state.question.pairs)
+        rounds = state.augment_rounds + 1
+        try:
+            found = augment.invoke(
+                {
+                    "question": state.question,
+                    "document": state.article,
+                    "needed": needed,
+                    # A second pass must look somewhere new, or a rejection just
+                    # buys the same article's pairs back.
+                    "skip": set(state.read_titles),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 - a failed search must not lose the question
+            return {"augment_rounds": rounds, "augment_error": describe_failure(exc)}
+
+        if not found.found:
+            return {"augment_rounds": rounds, "augment_detail": found.detail}
+
+        titles = [doc.title for doc in found.documents]
+        return {
+            # Held rather than merged: `vet` rules on them first, and a pair
+            # that never reaches the board cannot need removing from it.
+            "candidates": list(found.pairs),
+            "question": state.question if vet is not None else merge(state.question, found),
+            "augment_rounds": rounds,
+            "read_titles": [*state.read_titles, *titles],
+            "extra_sources": [*state.extra_sources, *found.documents],
+            "augment_detail": found.detail,
+        }
+
+    def vet_node(state: IngestState) -> dict:
+        """Rule on the borrowed pairs, one at a time. Keeps what belongs.
+
+        A rejection is not fatal to the question -- `after_check` sends it back
+        to `augment` to read somewhere it has not been, which is the whole point
+        of separating finding from judging.
+        """
+        if not state.candidates:
+            return {"vet_detail": "nothing to judge"}
+        try:
+            verdict = vet.invoke(
+                {"question": state.question, "candidates": state.candidates}
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Nothing admitted: the step exists to be the thing that says no, and
+            # a judge that could not answer has not said yes.
+            return {"candidates": [], "vet_detail": f"none -- {describe_failure(exc)}"}
+
+        return {
+            "question": state.question.model_copy(
+                update={"pairs": [*state.question.pairs, *verdict.kept]}
+            ),
+            "candidates": [],
+            "vet_detail": verdict.detail,
+        }
 
     def illustrate_node(state: IngestState) -> dict:
         """Decide whether this becomes a picture question. Never rejects.
@@ -190,23 +384,39 @@ def build_graph(
         #
         # Failing to rename is not worth losing the pictures over -- a stale
         # title is a blemish, a lost board is not.
+        detail = ""
         if reframe is not None:
             try:
                 renamed = reframe.invoke({"question": question})
-                question = question.model_copy(
-                    update={
-                        "title": renamed["title"],
-                        "description": renamed["description"],
-                    }
-                )
-            except Exception:  # noqa: BLE001 - see above
-                pass
+                # `shown` and `asked` are the model's own statement of which side
+                # is the photograph, written before the instruction that depends
+                # on it. Kept for the trace and the report because this is the
+                # one model output no gate downstream can check: it is prose a
+                # player reads, not data a validator sees. A reply that skipped
+                # them is one that renamed without establishing the direction, so
+                # the question keeps the title it already had -- which is stale
+                # for a flip, and honest either way.
+                shown = (renamed.get("shown") or "").strip()
+                asked = (renamed.get("asked") or "").strip()
+                if shown and asked:
+                    question = question.model_copy(
+                        update={
+                            "title": renamed["title"],
+                            "description": renamed["description"],
+                        }
+                    )
+                    detail = f"Bild = {shown}, gefragt = {asked}"
+                else:
+                    detail = "kept the old title -- reframe did not say which side is the picture"
+            except Exception as exc:  # noqa: BLE001 - see above
+                detail = f"kept the old title -- {describe_failure(exc)}"
 
         return {
             "question": question,
             "images": {label: image for label, image in decision.images.items()},
             "flipped": decision.flipped,
             "illustrate_detail": decision.detail,
+            "reframe_detail": detail,
         }
 
     def explain_node(state: IngestState) -> dict:
@@ -217,7 +427,15 @@ def build_graph(
         and nothing else.
         """
         try:
-            lines = explain.invoke({"article": state.article, "question": state.question})
+            lines = explain.invoke(
+                {
+                    "article": state.article,
+                    "question": state.question,
+                    # Same reason `review` gets them: a borrowed pair's evidence
+                    # is in the article it came from, not in this one.
+                    "extras": state.extra_sources,
+                }
+            )
         except Exception as exc:  # noqa: BLE001 - decoration must not fail a question
             return {"explain_error": describe_failure(exc)}
         return {"question": state.question.model_copy(update={"explanations": lines})}
@@ -233,10 +451,24 @@ def build_graph(
     def retry_or_stop(state: IngestState) -> str:
         return "repair" if state.attempt < state.max_attempts else END
 
+    def first_node(state: IngestState) -> str:
+        """`extract`, unless the caller supplied the question already.
+
+        A pre-seeded question is a spare from `select`: written, not yet checked.
+        It enters at the first gate, which is exactly what a freshly extracted
+        one does.
+        """
+        return "extract" if state.question is None else "check"
+
     def after_extract(state: IngestState) -> str:
         if state.stop:
             return END
-        return "check" if not state.problems else retry_or_stop(state)
+        if state.problems:
+            return retry_or_stop(state)
+        return "select" if select is not None else "check"
+
+    def after_select(state: IngestState) -> str:
+        return END if state.stop else "check"
 
     def done(state: IngestState) -> str:
         """Where a question goes once nothing can reject it any more."""
@@ -244,9 +476,32 @@ def build_graph(
             return "illustrate"
         return "explain" if explain is not None else END
 
+    def worth_topping_up(state: IngestState) -> bool:
+        """Whether to go looking for the missing pairs elsewhere.
+
+        Three conditions, and each rules out a way of wasting the search:
+
+        * The pair count is the *only* complaint. Adding pairs cannot fix a
+          duplicate answer or a bad slug, and a question with several problems
+          is one the repair loop should be arguing with instead.
+        * It has not been tried already, or `augment -> check -> augment` never
+          terminates.
+        * The question is worth the money. Searching costs a search, several
+          fetches and a model call each; `easy` questions are left to fail,
+          which is the one place the pipeline spends in proportion to how good
+          the thing already is.
+        """
+        return (
+            augment is not None
+            and state.augment_rounds < (MAX_ROUNDS if vet is not None else 1)
+            and state.question is not None
+            and state.question.difficulty in AUGMENT_DIFFICULTIES
+            and only_needs_more_pairs(state.question, state.problems)
+        )
+
     def after_check(state: IngestState) -> str:
         if state.problems:
-            return retry_or_stop(state)
+            return "augment" if worth_topping_up(state) else retry_or_stop(state)
         return "review" if review is not None else done(state)
 
     def after_review(state: IngestState) -> str:
@@ -257,9 +512,15 @@ def build_graph(
     builder.add_node("check", check_node)
     builder.add_node("repair", repair_node)
 
-    builder.add_edge(START, "extract")
-    builder.add_conditional_edges("extract", after_extract, ["check", "repair", END])
+    builder.add_conditional_edges(START, first_node, ["extract", "check"])
     builder.add_edge("repair", "extract")
+
+    if select is not None:
+        builder.add_node("select", select_node)
+        builder.add_conditional_edges("extract", after_extract, ["select", "repair", END])
+        builder.add_conditional_edges("select", after_select, ["check", END])
+    else:
+        builder.add_conditional_edges("extract", after_extract, ["check", "repair", END])
 
     # `explain` is a terminal decoration, so it has one outgoing edge and no say
     # in whether the question survives.
@@ -282,14 +543,62 @@ def build_graph(
     elif explain is not None:
         exits = ["explain"]
 
+    # Straight back into `check`: everything it adds is subject to exactly the
+    # same structural rules, and `augment_rounds` is what stops the two looping.
+    tops_up = []
+    if augment is not None:
+        builder.add_node("augment", augment_node)
+        tops_up = ["augment"]
+        if vet is not None:
+            # Found, then judged, then re-checked. `after_check` is what sends a
+            # question whose borrowings were rejected round for another search.
+            builder.add_node("vet", vet_node)
+            builder.add_edge("augment", "vet")
+            builder.add_edge("vet", "check")
+        else:
+            builder.add_edge("augment", "check")
+
     if review is not None:
         builder.add_node("review", review_node)
-        builder.add_conditional_edges("check", after_check, ["review", "repair", *exits, END])
+        builder.add_conditional_edges(
+            "check", after_check, ["review", "repair", *tops_up, *exits, END]
+        )
         builder.add_conditional_edges("review", after_review, ["repair", *exits, END])
     else:
-        builder.add_conditional_edges("check", after_check, ["repair", *exits, END])
+        builder.add_conditional_edges(
+            "check", after_check, ["repair", *tops_up, *exits, END]
+        )
 
     return builder.compile()
+
+
+def run_all(
+    graph,
+    article: Article,
+    subjects: list[tuple[str, str]],
+    *,
+    max_attempts: int = 3,
+    on_step: Callable[[str, str], None] | None = None,
+) -> list[Outcome]:
+    """Run one article, and then every question `select` kept beyond the first.
+
+    One article can hold several questions worth playing, and `select` is what
+    says which. The spares go back through the *same* compiled graph with the
+    question pre-seeded, so they pass the same gates, get the same pictures and
+    the same explanations -- rather than being written on the strength of having
+    been chosen.
+
+    A spare gets one attempt, not `max_attempts`. The repair edge leads back to
+    `extract`, which would regenerate the whole batch and throw the spare away;
+    a spare that fails a gate is simply dropped, and there is another article.
+    """
+    first = run_article(
+        graph, article, subjects, max_attempts=max_attempts, on_step=on_step
+    )
+    return [first] + [
+        run_article(graph, article, subjects, max_attempts=1, question=spare, on_step=on_step)
+        for spare in first.spares
+    ]
 
 
 def run_article(
@@ -298,9 +607,13 @@ def run_article(
     subjects: list[tuple[str, str]],
     *,
     max_attempts: int = 3,
+    question: GeneratedQuestion | None = None,
     on_step: Callable[[str, str], None] | None = None,
 ) -> Outcome:
     """Run one article and record what each node did.
+
+    With `question` given, `extract` and `select` are skipped and that question
+    enters at the first gate -- see `first_node` in `build_graph`.
 
     Streamed rather than invoked, because the per-node updates are the whole
     debuggability argument for the graph: `steps` becomes a plain-language
@@ -313,7 +626,7 @@ def run_article(
     second implementation of `add_messages` is one that can drift.
     """
     state = IngestState(
-        article=article, subjects=subjects, max_attempts=max_attempts
+        article=article, subjects=subjects, max_attempts=max_attempts, question=question
     )
     steps: list[str] = []
 
@@ -365,6 +678,9 @@ def run_article(
         seconds=time.monotonic() - started,
         images=dict(state.images),
         flipped=state.flipped,
+        borrowed_from=[doc.title for doc in state.extra_sources],
+        spares=list(state.spares),
+        select_detail=state.select_detail,
     )
 
 
@@ -378,7 +694,11 @@ def _describe(node: str, state: IngestState) -> str:
             return problems[0] if problems else "no question"
         if problems:
             return problems[0]
-        return f"{len(question.pairs)} pairs"
+        drafts = f"{len(state.drafts)} drafts, " if len(state.drafts) > 1 else ""
+        return f"{drafts}{len(question.pairs)} pairs"
+
+    if node == "select":
+        return state.select_detail or "kept the first draft"
 
     if node == "check":
         return "ok" if not problems else f"{len(problems)} problem(s): {problems[0]}"
@@ -394,7 +714,16 @@ def _describe(node: str, state: IngestState) -> str:
         if not state.images:
             return state.illustrate_detail or "stays a text question"
         kind = "flipped, " if state.flipped else ""
-        return f"{kind}{len(state.images)} categories illustrated"
+        named = f" ({state.reframe_detail})" if state.reframe_detail else ""
+        return f"{kind}{len(state.images)} categories illustrated{named}"
+
+    if node == "augment":
+        if state.augment_error:
+            return f"none -- {state.augment_error}"
+        return state.augment_detail or "found nothing to add"
+
+    if node == "vet":
+        return state.vet_detail or "nothing to judge"
 
     if node == "explain":
         if state.explain_error:

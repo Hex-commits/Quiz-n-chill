@@ -129,3 +129,22 @@ def _repeated(values: list[str]) -> list[str]:
         else:
             seen[key] = value
     return sorted(repeated.values())
+
+
+def only_needs_more_pairs(question, problems: list[str]) -> bool:
+    """True when the single thing wrong with `question` is that it is short.
+
+    Used to decide whether looking for pairs in other articles could possibly
+    help. Adding pairs cannot fix a duplicate answer or a bad slug, so anything
+    with a second complaint is not a candidate however few pairs it has.
+
+    Asked of the question rather than parsed out of the complaint text: the
+    wording of that message is tuned for the model to act on and has been
+    rewritten twice, and a router that breaks when a sentence is reworded is a
+    router that breaks silently.
+    """
+    return (
+        question is not None
+        and len(problems) == 1
+        and len(question.pairs) < MIN_PAIRS
+    )

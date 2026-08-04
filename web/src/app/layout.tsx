@@ -57,7 +57,18 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${outfit.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      {/*
+        `h-dvh` and `overflow-hidden`, not `min-h-full`. The page itself never
+        scrolls -- the header and footer are fixed furniture and `main` below is
+        the only thing that can move. That is what makes "no scrollbar" a
+        property of the shell rather than something every page has to arrange
+        for itself.
+
+        `dvh` rather than `vh` because mobile browsers grow and shrink their
+        chrome as you scroll, and `100vh` is the *tall* measurement -- using it
+        puts the footer under the address bar on every phone.
+      */}
+      <body className="flex h-dvh flex-col overflow-hidden">
         {/*
           Dark is the default rather than following the OS. `enableSystem` is
           off so the app does not silently flip to light on a light-mode
@@ -70,10 +81,22 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SiteHeader />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+          {/*
+            `min-h-0` is doing the load-bearing work: a flex child defaults to
+            `min-height: auto`, which means it refuses to shrink below its
+            content and pushes the footer off the bottom instead of scrolling.
+            Without it the `overflow-y-auto` never engages.
+
+            Wider than it was, and measured rather than picked. At `max-w-7xl`
+            the board came out 960px on a 1920px screen -- 640px of the window
+            unused -- which held it to four columns and ten cards to three rows.
+            96rem gives six columns at 1920 and five at 1366, so the board is
+            two rows on anything a game is played on.
+          */}
+          <main className="mx-auto min-h-0 w-full max-w-[96rem] flex-1 overflow-y-auto px-4 py-6">
             {children}
           </main>
-          <footer className="text-muted-foreground border-t px-4 py-6 text-center text-xs">
+          <footer className="text-muted-foreground shrink-0 border-t px-4 py-3 text-center text-xs">
             Hier könnte ihre Werbung stehen!
           </footer>
           <Toaster />

@@ -91,6 +91,27 @@ class Source(Protocol):
 
 
 @runtime_checkable
+class RelatedDocuments(Protocol):
+    """Where to look when one document does not hold enough pairs.
+
+    Separate from `Source` on purpose. `Source` answers "what should we try
+    next", which is a question about a whole run; this answers "what else is
+    about *this*", which is a question about one document and needs a query.
+    A source that can enumerate candidates cannot necessarily search, and a
+    search index could implement this without being a `Source` at all.
+    """
+
+    def related(self, document: Document, *, query: str, limit: int) -> list[Document]:
+        """Documents likely to hold more pairs of the same kind as `document`.
+
+        Best first, `document` itself excluded, at most `limit` of them. An
+        empty list is a normal answer -- most articles have no useful neighbour,
+        and the caller treats that as "leave the question as it is".
+        """
+        ...
+
+
+@runtime_checkable
 class ImageProvider(Protocol):
     """Which answers can be illustrated, and under what licence."""
 

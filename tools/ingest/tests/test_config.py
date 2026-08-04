@@ -22,7 +22,8 @@ from tools.ingest.config import (
 )
 
 VARS = ("SUPABASE_URL", "INGEST_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
-        "INGEST_SUPABASE_SERVICE_ROLE_KEY", "OLLAMA_URL", "INGEST_MODEL")
+        "INGEST_SUPABASE_SERVICE_ROLE_KEY", "OLLAMA_URL", "INGEST_MODEL",
+        "INGEST_VET", "INGEST_JUDGE_MODEL")
 
 
 @pytest.fixture(autouse=True)
@@ -223,3 +224,57 @@ def test_a_stream_that_cannot_be_reconfigured_is_not_fatal(monkeypatch):
     monkeypatch.setattr("tools.ingest.cli.sys.stderr", object())
 
     _speak_utf8()  # must not raise
+
+
+@pytest.fixture
+def resolvable(monkeypatch):
+    """Enough for `Settings.resolve()` to get as far as the settings under test."""
+    monkeypatch.setenv("INGEST_SUPABASE_URL", "http://127.0.0.1:54321")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key")
+
+
+# -- the two settings that have no flag --------------------------------------
+#
+# `INGEST_VET` and `INGEST_JUDGE_MODEL` describe the machine rather than the
+# run, so they are environment-only by design and there is nothing on the
+# command line to override them with.
+
+
+def test_vetting_is_off_unless_asked_for(monkeypatch, resolvable):
+    monkeypatch.delenv("INGEST_VET", raising=False)
+    assert Settings.resolve().vet is False
+
+
+@pytest.mark.parametrize("raw", ["1", "true", "TRUE", "Yes", "on", " true "])
+def test_the_ways_of_saying_yes(monkeypatch, resolvable, raw):
+    monkeypatch.setenv("INGEST_VET", raw)
+    assert Settings.resolve().vet is True
+
+
+@pytest.mark.parametrize("raw", ["0", "false", "no", "off", "", "maybe"])
+def test_anything_else_is_off(monkeypatch, resolvable, raw):
+    """A typo has to read as off. The asymmetry is deliberate for a setting that
+    costs a model call per candidate."""
+    monkeypatch.setenv("INGEST_VET", raw)
+    assert Settings.resolve().vet is False
+
+
+def test_the_judge_defaults_to_the_run_model(monkeypatch, resolvable):
+    """Not to the package default -- setting INGEST_MODEL alone should still
+    give one consistent model rather than silently two."""
+    monkeypatch.delenv("INGEST_JUDGE_MODEL", raising=False)
+    monkeypatch.setenv("INGEST_MODEL", "llama3:8b")
+
+    settings = Settings.resolve()
+
+    assert settings.model == "llama3:8b"
+    assert settings.judge_model == "llama3:8b"
+
+
+def test_the_judge_can_be_a_different_model(monkeypatch, resolvable):
+    monkeypatch.setenv("INGEST_MODEL", "glm4:9b")
+    monkeypatch.setenv("INGEST_JUDGE_MODEL", "qwen2.5:14b")
+
+    settings = Settings.resolve()
+
+    assert (settings.model, settings.judge_model) == ("glm4:9b", "qwen2.5:14b")

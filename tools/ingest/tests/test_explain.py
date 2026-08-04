@@ -13,7 +13,14 @@ from tools.ingest.domain.models import (
     GeneratedQuestion,
     explanation_schema,
 )
-from tools.ingest.pipeline.chains import as_explanations
+from tools.ingest.pipeline.chains import (
+    EXTRA_SOURCE_CHARS,
+    MAX_EXTRA_SOURCES,
+    as_explanations,
+    source_text,
+)
+from tools.ingest.sources.protocols import Document
+from tools.ingest.sources.wikipedia import Article
 
 QUESTION = GeneratedQuestion(
     usable=True,
@@ -118,3 +125,55 @@ def test_the_grammar_caps_the_length_so_it_fits_at_a_glance():
 
     assert why["maxLength"] == MAX_EXPLANATION_CHARS
     assert MAX_EXPLANATION_CHARS <= 160  # the database constraint
+
+
+# -- the source text it is shown -----------------------------------------
+#
+# Shared with `review`, which is the point: a borrowed pair's evidence is in the
+# article it came from, and a step asked to judge or describe it without that
+# text has nothing to read. `review` was given the neighbours and `explain` was
+# not, so it answered from its own knowledge instead.
+
+
+def article(text: str) -> Article:
+    return Article(title="Haupt", url="https://example.test/h", summary="s", extract=text)
+
+
+def neighbour(index: int, text: str = "Belegtext.") -> Document:
+    return Document(id=str(index), title=f"Nachbar {index}", url="u", text=text)
+
+
+def test_the_article_alone_is_the_common_case():
+    text = source_text({"article": article("Nur der Artikel.")})
+
+    assert text == article("Nur der Artikel.").text
+    assert "Zusätzlicher Quelltext" not in text
+
+
+def test_a_borrowed_pair_brings_the_text_that_supports_it():
+    text = source_text(
+        {"article": article("Der Artikel."), "extras": [neighbour(1, "Die Donau ist 2857 km lang.")]}
+    )
+
+    assert "Der Artikel." in text
+    assert "Nachbar 1" in text
+    assert "Die Donau ist 2857 km lang." in text
+
+
+def test_each_neighbour_is_capped_so_one_cannot_crowd_out_the_article():
+    text = source_text({"article": article("Kurz."), "extras": [neighbour(1, "x" * 50_000)]})
+
+    assert len(text) < EXTRA_SOURCE_CHARS + 200
+
+
+def test_the_neighbours_are_counted_as_well_as_capped():
+    """Two augment rounds of four articles each is 24k characters of neighbours
+    on top of the article, which does not fit in an 8k context however carefully
+    each one is trimmed."""
+    text = source_text(
+        {"article": article("Kurz."), "extras": [neighbour(i) for i in range(1, 6)]}
+    )
+
+    assert "Nachbar 1" in text
+    assert "Nachbar 3" not in text
+    assert text.count("Zusätzlicher Quelltext") == MAX_EXTRA_SOURCES

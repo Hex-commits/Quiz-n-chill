@@ -10,13 +10,25 @@ from __future__ import annotations
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
-from tools.ingest.domain.models import question_schema
+from tools.ingest.domain.models import GeneratedQuestion, question_schema
+from tools.ingest.domain.validate import validate
 from tools.ingest.pipeline.prompts import EXTRACT, REPAIR, REVIEW
 from tools.ingest.domain import rules
 
 
+def extract_input(**overrides) -> dict:
+    base = {
+        "title": "Kaffee",
+        "text": "...",
+        "subjects": "- geografie: Geografie",
+        "drafts": 2,
+    }
+    base.update(overrides)
+    return base
+
+
 def test_the_extract_prompt_declares_exactly_what_it_needs():
-    assert set(EXTRACT.input_variables) == {"title", "text", "subjects"}
+    assert set(EXTRACT.input_variables) == {"title", "text", "subjects", "drafts"}
 
 
 def test_a_missing_variable_is_an_error_not_a_half_filled_prompt():
@@ -25,9 +37,7 @@ def test_a_missing_variable_is_an_error_not_a_half_filled_prompt():
 
 
 def test_the_repair_placeholder_is_empty_on_the_first_attempt():
-    messages = EXTRACT.invoke(
-        {"title": "Kaffee", "text": "...", "subjects": "- geografie: Geografie"}
-    ).to_messages()
+    messages = EXTRACT.invoke(extract_input()).to_messages()
 
     assert [m.type for m in messages] == ["system", "human"]
 
@@ -35,12 +45,11 @@ def test_the_repair_placeholder_is_empty_on_the_first_attempt():
 def test_repair_turns_are_appended_after_the_article():
     """Order matters: the article has to come first, or the complaints refer to
     something the model has not been shown yet."""
-    messages = EXTRACT.invoke({
-        "title": "Kaffee",
-        "text": "...",
-        "subjects": "- geografie: Geografie",
-        "repairs": [AIMessage('{"usable": true}'), HumanMessage("Zu viele Fakes.")],
-    }).to_messages()
+    messages = EXTRACT.invoke(
+        extract_input(
+            repairs=[AIMessage('{"usable": true}'), HumanMessage("Zu viele Fakes.")]
+        )
+    ).to_messages()
 
     assert [m.type for m in messages] == ["system", "human", "ai", "human"]
     assert "Kaffee" in messages[1].content
@@ -108,11 +117,39 @@ def test_the_grammar_restricts_subject_and_difficulty_to_valid_values():
     assert schema["properties"]["difficulty"]["enum"] == ["easy", "medium", "hard"]
 
 
-def test_the_grammar_bounds_match_the_validator():
-    schema = question_schema(["geografie"])
+def test_the_grammar_holds_the_ceiling_but_not_the_floor():
+    """A ceiling needs no escape hatch; a floor does.
 
-    assert schema["properties"]["pairs"]["minItems"] == rules.MIN_PAIRS
-    assert schema["properties"]["pairs"]["maxItems"] == rules.MAX_PAIRS
+    `MIN_PAIRS` was in the grammar, and Ollama enforces it -- which made a short
+    reply unrepresentable, so a model with too little material could not take the
+    way out the prompt offers it and padded the board by repeating itself
+    instead. Measured on glm4:9b with a four-fact article: with the floor,
+    `usable: true` and up to eight of twelve answers duplicated; without it, four
+    clean pairs every time. On a rich article the floor bought nothing.
+
+    So the floor is the validator's alone -- which is also what gives `augment` a
+    short question to top up.
+    """
+    pairs = question_schema(["geografie"])["properties"]["pairs"]
+
+    assert "minItems" not in pairs
+    assert pairs["maxItems"] == rules.MAX_PAIRS
+
+
+def test_the_validator_is_the_one_holding_the_floor():
+    short = GeneratedQuestion.model_validate({
+        "usable": True,
+        "subject_slug": "geografie",
+        "slug": "kurz",
+        "title": "Kurz",
+        "difficulty": "medium",
+        "pairs": [{"label": f"K{i}", "answer": f"A{i}"} for i in range(4)],
+    })
+
+    problems = validate(short, subject_slugs={"geografie"})
+
+    assert len(problems) == 1, problems
+    assert f"playable range is {rules.MIN_PAIRS}" in problems[0]
 
 
 def test_the_grammar_makes_a_grouped_category_unrepresentable():
