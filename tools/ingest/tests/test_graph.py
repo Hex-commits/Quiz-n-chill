@@ -17,8 +17,15 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from pydantic import Field
 
-from tools.ingest.pipeline.chains import check_step, extract_step, repair_step, review_step
+from tools.ingest.pipeline.chains import (
+    broaden_step,
+    check_step,
+    extract_step,
+    repair_step,
+    review_step,
+)
 from tools.ingest.pipeline.augment import Augmentation
+from tools.ingest.pipeline.broaden import Broadening
 from tools.ingest.pipeline.illustrate import Illustration
 from tools.ingest.pipeline.vet import MAX_ROUNDS, Verdict
 from tools.ingest.pipeline.graph import KEEP_REPAIRS, build_graph, run_article
@@ -426,6 +433,203 @@ def test_a_failing_explainer_says_why_in_the_trace():
 
     assert outcome.accepted
     assert any("no such field" in line for line in outcome.steps)
+
+# -- reading the neighbours of an article that holds too little ----------
+#
+# The routing, not the searching -- `test_broaden.py` covers what comes back.
+# What matters here is which declines get a second reading, that the neighbours
+# actually reach the model, and that a search which finds nothing cannot put the
+# graph in a loop.
+
+
+class StubBroaden:
+    """Stands in for `broaden_step`, recording what it was asked to skip."""
+
+    def __init__(self, *documents: Document):
+        self.documents = documents
+        self.skips: list[set] = []
+
+    def invoke(self, state, *args, **kwargs):
+        self.skips.append(set(state.get("skip") or set()))
+        return Broadening(
+            documents=self.documents,
+            detail=f"read {', '.join(d.title for d in self.documents)}"
+            if self.documents
+            else "no similar articles found",
+        )
+
+
+NEIGHBOUR = Document(
+    id="2",
+    title="Nachbarort",
+    url="https://example.test/nachbarort",
+    # Long enough to be worth reading: `broaden` drops stubs, and the real step
+    # runs in `test_the_real_chain_reaches_the_searcher_and_the_prompt` below.
+    text="Der Nachbarort hat 4000 Einwohner. " + "Weiterer Fließtext. " * 20,
+)
+
+
+def run_with_broaden(replies, broadener, *, max_attempts=3):
+    generator = fake_model(replies)
+    graph = build_graph(
+        extract=extract_step(generator, sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        broaden=broadener,
+        repair=repair_step(),
+    )
+    outcome = run_article(graph, ARTICLE, SUBJECTS, max_attempts=max_attempts)
+    return outcome, generator
+
+
+def declined(reason: str = "Der Artikel handelt nur von einem Ding.") -> dict:
+    return payload(usable=False, reason=reason)
+
+
+def test_a_declined_article_is_read_again_with_similar_pages():
+    """The behaviour the step exists for: a decline is a verdict on one article,
+    and the class it belongs to has an article per member."""
+    broadener = StubBroaden(NEIGHBOUR)
+
+    outcome, generator = run_with_broaden([declined(), payload()], broadener)
+
+    assert outcome.accepted, outcome.problems
+    assert len(generator.seen) == 2
+    assert outcome.widened_from == ["Nachbarort"]
+
+
+def test_the_neighbours_actually_reach_the_model():
+    """Without the text in the prompt the second call is the first call again,
+    and the model declines a second time for the same reason."""
+    outcome, generator = run_with_broaden([declined(), payload()], StubBroaden(NEIGHBOUR))
+
+    second = generator.seen[1][-1].content
+    assert "Der Nachbarort hat 4000 Einwohner." in second
+    assert "Nachbarort" in second
+    assert outcome.accepted
+
+
+def test_the_first_pass_is_not_told_about_articles_it_does_not_have():
+    """A permanent paragraph about further texts is one that invites the model to
+    imagine them."""
+    _outcome, generator = run_with_broaden([payload()], StubBroaden(NEIGHBOUR))
+
+    assert "Weiterer Artikel" not in generator.seen[0][-1].content
+
+
+def test_an_article_is_only_widened_once():
+    """Declining a second time, with the neighbours in front of it, is an answer
+    about the class rather than about the article."""
+    broadener = StubBroaden(NEIGHBOUR)
+
+    outcome, generator = run_with_broaden([declined(), declined()], broadener)
+
+    assert len(broadener.skips) == 1
+    assert len(generator.seen) == 2
+    assert not outcome.accepted
+
+
+def test_a_page_already_read_is_not_offered_again():
+    broadener = StubBroaden(NEIGHBOUR)
+
+    run_with_broaden([declined(), payload()], broadener)
+
+    assert broadener.skips == [set()]
+
+
+def test_finding_nothing_similar_drops_the_article_where_it_stood():
+    """Re-asking a model that just said no, with nothing added, is a slow way of
+    getting the same answer."""
+    broadener = StubBroaden()
+
+    outcome, generator = run_with_broaden([declined(), payload()], broadener)
+
+    assert len(generator.seen) == 1
+    assert not outcome.accepted
+    assert outcome.problems == ["model declined: Der Artikel handelt nur von einem Ding."]
+
+
+def test_a_failing_search_costs_the_article_and_nothing_else():
+    class Broken:
+        def invoke(self, state, *args, **kwargs):
+            raise RuntimeError("search is down")
+
+    outcome, generator = run_with_broaden([declined(), payload()], Broken())
+
+    assert len(generator.seen) == 1
+    assert not outcome.accepted
+    assert any("search is down" in line for line in outcome.steps)
+
+
+def test_a_transport_failure_is_not_something_more_reading_can_fix():
+    """Ollama being down says nothing about how much the article holds."""
+    broadener = StubBroaden(NEIGHBOUR)
+
+    outcome, _generator = run_with_broaden(
+        [ConnectionError("connection refused"), payload()], broadener
+    )
+
+    assert broadener.skips == []
+    assert not outcome.accepted
+
+
+def test_a_malformed_reply_goes_to_repair_rather_than_to_the_search():
+    """A duplicated answer is a defect in the reply, not a shortage of material."""
+    broadener = StubBroaden(NEIGHBOUR)
+
+    outcome, generator = run_with_broaden([broken(), payload()], broadener)
+
+    assert broadener.skips == []
+    assert len(generator.seen) == 2
+    assert outcome.accepted, outcome.problems
+
+
+def test_the_widening_is_named_in_the_trace():
+    outcome, _generator = run_with_broaden([declined(), payload()], StubBroaden(NEIGHBOUR))
+
+    assert [line.split()[0] for line in outcome.steps] == [
+        "extract",
+        "broaden",
+        "extract",
+        "check",
+    ]
+    assert any("read Nachbarort" in line for line in outcome.steps)
+
+
+def test_without_the_step_a_decline_is_still_the_end_of_the_article():
+    stub = RunnableLambda(lambda _x: None)
+    assert "broaden" not in build_graph(extract=stub, check=stub, repair=stub).get_graph().nodes
+
+
+def test_the_real_chain_reaches_the_searcher_and_the_prompt():
+    """The stub above proves the routing; this proves the wiring. Only the model
+    and the network are faked -- the real `broaden_step` runs, so a step that
+    asked the finder for the wrong thing or dropped the documents on the way to
+    the prompt fails here."""
+
+    class StubFinder:
+        def __init__(self):
+            self.queries: list[str] = []
+
+        def related(self, document, *, query: str, limit: int):
+            self.queries.append(query)
+            return [NEIGHBOUR]
+
+    finder = StubFinder()
+    generator = fake_model([declined(), payload()])
+    graph = build_graph(
+        extract=extract_step(generator, sorted(SUBJECT_SLUGS)),
+        check=check_step(subject_slugs=SUBJECT_SLUGS),
+        broaden=broaden_step(finder),
+        repair=repair_step(),
+    )
+
+    outcome = run_article(graph, ARTICLE, SUBJECTS)
+
+    assert finder.queries == ["Testartikel"]
+    assert "Der Nachbarort hat 4000 Einwohner." in generator.seen[1][-1].content
+    assert outcome.accepted, outcome.problems
+    assert outcome.widened_from == ["Nachbarort"]
+
 
 # -- topping up a short question from other articles ---------------------
 #

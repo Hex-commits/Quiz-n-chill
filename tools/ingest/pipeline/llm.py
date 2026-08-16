@@ -2,9 +2,11 @@
 
 Ollama's `/api/chat` accepts a JSON Schema in its `format` field and constrains
 decoding to match it (Ollama >= 0.5). That is the local equivalent of a hosted
-API's structured outputs, and it is what makes a 9B model usable here at all --
-without it, a small model returns prose around its JSON, or trailing commas, or
-a plausible-looking object with the wrong keys.
+API's structured outputs, and it is what makes a model of this size usable here
+at all -- without it, a small model returns prose around its JSON, or trailing
+commas, or a plausible-looking object with the wrong keys. The guarantee is
+structural and comes from the decoder, so it holds whatever model is loaded;
+it is not something a better one earns the right to skip.
 
 `structured()` below is how that field gets set. The schema must be a **dict**:
 hand `with_structured_output` a Pydantic class instead and LangChain calls
@@ -28,7 +30,7 @@ from langchain_core.runnables import Runnable
 from langchain_ollama import ChatOllama
 
 DEFAULT_BASE_URL = "http://localhost:11435"
-DEFAULT_MODEL = "glm4:9b"
+DEFAULT_MODEL = "gemma4:e4b-it-q4_K_M"
 
 DEFAULT_TIMEOUT = 600.0
 
@@ -40,7 +42,18 @@ DEFAULT_TEMPERATURE = 0.3
 # the gate itself unrepeatable -- the same question passing on Tuesday and
 # failing on Wednesday is not a gate.
 JUDGE_TEMPERATURE = 0.0
-DEFAULT_NUM_CTX = 8192
+
+# The window every step runs in. Raised from 8192 when `DEFAULT_DRAFTS` went to
+# five: one extract call holds the article (6000 chars), the four worked
+# examples, up to five boards of 10-14 pairs and the repair transcript, and at 8k
+# the last draft was being written against a window with nothing left in it. A
+# reply truncated by a full context arrives as a schema mismatch, which reads
+# like the model's fault and sends the repair loop arguing with it.
+#
+# Affordable now for the same reason the model changed: a 4B at Q4 leaves most of
+# a 12 GB card free, and doubling the window on a small model costs a fraction of
+# what it would have on the 12B.
+DEFAULT_NUM_CTX = 16384
 
 
 class LLMError(RuntimeError):

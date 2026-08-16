@@ -37,10 +37,22 @@ from ..domain.models import (
 )
 from ..domain.validate import slugify, validate
 from .augment import MAX_DOCUMENTS, Augmentation, augment
+from .broaden import MAX_NEIGHBOURS, Broadening, broaden
 from .vet import Verdict, vet
 from .illustrate import Illustration, illustrate
 from .llm import structured
-from .prompts import AUGMENT, EXPLAIN, EXTRACT, REFRAME, REPAIR, REVIEW, SELECT, VET
+from .prompts import (
+    AUGMENT,
+    EXPLAIN,
+    EXTRACT,
+    NEIGHBOUR_ARTICLE,
+    NEIGHBOURS_NOTE,
+    REFRAME,
+    REPAIR,
+    REVIEW,
+    SELECT,
+    VET,
+)
 
 MAX_ARTICLE_CHARS = 6000
 
@@ -55,6 +67,27 @@ EXTRA_SOURCE_CHARS = 3_000
 # neighbours on top of the article.
 MAX_EXTRA_SOURCES = 2
 
+
+
+def neighbours(extras: list | None) -> str:
+    """The articles `broaden` fetched, as a block for the extract prompt.
+
+    Empty string when there are none, which is the case for every article that
+    was not declined -- the note explaining what the further texts are for only
+    appears when there are further texts.
+
+    Capped exactly as `source_text` caps them and for the same reason: this block
+    sits on top of the article's own 6000 characters, and the question still has
+    to be written by a model that has read all of it.
+    """
+    extras = list(extras or [])[:MAX_EXTRA_SOURCES]
+    if not extras:
+        return ""
+    blocks = "".join(
+        NEIGHBOUR_ARTICLE.format(title=extra.title, text=extra.text[:EXTRA_SOURCE_CHARS])
+        for extra in extras
+    )
+    return f"\n{NEIGHBOURS_NOTE}{blocks}\n"
 
 
 def extract_step(
@@ -75,6 +108,9 @@ def extract_step(
         return {
             "title": article.title,
             "text": article.text[:max_chars],
+            # Empty on all but the second pass at an article `extract` already
+            # declined -- see `neighbours` below.
+            "extras": neighbours(state.get("extras")),
             "subjects": "\n".join(f"- {slug}: {name}" for slug, name in state["subjects"]),
             "drafts": drafts,
             "repairs": state.get("repairs") or [],
@@ -407,6 +443,28 @@ def augment_step(
         )
 
     return RunnableLambda(run).with_config(run_name="augment")
+
+
+def broaden_step(finder, *, max_neighbours: int = MAX_NEIGHBOURS) -> Runnable:
+    """`{document, skip}` -> `Broadening`. No model call.
+
+    The cheapest step in the pipeline: a search and at most `max_neighbours`
+    fetches. What it buys is the *next* extract call, which is the most expensive
+    one -- so the graph, not this chain, decides when the trade is worth making.
+
+    `finder` is a `RelatedDocuments`, the same protocol `augment` searches
+    through; nothing here knows it is Wikipedia.
+    """
+
+    def run(state: dict) -> Broadening:
+        return broaden(
+            state["document"],
+            finder,
+            max_neighbours=max_neighbours,
+            skip=state.get("skip"),
+        )
+
+    return RunnableLambda(run).with_config(run_name="broaden")
 
 
 def explain_step(model, *, max_chars: int = MAX_ARTICLE_CHARS) -> Runnable:

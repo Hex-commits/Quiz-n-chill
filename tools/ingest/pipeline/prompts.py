@@ -104,9 +104,15 @@ Du lieferst eine Liste von Fragen. Jede Frage ist ein eigener Blickwinkel auf de
 Artikel und steht für sich -- zwei Fragen dürfen nicht dieselbe Zuordnung mit
 anderen Worten sein.
 
-Findest du nur einen guten Blickwinkel, gib genau eine Frage zurück. Das ist die
-richtige Antwort. Eine zweite Frage, die nur aufgefüllt wurde, um zwei zu haben,
-ist schlechter als keine zweite Frage.
+Suche aktiv nach allen Blickwinkeln, die der Artikel wirklich hergibt: andere
+Klasse von Dingen, andere Eigenschaft, andere Epoche. Ein längerer Artikel trägt
+oft mehrere gute Fragen, und sie alle zu liefern ist ausdrücklich erwünscht.
+
+Aber: Liefere nur so viele, wie der Artikel deckt. Findest du einen einzigen
+guten Blickwinkel, gib genau eine Frage zurück -- das ist dann die richtige
+Antwort. Eine Frage, die nur aufgefüllt wurde, um die Liste zu verlängern, ist
+schlechter als keine Frage: sie kostet den Artikel nichts, aber sie verdrängt
+nichts Gutes und wird ohnehin aussortiert.
 
 Gibt der Artikel überhaupt nichts her, gib eine einzige Frage mit
 `usable: false` zurück.
@@ -147,12 +153,48 @@ Artikel: {title}
 --- Artikeltext ---
 {text}
 --- Ende Artikeltext ---
-
+{extras}
 Verfügbare Themengebiete (wähle für jede Frage genau eines, gib den slug an):
 {subjects}
 
 Erstelle daraus bis zu {drafts} verschiedene Zuordnungsfragen nach den Regeln.
 """
+
+NEIGHBOURS_NOTE = """\
+DER ARTIKEL OBEN ALLEIN REICHT NICHT.
+
+Er handelt von einem einzelnen Ding, und eine Zuordnungsfrage braucht mehrere
+gleichartige Dinge. Darum folgen weitere Artikel über Dinge derselben Art.
+
+Behandle alle Texte zusammen als EINEN Steinbruch: nimm aus jedem Text ein Paar
+derselben Art und stelle sie zu einer Frage zusammen -- der Artikel oben ist
+dabei eines der Dinge, nicht das Thema.
+
+Aus "Fort Carson" allein wird nichts. Aus "Fort Carson", "Fort Bragg" und
+"Fort Hood" wird "Militärbasen & Bundesstaaten".
+
+Es bleibt dabei: Jedes Paar muss in einem der Texte belegt sein, und alle
+Kategorien einer Frage sind gleichartig, ebenso alle Antworten. Reicht auch das
+zusammen nicht für {min_pairs} saubere Paare, setze `usable` auf false.
+""".format(min_pairs=MIN_PAIRS)
+"""Prefixes the neighbouring articles `broaden` fetched, when there are any.
+
+Not part of the system prompt: on the overwhelming majority of articles there
+are no neighbours, and a permanent paragraph about how to use texts that are not
+there is a paragraph that invites the model to imagine them.
+
+The worked example is doing the real work. Told only that further texts follow,
+a small model reads them as background and writes a question about the first
+article anyway -- which is the question it just declined. Naming three forts and
+the board they make is what turns "here is more to read" into "here is the class
+this article is a member of".
+"""
+
+NEIGHBOUR_ARTICLE = """\
+
+--- Weiterer Artikel: {title} ---
+{text}
+--- Ende ---"""
 
 EXTRACT = ChatPromptTemplate.from_messages(
     [

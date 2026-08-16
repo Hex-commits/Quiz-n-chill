@@ -40,6 +40,7 @@ from .sources.wikimedia_images import WikimediaImages
 from .domain.models import DEFAULT_DRAFTS
 from .pipeline.chains import (
     augment_step,
+    broaden_step,
     vet_step,
     check_step,
     explain_step,
@@ -78,7 +79,7 @@ Settings come from the command line, then the environment, then the repo-root
     INGEST_SUPABASE_SERVICE_ROLE_KEY
                                 key for that URL, when it is not the local stack
     OLLAMA_URL                  default http://localhost:11435
-    INGEST_MODEL                default glm4:9b
+    INGEST_MODEL                default gemma4:12b
 
 Filling a hosted project from this machine is the same command with both halves
 pointed at it -- the URL and the key have to name the same project:
@@ -180,6 +181,16 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Skip the pass that writes a one-line reason per answer. Costs one "
             "model call per accepted question."
+        ),
+    )
+    parser.add_argument(
+        "--no-broaden",
+        action="store_true",
+        help=(
+            "Skip the second reading of an article the model declined. Without "
+            "it, an article that holds too little on its own is dropped where "
+            "it stands instead of being read again alongside a couple of "
+            "similar pages."
         ),
     )
     parser.add_argument(
@@ -308,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
     selecting = not args.no_select and args.drafts > 1
     steps_on = [
         f"extract x{args.drafts}" if args.drafts > 1 else "extract",
+        *([] if args.no_broaden else ["broaden?"]),
         *(["select"] if selecting else []),
         "check",
         *([] if args.no_augment else ["augment?"]),
@@ -339,6 +351,9 @@ def main(argv: list[str] | None = None) -> int:
     print("=" * 72)
 
     wiki = WikipediaClient(lang=args.lang, cache_dir=args.out / ".cache")
+    # One searcher for both steps that read other articles: it holds no state of
+    # its own, and the client behind it is the one doing the pacing.
+    related = WikipediaRelated(wiki)
 
     model = chat_model(base_url=settings.ollama_url, model=settings.model)
     # Same weights, no sampling. Every step that *judges* rather than writes runs
@@ -374,7 +389,10 @@ def main(argv: list[str] | None = None) -> int:
             else None
         ),
         review=None if args.no_review else review_step(decider),
-        augment=None if args.no_augment else augment_step(model, WikipediaRelated(wiki)),
+        # Same searcher as `augment`, for the opposite situation: this one runs
+        # when there is no question yet at all.
+        broaden=None if args.no_broaden else broaden_step(related),
+        augment=None if args.no_augment else augment_step(model, related),
         vet=vet_step(judge) if settings.vet and not args.no_augment else None,
         illustrate=None if args.no_pictures else illustrate_step(WikimediaImages()),
         reframe=None if args.no_pictures else reframe_step(model),
@@ -391,6 +409,18 @@ def main(argv: list[str] | None = None) -> int:
     run_started = time.monotonic()
 
     seen_lock = threading.Lock()
+
+    # A second pool, for the questions `select` keeps beyond the first. It has to
+    # be separate from the article pool below: `run_all` blocks until its spares
+    # are done, so sharing one pool would let `--workers` articles hold every
+    # thread while waiting on spares that then have nowhere to run.
+    #
+    # Sized to `--workers` as well, which means the run can have up to twice that
+    # many requests in the air. Ollama serves `OLLAMA_NUM_PARALLEL` of them at
+    # once and queues the rest, so the extra ones cost queueing rather than
+    # memory -- and they are what keeps a slot from going idle while an article
+    # sits in `check`, which does no model call at all.
+    spares_pool = ThreadPoolExecutor(max_workers=args.workers, thread_name_prefix="spare")
 
     def process(title: str) -> _Attempt:
         """Fetch one article and run it. Output is collected, never printed.
@@ -422,13 +452,14 @@ def main(argv: list[str] | None = None) -> int:
             known_subjects,
             max_attempts=args.attempts,
             on_step=None if args.quiet else (lambda _node, line: lines.append(line)),
+            executor=spares_pool,
         )
         return _Attempt(article.title, article=article, outcomes=outcomes, lines=lines)
 
     queue = deque(titles)
     done_count = 0
 
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+    with ThreadPoolExecutor(max_workers=args.workers) as pool, spares_pool:
         in_flight: dict = {}
         while queue or in_flight:
             while queue and len(in_flight) < args.workers and len(accepted) < args.limit:
@@ -454,7 +485,18 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"         {line}")
 
                 article = attempt.article
-                for outcome in attempt.outcomes:
+                # One article routinely yields several questions now that
+                # `extract` drafts up to `--drafts` of them and `select` may keep
+                # more than one. Printed flat, those verdicts read as unrelated
+                # events; the count and the [i/n] prefix are what make them one
+                # article's harvest. A single question keeps the older, quieter
+                # line -- the numbering is only informative when there is
+                # something to number.
+                total = len(attempt.outcomes)
+                if total > 1:
+                    print(f"         {total} questions from this article:")
+                for index, outcome in enumerate(attempt.outcomes, start=1):
+                    tag = f"[{index}/{total}] " if total > 1 else ""
                     question = outcome.question
                     record = {
                         "article": {"title": article.title, "url": article.url},
@@ -467,6 +509,7 @@ def main(argv: list[str] | None = None) -> int:
                         },
                         "flipped": outcome.flipped,
                         "borrowed_from": outcome.borrowed_from,
+                        "widened_from": outcome.widened_from,
                         "vetted": settings.vet and not args.no_augment,
                         "select_detail": outcome.select_detail,
                     }
@@ -474,7 +517,8 @@ def main(argv: list[str] | None = None) -> int:
                     if outcome.problems:
                         rejected.append(record)
                         print(
-                            f"         DROPPED  {outcome.seconds:.0f}s  {outcome.problems[0][:100]}"
+                            f"         {tag}DROPPED  {outcome.seconds:.0f}s  "
+                            f"{outcome.problems[0][:100]}"
                         )
                         continue
 
@@ -489,7 +533,7 @@ def main(argv: list[str] | None = None) -> int:
                     if outcome.is_picture:
                         detail += ", pictures" + (" (flipped)" if outcome.flipped else "")
                     print(
-                        f"         {verb}  {outcome.seconds:.0f}s  {question.slug} "
+                        f"         {tag}{verb}  {outcome.seconds:.0f}s  {question.slug} "
                         f"({detail}, {question.difficulty})"
                     )
                     with seen_lock:

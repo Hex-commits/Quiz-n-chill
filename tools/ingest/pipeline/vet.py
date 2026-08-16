@@ -25,6 +25,14 @@ using is installed there -- not the run.
 The mechanism is sound and the judge is not, and those are different problems:
 this way the first is solved and waiting for the second.
 
+Those seven cases have not been re-run since the default model became
+`gemma4:12b`, and this is the one note in the package where that matters: the
+table above is not a fact about the step, it is a fact about a model that is no
+longer installed. A judge good enough flips a default. The cases are cheap to
+rebuild and the way to settle it is to rebuild them -- not to leave the step off
+because a 9B could not do it, and not to switch it on because a newer model
+probably can.
+
 Nothing here calls a model. `judge` is passed in.
 """
 

@@ -140,7 +140,11 @@ def test_settings_fall_back_to_the_documented_defaults(monkeypatch):
     settings = Settings.resolve()
 
     assert settings.ollama_url == "http://localhost:11435"
-    assert settings.model == "glm4:9b"
+    # Spelled out rather than compared against the constant, so that changing the
+    # default model is a deliberate edit to this line and not a silent pass. The
+    # quantisation suffix is part of the identity: the bare `gemma4:e4b` tag is a
+    # different, much larger download.
+    assert settings.model == "gemma4:e4b-it-q4_K_M"
 
 
 def test_flags_beat_the_environment_for_every_setting(monkeypatch):
@@ -259,9 +263,9 @@ def test_the_judge_defaults_to_the_run_model(monkeypatch, resolvable):
 
 
 def test_the_judge_can_be_a_different_model(monkeypatch, resolvable):
-    monkeypatch.setenv("INGEST_MODEL", "glm4:9b")
+    monkeypatch.setenv("INGEST_MODEL", "gemma4:12b")
     monkeypatch.setenv("INGEST_JUDGE_MODEL", "qwen2.5:14b")
 
     settings = Settings.resolve()
 
-    assert (settings.model, settings.judge_model) == ("glm4:9b", "qwen2.5:14b")
+    assert (settings.model, settings.judge_model) == ("gemma4:12b", "qwen2.5:14b")

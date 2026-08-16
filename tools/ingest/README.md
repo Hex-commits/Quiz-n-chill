@@ -22,16 +22,47 @@ Supabase                 ──▶  quizzes / categories / items
 pip install -r tools/ingest/requirements.txt
 
 docker compose up -d ollama                       # port 11435
-docker compose exec ollama ollama pull glm4:9b    # ~5.5 GB, once
+docker compose exec ollama ollama pull gemma4:e4b-it-q4_K_M   # ~9.6 GB, once
 ```
 
 The model lives in the `ollama_models` named volume, so `docker compose down`
 does not cost a re-download.
 
+**Pull the suffixed tag.** `gemma4:e4b` and `gemma4:e4b-it-q4_K_M` are the same
+digest today, but the suffix is what pins the quantisation, and the family does
+not quantise every tag alike.
+
+**Download size is not VRAM size, and the gap is large here.** The tag is a
+9.6 GB download and 3.4 GB resident: it ships several nested weight sets, and
+only the active slice is loaded. `ollama list` shows the former, `ollama ps` the
+latter — trust `ollama ps`.
+
+**On the model.** This pipeline was written against `glm4:9b`, then ran on
+`gemma4:12b`, and now defaults to the 4B. Notes further down still name the older
+ones: they record what was *measured*, and a measurement does not transfer to a
+different model by editing the name. Read them as the shape of the problem — why
+a step exists, what it was for — rather than as figures to expect. Ollama must be
+recent enough to know the architecture; `gemma4` needs a 2026 build, and an old
+one fails with an unknown-model error rather than anything helpful.
+
+**Why a 4B.** Generation on a local card is bound by bytes moved per token, so
+resident size *is* speed. Measured on the RTX 4070 against an article-sized
+prompt, both warm:
+
+| | prompt | generation |
+| --- | --- | --- |
+| `gemma4:12b` (8.6 GB resident) | 220 tok/s | 42 tok/s |
+| `gemma4:e4b-it-q4_K_M` (3.4 GB) | 185 tok/s | **79 tok/s** |
+
+Generation roughly doubles; prompt processing is ~16% slower and matters far
+less, because `extract` spends about eight seconds reading the article and the
+rest writing. What it costs is judgement — see the note on `select` below, which
+was already marginal on a 9B.
+
 **The GPU is doing the work, and it matters more than anything else here.** The
-compose file hands the NVIDIA card to the container; Ollama finds CUDA on its
-own and offloads what fits in VRAM. Measured on this project with glm4:9b (9.3 GB
-resident) on an RTX 4070:
+compose file hands the NVIDIA card to the container; Ollama finds CUDA on its own
+and offloads what fits in VRAM. For the shape of the CPU/GPU gap, measured on
+`glm4:9b` when `extract` still wrote one question per call:
 
 | | one extraction | per accepted question |
 | --- | --- | --- |
@@ -39,17 +70,12 @@ resident) on an RTX 4070:
 | RTX 4070, 1 worker | ~12s | ~25s |
 | RTX 4070, 4 workers | — | **~18s** |
 
-Measured when `extract` wrote one question per call. It now writes `--drafts` of
-them (default 2) and `select` chooses, so the extract call is longer and the
-per-*article* cost is higher — but an article that yields two keepers pays for one
-extraction across both, and these numbers have not been re-measured since.
-
-Four parallel slots is the measured sweet spot on a 12 GB card: 8.6 GB resident
-with 4.4 GB still free, and 18s per accepted question against 32s at two. The
-compose file sets `OLLAMA_NUM_PARALLEL=4` plus flash attention and a `q8_0` KV
-cache — the last two are what shrink the cache enough for the slots to fit.
-Match it with `--workers 4`; the two numbers are independent and the smaller one
-wins.
+Eight parallel slots, measured on the 4B at a 16k context: **3.9 GB resident,
+100% GPU, 4.4 GB free.** The weights gave back five gigabytes against the 12B and
+a slot's KV cache is what that buys. The compose file sets
+`OLLAMA_NUM_PARALLEL=8` plus flash attention and a `q8_0` KV cache — the last two
+are what shrink the cache enough for the slots to fit. Match it with
+`--workers 8`; the two numbers are independent and the smaller one wins.
 
 That is the difference between a ten-question run taking an evening and taking a
 few minutes. Check it landed with `docker compose exec ollama ollama ps` — the
@@ -74,7 +100,7 @@ repo-root `.env` > default.**
 | `SUPABASE_SERVICE_ROLE_KEY` | — | — | Same key the API uses; RLS is on with no policies |
 | `INGEST_SUPABASE_URL` | `--supabase-url` | see below | The stack **as reachable from this machine** |
 | `OLLAMA_URL` | `--ollama-url` | `http://localhost:11435` | 11435, not 11434, to avoid clashing with another project's Ollama |
-| `INGEST_MODEL` | `--model` | `glm4:9b` | Any tag you have pulled |
+| `INGEST_MODEL` | `--model` | `gemma4:e4b-it-q4_K_M` | Any tag you have pulled |
 
 **Why the Supabase URL has its own variable.** `.env` sets `SUPABASE_URL` for
 the *containers*, where the stack answers to `host.docker.internal`. This tool
@@ -124,29 +150,41 @@ Every step prints as it happens, timed, with a running tally after each article:
 
 ```
 ========================================================================
-  Model      glm4:9b  via http://localhost:11435  [100% GPU]
+  Model      gemma4:e4b-it-q4_K_M  via http://localhost:11435  [100% GPU]
   Vetting    off  (INGEST_VET)  borrowed pairs are unjudged -- read the report
   Supabase   http://127.0.0.1:54321
   Source     mixed, 24 months
-  Pipeline   extract x2 -> select -> check -> review -> explain   (3 attempts per article)
+  Pipeline   extract x5 -> select -> check -> review -> explain   (3 attempts per article)
   Mode       dry run -- nothing is written
 ========================================================================
 40 candidates; aiming for 10 questions.
 
 [  1/40] Periodensystem
         127,578 chars from https://de.wikipedia.org/wiki/Periodensystem
-        extract    18.2s  2 drafts, 12 pairs
-        select      2.4s  kept 2/2 -- beide fragen echtes Detailwissen ab
+        extract    18.2s  5 drafts, 12 pairs
+        select      2.4s  kept 2/5 -- beide fragen echtes Detailwissen ab
         check       0.0s  ok
         review      1.8s  ok
         explain     7.1s  12/12 answers explained
         check       0.0s  ok
         review      2.0s  ok
         explain     6.8s  11/11 answers explained
-        ACCEPTED  30s  periodensystem-zuordnung (12 pairs, medium)
-        ACCEPTED  39s  elementsymbole (11 pairs, hard)
+        2 questions from this article:
+        [1/2] ACCEPTED  30s  periodensystem-zuordnung (12 pairs, medium)
+        [2/2] ACCEPTED  39s  elementsymbole (11 pairs, hard)
         -> 2/10 accepted  |  0 dropped  |  0 skipped  |  ~2m36s left  |  39s elapsed
 ```
+
+One article routinely yields several questions: `extract` drafts `--drafts` of
+them in a single call and `select` keeps the ones worth playing. The count line
+and the `[i/n]` prefix are what tie those verdicts to the article they came from
+— without them a multi-question article reads as a run of unrelated events. A
+single question keeps the older, unnumbered line.
+
+The questions kept beyond the first run through the rest of the pipeline
+concurrently. Their step lines are buffered and replayed one question at a time
+rather than printed live, because several of them interleaving into one console
+is not something anyone can read.
 
 The per-step timings are the useful part: `check` is free, the three model calls
 are not, and when a run drags it is always one of them. The header's `[100% GPU]`
@@ -290,14 +328,20 @@ START ─▶ extract ─▶ select ─▶ check ──(clean)──▶ review �
             │                   │                   │
             │               (problems)          (problems)
             │                   │                   │
-            └───────────────────┴──▶ repair ◀───────┘
-                                       │      (if attempts left, else END)
-                                       └──▶ back to extract
+            ├───────────────────┴──▶ repair ◀───────┘
+            │                          │      (if attempts left, else END)
+            │                          └──▶ back to extract
+            │
+        (declined — the article holds too little for any question)
+            │
+            └──▶ broaden ──▶ back to extract, similar pages attached
+                             (once per article, else END)
 ```
 
 | node | what it does | cost |
 | --- | --- | --- |
 | `extract` | one model call: `--drafts` questions, each with pairings, subject, difficulty | slow |
+| `broaden` | a search and two fetches: similar pages for an article that was declined | cheap, buys a slow call |
 | `select` | one model call: which drafts are worth playing — may keep several, or none | slow |
 | `check` | `validate.py` — is it well-formed? | free |
 | `review` | second model call, fresh context — is it *true*? | slow |
@@ -347,6 +391,30 @@ exist is an error rather than a silent no-op.
 Three edges stop early rather than repairing, because nothing a repair prompt
 could say would help: the model declining (`usable: false` — a verdict, not a
 defect), a transport failure, and running out of attempts.
+
+**A decline gets one second reading — `broaden`.** It is the only edge that leads
+backwards out of a verdict, and it exists because the decline is usually correct
+about the wrong thing. The articles that decline are overwhelmingly about a
+*single* member of an obvious class — one army post, one lighthouse, one battle —
+and a Zuordnungsfrage needs several members of that class. "Not in this text" is
+not "not on Wikipedia".
+
+So before the article is dropped, the step searches for pages similar to it,
+reads at most two, and sends the article back through `extract` with them
+attached and a note saying to treat all of them as one quarry. Nothing here
+writes a pair or rescues anything by itself: the second pass is the same call
+with more to read, and it faces the same gates as the first. If the search finds
+nothing new the original verdict stands and the article is dropped where it was —
+re-asking a model that just said no, with nothing added, is a slow way of getting
+the same answer.
+
+It is bounded to one round per article, which is also what stops
+`extract → broaden → extract` looping. Unlike `augment` it is not gated on
+difficulty: there is no question yet to be worth the money. What it costs is one
+search, two fetches and one more extract call per declined article; `--no-broaden`
+turns it off. The questions it saves are written from several articles, so the
+report names the extra pages under **Also read** — the source link alone will not
+settle every pairing.
 
 With `--no-review` the review node is left out of the graph entirely rather than
 added and routed around, so the smaller run *is* the smaller graph.
@@ -528,7 +596,10 @@ a glance.
 
 The consequence of the floor matters: an article that cannot support ten
 well-sourced pairs is **not** a small question, it is not a question, and the run
-moves on — unless `augment` can find the missing pairs in a neighbouring article.
+moves on — unless one of the two steps that read other articles can make up the
+difference: `augment` finds the missing pairs of a board that already exists,
+and `broaden` gives an article that produced no board at all a second reading
+alongside similar pages.
 The prompt says this explicitly and tells the model to answer `usable: false`
 instead, and the grammar deliberately lets it return a short board so that it can:
 with `minItems` in the grammar the model padded instead, which is the failure this

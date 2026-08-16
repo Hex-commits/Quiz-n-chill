@@ -13,11 +13,20 @@ For *why* the pipeline works the way it does, see
 ```bash
 npm run db:start                                   # Supabase on 54321/54322/54323
 docker compose up -d ollama                        # model server on 11435
-docker compose exec ollama ollama pull glm4:9b     # ~5.5 GB, once
+docker compose exec ollama ollama pull gemma4:e4b-it-q4_K_M   # ~9.6 GB download, once
 
-python -m tools.ingest --limit 20 --workers 4              # dry run — read the report
-python -m tools.ingest --limit 20 --workers 4 --commit     # write it
+python -m tools.ingest --limit 2 --workers 4              # dry run — read the report
+python -m tools.ingest --limit 20 --workers 8 --commit     # write it
 ```
+
+**Pull the tag with the `-it-q4_K_M` suffix, not bare `gemma4:e4b`.** They happen
+to be the same build today (identical digest), but the suffix is what pins the
+quantisation — the family does not quantise every tag alike, and `gemma4:12b` is
+a 7.6 GB download against this one's 9.6 GB.
+
+The download is 9.6 GB and the *resident* size is 3.4 GB: the tag ships several
+nested weight sets and only the active slice is loaded. Judge VRAM by
+`ollama ps`, never by `ollama list`.
 
 Dry run is the default **on purpose**. These questions are machine-written and
 go straight into a game; skimming a batch first costs one command and catches
@@ -83,9 +92,19 @@ docker compose exec ollama ollama ps      # PROCESSOR must read 100% GPU
 nvidia-smi --query-gpu=memory.used,memory.free --format=csv
 ```
 
-`glm4:9b` needs roughly 9 GB free. If a game or an overlay is holding VRAM,
-Ollama falls back to CPU and every model call goes from ~12s to ~3min. The
-ingest header prints `[100% GPU]` or `[100% CPU]` at startup — read it.
+Measured on the 12 GB RTX 4070 this was built against, with the eight parallel
+slots and a 16k context: **3.9 GB resident, 100% GPU, 4.4 GB still free.** That
+is the whole reason the run model is a 4B — `gemma4:12b` took 8.6 GB for the same
+job at half the tokens per second.
+
+Confirm rather than assume: `ollama ps` prints what it actually took and whether
+all of it landed on the card.
+
+If a game or an overlay is holding VRAM, Ollama falls back to CPU and every
+model call goes from ~12s to ~3min. The ingest header prints `[100% GPU]` or
+`[100% CPU]` at startup — read it. The fix is fewer slots, not a smaller model:
+halve `OLLAMA_NUM_PARALLEL` and `--workers` together — they are independent and
+the smaller wins, so moving one alone does nothing.
 
 No NVIDIA card:
 
@@ -100,23 +119,45 @@ docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d ollama
 ### The everyday command
 
 ```bash
-python -m tools.ingest --limit 20 --workers 4 --commit
+python -m tools.ingest --limit 20 --workers 8 --commit
 ```
 
-`--workers 4` matches `OLLAMA_NUM_PARALLEL=4` in the compose file. The two are
+`--workers 8` matches `OLLAMA_NUM_PARALLEL=8` in the compose file. The two are
 independent and the smaller wins, so raising one alone does nothing.
+
+Each article is drafted **five** ways in one `extract` call, and `select` keeps
+the ones worth playing — so one article regularly yields more than one question,
+and the report and the console both number them. That is where most of the
+throughput comes from: `extract` is the expensive call and the only one that
+reads the whole article, so the way to make a run cheaper per question is to get
+more questions out of the one call. `--drafts 1` is the way back to one question
+per article, and it skips `select` entirely.
+
+An article the model declines as too thin is not dropped on the spot: `broaden`
+searches Wikipedia for pages similar to it, reads two, and runs the extract call
+again with them attached — a single article about one army post yields nothing,
+three of them yield a board. It costs a search and one extra model call per
+declined article, only ever runs once per article, and `--no-broaden` turns it
+off. Questions written that way name the extra pages under **Also read** in the
+report, because the source link alone will not settle every pairing.
+
+The questions kept beyond the first run through the rest of the pipeline
+concurrently, on their own worker pool. A run can therefore have up to twice
+`--workers` requests in the air; Ollama serves `OLLAMA_NUM_PARALLEL` of them and
+queues the rest, which is what stops a slot idling while an article sits in
+`check` — a step that makes no model call at all.
 
 ### Pick what it reads
 
 ```bash
 # Balanced across all nine subjects — the best default for a fresh pool
-python -m tools.ingest --limit 30 --source subjects --workers 4 --commit
+python -m tools.ingest --limit 30 --source subjects --workers 8 --commit
 
 # List articles: already tabulated into pairings, highest yield for pictures
-python -m tools.ingest --limit 20 --source lists --workers 4 --commit
+python -m tools.ingest --limit 20 --source lists --workers 8 --commit
 
 # Peer-reviewed articles, so the facts hold up
-python -m tools.ingest --limit 20 --source vetted --workers 4 --commit
+python -m tools.ingest --limit 20 --source vetted --workers 8 --commit
 
 # Named articles, nothing sampled
 python -m tools.ingest --titles Sonnensystem Bundesliga Periodensystem --commit
@@ -138,9 +179,9 @@ however good the individual questions are.
 ### Faster, rougher
 
 ```bash
-python -m tools.ingest --limit 40 --no-review --workers 4 --commit   # ~half the time
-python -m tools.ingest --limit 40 --no-pictures --workers 4 --commit # no Wikidata/Commons calls
-python -m tools.ingest --limit 40 --no-explain --workers 4 --commit  # no per-answer reasons
+python -m tools.ingest --limit 40 --no-review --workers 8 --commit   # ~half the time
+python -m tools.ingest --limit 40 --no-pictures --workers 8 --commit # no Wikidata/Commons calls
+python -m tools.ingest --limit 40 --no-explain --workers 8 --commit  # no per-answer reasons
 python -m tools.ingest --limit 20 --quiet                            # one line per article
 ```
 
@@ -267,7 +308,7 @@ supabase db push
 | `SUPABASE_SERVICE_ROLE_KEY` | `--supabase-key` | — |
 | `INGEST_SUPABASE_URL` | `--supabase-url` | `SUPABASE_URL` with `host.docker.internal` → `127.0.0.1` |
 | `OLLAMA_URL` | `--ollama-url` | `http://localhost:11435` |
-| `INGEST_MODEL` | `--model` | `glm4:9b` |
+| `INGEST_MODEL` | `--model` | `gemma4:e4b-it-q4_K_M` |
 | `INGEST_VET` | *(none)* | `false` |
 | `INGEST_JUDGE_MODEL` | *(none)* | whatever `INGEST_MODEL` is |
 
@@ -276,10 +317,15 @@ machine rather than the run. `INGEST_VET=true` turns on the step that judges
 each borrowed pair against the board and rejects the ones asking a different
 question; a rejection sends the question back to search another article.
 
-It is off by default because the judgement measures at roughly chance on
-`glm4:9b`. Point `INGEST_JUDGE_MODEL` at something larger before switching it
-on, and check the run header — it prints `Vetting on` when it is active, since a
-setting in `.env` is one you can forget about.
+It is off by default because the judgement measured at roughly chance on
+`glm4:9b`, the model the pipeline was built and tuned on. That verdict has not
+been re-taken on `gemma4:12b`, and it is the kind of judgement a stronger model
+plausibly changes — so it is worth running a batch with `INGEST_VET=true` and
+reading the rejections before deciding, rather than leaving it off on the
+strength of a measurement about a model that is no longer installed. Point
+`INGEST_JUDGE_MODEL` at something larger if you have it, and check the run
+header — it prints `Vetting on` when it is active, since a setting in `.env` is
+one you can forget about.
 
 `INGEST_SUPABASE_URL` exists because `.env` sets `SUPABASE_URL` for the
 *containers*, where the stack answers to `host.docker.internal` — a name that
@@ -315,7 +361,7 @@ different each time. The host's setup card has a **Reset** button.
 The practical fix for repeats is more questions:
 
 ```bash
-python -m tools.ingest --limit 40 --source subjects --workers 4 --commit
+python -m tools.ingest --limit 40 --source subjects --workers 8 --commit
 ```
 
 **Re-running is safe.** An article whose URL is already a `source_url` is

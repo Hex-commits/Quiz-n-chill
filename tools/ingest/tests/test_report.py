@@ -88,7 +88,7 @@ def test_an_empty_run_still_produces_a_readable_file():
 
 
 def test_the_model_is_recorded_so_a_report_is_attributable():
-    assert "`glm4:9b`" in render([QUESTION], model="glm4:9b")
+    assert "`gemma4:12b`" in render([QUESTION], model="gemma4:12b")
 
 
 def test_the_pipeline_trace_is_collapsed_out_of_the_way():
@@ -142,3 +142,22 @@ def test_the_reviewer_is_pointed_at_the_defect_no_check_can_see():
 
     assert "No answer would fit a second category" in out
     assert "All 6 pairings check out against the source" in out
+
+
+def test_a_question_written_from_several_articles_names_them_all():
+    """The **Source** link is the article the run started from. When `broaden`
+    saved a declined article, half the board can come from pages that link does
+    not lead to -- so a reviewer checking a pairing against the source alone
+    would find it missing and call it invented."""
+    q = {**QUESTION, "widened_from": ["Fort Bragg", "Fort Hood"]}
+    out = render([q])
+
+    assert "**Also read:** _Fort Bragg_, _Fort Hood_" in out
+    assert "too thin for a question" in out
+    assert "supported by one of the articles named above" in out
+
+
+def test_an_ordinary_question_says_nothing_about_other_articles():
+    out = render([QUESTION])
+
+    assert "Also read" not in out

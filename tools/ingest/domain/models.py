@@ -90,11 +90,25 @@ class Review(BaseModel):
 
 
 
-# How many drafts one extract call asks for. Two rather than four: the whole
-# batch shares one 8k context with the article, and every draft is 10-14 pairs,
-# so the fourth is written by a model that has already spent its attention. Two
-# good angles is what a Wikipedia article usually holds anyway.
-DEFAULT_DRAFTS = 2
+# How many drafts one extract call asks for.
+#
+# `extract` is the most expensive call in the pipeline -- a thousand-odd output
+# tokens, and the only step that reads the whole article -- so the way to make
+# the run cheaper *per question* is to get more questions out of the one call
+# rather than to run the call more often. Every draft beyond the first is
+# marginal output tokens on a prompt that has already been processed.
+#
+# Five, not two, is what that argument supports once the context is no longer
+# the binding constraint: at `DEFAULT_NUM_CTX` the article (6000 chars), the four
+# worked examples and five boards of 10-14 pairs fit with room for the repair
+# transcript. It was two when the window was 8k, where the fourth draft was
+# written by a model that had already spent its attention.
+#
+# This is a ceiling, never a quota. `minItems` stays 1 and the prompt says in as
+# many words that one good angle is the right answer for an article that holds
+# one -- a grammar that demanded five would get five, and the last three would be
+# padding that `select` then has to throw away.
+DEFAULT_DRAFTS = 5
 
 
 def questions_schema(subject_slugs: list[str], count: int = DEFAULT_DRAFTS) -> dict:

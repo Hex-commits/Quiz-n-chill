@@ -307,7 +307,7 @@ key, no data leaving the host:
 ```bash
 pip install -r tools/ingest/requirements.txt
 docker compose up -d ollama                       # port 11435
-docker compose exec ollama ollama pull glm4:9b    # ~5.5 GB, once
+docker compose exec ollama ollama pull gemma4:12b  # ~7.6 GB, once
 
 python -m tools.ingest --limit 10            # dry run + JSON report
 python -m tools.ingest --limit 10 --commit   # write to Supabase

@@ -52,12 +52,6 @@ services:
       retries: 5
       start_period: 20s
 
-  # Local model server for the question generator (tools/ingest).
-  # Not needed to play the game -- `docker compose up api web` skips it.
-  #
-  # Port 11435, not the default 11434, because another project already owns that
-  # one on this machine. Models live in a named volume so they survive
-  # `docker compose down` -- re-pulling several GB is not a thing to do twice.
   ollama:
     image: ollama/ollama:latest
     container_name: quiz_ollama
@@ -67,27 +61,11 @@ services:
     volumes:
       - ollama_models:/root/.ollama
     environment:
-      # Serve several requests against one loaded copy of the weights. A single
-      # request leaves the card idle between tokens, so batching two is close to
-      # free -- the model is loaded once and each slot only adds a KV cache.
-      # 4 measured on a 12 GB RTX 4070: 8.6 GB resident, 4.4 GB still free,
-      # and 18s per accepted question against 32s at two slots.
-      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-4}
-      # Cheaper attention and a much smaller KV cache, which is what makes the
-      # parallel slots fit next to a 9 GB model on a 12 GB card.
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-8}
       OLLAMA_FLASH_ATTENTION: "1"
-      # Halves the KV cache again. Requires flash attention.
       OLLAMA_KV_CACHE_TYPE: q8_0
-      # Long enough that a batch does not pay the reload cost between articles.
       OLLAMA_KEEP_ALIVE: 30m
-    # Hand the NVIDIA GPU to the container. Ollama detects CUDA on its own and
-    # offloads as many layers as fit in VRAM, falling back to CPU for the rest --
-    # so a model larger than the card still runs, just more slowly.
-    #
-    # Needs the nvidia container runtime, which Docker Desktop provides on
-    # Windows through WSL2 (`docker info` lists an `nvidia` runtime). Without a
-    # usable GPU the container fails to start rather than quietly using the CPU,
-    # which is why the override below exists.
+
     deploy:
       resources:
         reservations:
@@ -115,27 +93,13 @@ services:
     env_file:
       - .env
     environment:
-      # Server components run inside this container and use the compose network.
       API_URL: http://api:8000
-      # The browser runs on the host, so it needs the published port.
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8001}
-      # Realtime tells the browser a lobby changed, so it can stop polling for
-      # it. Publishable key only -- every table has RLS on with no policies, so
-      # it reads nothing, and the service-role key never leaves the API.
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}
-      # From `.env`, like every other key in this project. The local stack's
-      # anon key is the same fixed demo JWT on every machine and is not a
-      # secret, but it is still a key, and one committed key is how a repo
-      # learns to accept the next one. `npm run db:start` prints it.
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
-      # Hot reload across the bind mount needs polling. Turbopack is configured
-      # for it in web/next.config.ts (watchOptions.pollIntervalMs) -- the
-      # WATCHPACK_* / CHOKIDAR_* env vars only apply to webpack and do nothing
-      # for Next 16, which uses Turbopack by default.
+
     volumes:
       - ./web:/app
-      # Anonymous volumes keep container-built artefacts from being shadowed by
-      # the host mount (and stop node_modules leaking onto the host).
       - /app/node_modules
       - /app/.next
     depends_on:
@@ -143,5 +107,4 @@ services:
         condition: service_healthy
 
 volumes:
-  # Pulled models; keeps `docker compose down` from costing a re-download.
   ollama_models:

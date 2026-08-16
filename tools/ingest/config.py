@@ -32,7 +32,28 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DEFAULT_OLLAMA_URL = "http://localhost:11435"
-DEFAULT_MODEL = "glm4:9b"
+
+DEFAULT_MODEL = "gemma4:e4b-it-q4_K_M"
+"""The local model every step runs on.
+
+Chosen for throughput. Generation on a local card is bound by how many bytes
+move per token, so the size of the resident weights *is* the speed: this is the
+4B-class member of the family at Q4, against `gemma4:12b` before it.
+
+**The explicit `-it-q4_K_M` suffix is the point of the tag, not noise.** The bare
+`gemma4:e4b` tag is 9.6 GB -- *larger* than the 12B's 7.6 GB, because the family
+does not quantise every tag the same way. Pulling the obvious-looking name would
+have filled a 12 GB card with weights and left nothing for the parallel KV
+caches, which is the opposite of what a smaller model was chosen for.
+
+What it costs is judgement. Several notes in this package record measurements
+taken on `glm4:9b` -- the model the pipeline was built and tuned on -- and say a
+small model asked "is this good?" agrees with itself. That argument applies here
+with more force, not less: `select` and `vet` are the steps to watch, and
+`INGEST_JUDGE_MODEL` exists so the judging can stay on a larger model while
+generation runs on this one. A measurement does not transfer to a different
+model by editing the name.
+"""
 
 TRUTHY = frozenset({"1", "true", "yes", "on"})
 """Anything a person would plausibly type meaning yes.
@@ -144,8 +165,11 @@ class Settings:
     ollama_url: str
     model: str
     # Whether borrowed pairs are judged before they reach the board, and what
-    # judges them. Off by default: the judgement measures at about chance on
-    # `glm4:9b`, so it is worth having ready and not worth running blind.
+    # judges them. Off by default: the judgement measured at about chance on
+    # `glm4:9b`, the model this pipeline was built on, so it is worth having
+    # ready and not worth running blind. Untested on `gemma4:12b` -- a stronger
+    # model is the one thing that could change that verdict, and the way to find
+    # out is `INGEST_VET=true` over a batch, not a guess.
     # See the note in `pipeline/vet.py`.
     vet: bool = False
     judge_model: str = DEFAULT_MODEL

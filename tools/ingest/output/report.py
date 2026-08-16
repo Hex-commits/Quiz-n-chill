@@ -108,6 +108,16 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
             f"- **Pairs borrowed from:** {', '.join(f'_{title}_' for title in borrowed)}"
             f" — {judged}"
         )
+    widened = record.get("widened_from") or []
+    if widened:
+        # A different thing from borrowing, and worth telling apart. The article
+        # alone was declined as too thin, so the question was written from these
+        # pages *and* the source above together -- the source link on its own
+        # will not settle every pairing below.
+        lines.append(
+            f"- **Also read:** {', '.join(f'_{title}_' for title in widened)}"
+            " — the source article alone was too thin for a question"
+        )
     if images:
         turned = " · pairing was flipped to put the pictures on the answers" if flipped else ""
         lines.append(f"- **Answers:** pictures{turned}")
@@ -163,6 +173,11 @@ def _render_question(index: int, record: dict[str, Any]) -> list[str]:
             *(
                 ["- [ ] The borrowed pairs answer the same question as the rest"]
                 if borrowed
+                else []
+            ),
+            *(
+                ["- [ ] Every pairing is supported by one of the articles named above"]
+                if widened
                 else []
             ),
             "",

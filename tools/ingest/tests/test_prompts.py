@@ -13,7 +13,15 @@ from langchain_core.messages import AIMessage, HumanMessage
 from tools.ingest.domain.models import GeneratedQuestion, question_schema
 from tools.ingest.domain.validate import validate
 from tools.ingest.pipeline.examples import EXAMPLES, EXPLANATION_EXAMPLES
-from tools.ingest.pipeline.prompts import EXPLAIN, EXTRACT, REFRAME, REPAIR, REVIEW
+from tools.ingest.pipeline.prompts import (
+    EXPLAIN,
+    EXTRACT,
+    NEIGHBOUR_ARTICLE,
+    NEIGHBOURS_NOTE,
+    REFRAME,
+    REPAIR,
+    REVIEW,
+)
 from tools.ingest.domain import rules
 
 
@@ -21,6 +29,9 @@ def extract_input(**overrides) -> dict:
     base = {
         "title": "Kaffee",
         "text": "...",
+        # Empty for every article that was not declined and read again with its
+        # neighbours, which is almost all of them.
+        "extras": "",
         "subjects": "- geografie: Geografie",
         "drafts": 2,
     }
@@ -29,7 +40,7 @@ def extract_input(**overrides) -> dict:
 
 
 def test_the_extract_prompt_declares_exactly_what_it_needs():
-    assert set(EXTRACT.input_variables) == {"title", "text", "subjects", "drafts"}
+    assert set(EXTRACT.input_variables) == {"title", "text", "extras", "subjects", "drafts"}
 
 
 def test_a_missing_variable_is_an_error_not_a_half_filled_prompt():
@@ -55,6 +66,26 @@ def test_repair_turns_are_appended_after_the_article():
     assert [m.type for m in messages] == ["system", "human", "ai", "human"]
     assert "Kaffee" in messages[1].content
     assert "Zu viele Fakes." in messages[3].content
+
+
+def test_the_note_on_further_articles_says_what_to_do_with_them():
+    """Told only that more texts follow, a small model reads them as background
+    and writes a question about the first article again -- which is the question
+    it just declined. The worked example is what turns "here is more to read"
+    into "here is the class this article belongs to"."""
+    assert "EINEN Steinbruch" in NEIGHBOURS_NOTE
+    assert "Fort Bragg" in NEIGHBOURS_NOTE
+    assert f"{rules.MIN_PAIRS} saubere Paare" in NEIGHBOURS_NOTE
+
+
+def test_the_further_articles_are_fenced_off_from_the_article_itself():
+    """The question is written from all of them, but the source link in the
+    report is still the first one, so which fact came from where has to survive
+    into the prompt."""
+    rendered = NEIGHBOUR_ARTICLE.format(title="Fort Bragg", text="Liegt in North Carolina.")
+
+    assert "--- Weiterer Artikel: Fort Bragg ---" in rendered
+    assert "Liegt in North Carolina." in rendered
 
 
 def test_the_review_prompt_takes_no_transcript():
