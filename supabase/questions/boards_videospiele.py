@@ -1,0 +1,158 @@
+"""Picture boards for the Videospiele subject.
+
+Screenshots are the obvious idea and the one thing that cannot be used: game
+frames are copyrighted, so Commons holds almost none of them. What it does hold
+is the *physical* side of the hobby -- consoles, handhelds, home computers,
+arcade cabinets, controllers -- plus freely licensed portraits of the people who
+made the games. These boards ask about those.
+
+Two traps found while probing, both avoided below: `Nintendo Switch Lite` and
+`PlayStation Move` carry the same P18 file as the Switch and the PlayStation 3,
+so a board using either pair would show the same photo twice.
+
+Regenerate with:
+    python supabase/questions/build_pictures.py bilder-videospiele.sql boards_videospiele
+"""
+
+BOARDS = [
+    dict(
+        subject="videospiele", slug="bild-konsolen-hersteller",
+        title="Konsolen im Bild",
+        description="Von welchem Hersteller stammt das Gerät?",
+        difficulty="easy", source_title="Spielkonsole",
+        source_url="https://de.wikipedia.org/wiki/Spielkonsole",
+        pairs=[
+            ("Nintendo GameCube", "Nintendo", "Der Würfel mit dem Tragegriff."),
+            ("PlayStation 4", "Sony", "2013 erschienen, über hundert Millionen Mal verkauft."),
+            ("Xbox One", "Microsoft", "Zum Start noch mit Kinect im Bündel."),
+            ("Dreamcast", "Sega", "Die letzte Konsole des Hauses."),
+            ("Neo Geo", "SNK", "Spielhallentechnik fürs Wohnzimmer, zum Preis eines Kleinwagens."),
+            ("CD-i", "Philips", "Als Multimediagerät gedacht, nicht als Spielkonsole."),
+            ("PC Engine", "NEC", "In Japan sehr erfolgreich, in Europa kaum bekannt."),
+            ("Nokia N-Gage", "Nokia", "Handy und Handheld in einem Gehäuse."),
+            ("Steam Deck", "Valve", "Ein Handheld, auf dem PC-Spiele laufen."),
+            ("Commodore 64", "Commodore", "Heimcomputer und Spielgerät zugleich."),
+        ],
+    ),
+    dict(
+        subject="videospiele", slug="bild-konsolen-jahrgaenge",
+        title="Konsolen & ihre Jahrgänge",
+        description="Wann kam das abgebildete Gerät heraus?",
+        difficulty="hard", source_title="Spielkonsole",
+        source_url="https://de.wikipedia.org/wiki/Spielkonsole",
+        pairs=[
+            ("Magnavox Odyssey", "1972", "Die erste Heimkonsole, noch ganz ohne Ton."),
+            ("Atari 2600", "1977", "Sie machte austauschbare Module zum Standard."),
+            ("Nintendo Entertainment System", "1983", "In Japan als Famicom gestartet."),
+            ("Mega Drive", "1988", "In Nordamerika unter dem Namen Genesis."),
+            ("Super Nintendo Entertainment System", "1990", "Erst in Japan, zwei Jahre später in Europa."),
+            ("Atari Jaguar", "1993", "Warb mit 64 Bit und floppte trotzdem."),
+            ("Sega Saturn", "1994", "Gegen die erste PlayStation ohne Chance."),
+            ("Nintendo 64", "1996", "Vier Controller-Anschlüsse ab Werk."),
+            ("PlayStation 2", "2000", "Die meistverkaufte Konsole überhaupt."),
+            ("Xbox 360", "2005", "Ein Jahr vor der PlayStation 3 im Handel."),
+            ("Wii U", "2012", "Der Name kostete sie den Erfolg."),
+            ("PlayStation 5", "2020", "Start mitten in der Pandemie."),
+        ],
+    ),
+    dict(
+        subject="videospiele", slug="bild-handhelds",
+        title="Handhelds im Bild",
+        description="Was war das Besondere an dem Gerät?",
+        difficulty="medium", source_title="Handheld-Konsole",
+        source_url="https://de.wikipedia.org/wiki/Handheld-Konsole",
+        pairs=[
+            ("Game Boy Color", "Farbe im alten Gehäuse", "Die alten Module liefen weiter."),
+            ("Game Boy Advance", "Querformat mit Schultertasten", "Erstmals Tasten an den Kanten."),
+            ("Nintendo DS", "Zwei Bildschirme", "Der untere wurde mit einem Stift bedient."),
+            ("Nintendo 3DS", "3D ohne Brille", "Der Effekt ließ sich abschalten."),
+            ("PlayStation Portable", "Filme auf UMD", "Auch als mobiler Medienspieler gedacht."),
+            ("PlayStation Vita", "Feld auf der Rückseite", "Berührungseingabe von hinten."),
+            ("Game Gear", "Sechs Batterien nötig", "Farbe kostete Laufzeit."),
+            ("Game & Watch", "Uhr und ein Spiel", "Ein Gerät, ein einziger Titel."),
+            ("Steam Deck", "PC-Spiele unterwegs", "Mit einem Linux-System im Inneren."),
+            ("Atari Lynx", "Umdrehbar für Linkshänder", "Das Bild kippte per Knopfdruck mit."),
+            ("WonderSwan", "Kaum außerhalb Japans", "Entworfen vom Erfinder des Game Boy."),
+            ("Tamagotchi", "Haustier statt Spielfigur", "Es wollte auch nachts gefüttert werden."),
+        ],
+    ),
+    dict(
+        subject="videospiele", slug="bild-heimcomputer",
+        title="Heimcomputer der Achtziger",
+        description="Wofür ist das Gerät bekannt?",
+        difficulty="hard", source_title="Heimcomputer",
+        source_url="https://de.wikipedia.org/wiki/Heimcomputer",
+        pairs=[
+            ("Commodore 64", "Meistverkaufter Heimcomputer", "Sein Klangchip prägte eine ganze Musikszene."),
+            ("Amiga 500", "Vier Tonkanäle serienmäßig", "Der Standard der Demoszene."),
+            ("Atari ST", "MIDI-Anschluss ab Werk", "Deshalb in Tonstudios beliebt."),
+            ("Sinclair ZX Spectrum", "Gummitasten", "In Großbritannien allgegenwärtig."),
+            ("Apple II", "Farbe schon 1977", "Einer der ersten Serienrechner überhaupt."),
+            ("Schneider CPC", "Monitor im Bündel", "In Deutschland unter anderem Namen verkauft."),
+            ("MSX", "Standard vieler Hersteller", "Metal Gear erschien zuerst hier."),
+            ("Commodore VC 20", "Vorgänger des C64", "Der erste Rechner mit einer Million Stück."),
+            ("Atari 800", "Steckmodule wie Konsolen", "Spiele einfach einstecken."),
+            ("Acorn Archimedes", "Früher ARM-Prozessor", "Dieselbe Familie steckt heute in Handys."),
+            ("IBM Personal Computer", "Vorbild aller PCs", "Nachbauten machten die Bauform zum Standard."),
+        ],
+    ),
+    dict(
+        subject="videospiele", slug="bild-menschen",
+        title="Gesichter der Branche",
+        description="Wofür steht die abgebildete Person?",
+        difficulty="hard", source_title="Spieleentwickler",
+        source_url="https://de.wikipedia.org/wiki/Spieleentwickler",
+        pairs=[
+            ("Ralph Baer", "Magnavox Odyssey", "Er gilt als Vater der Heimkonsole."),
+            ("Nolan Bushnell", "Atari", "Er gründete die Firma und die Branche gleich mit."),
+            ("Shigeru Miyamoto", "Super Mario", "Von ihm stammen auch Zelda und Donkey Kong."),
+            ("Satoru Iwata", "Nintendo", "Programmierer, der zum Firmenchef wurde."),
+            ("Ken Kutaragi", "PlayStation", "Er setzte die Konsole gegen interne Widerstände durch."),
+            ("Gabe Newell", "Valve", "Zuvor arbeitete er bei Microsoft."),
+            ("Hideo Kojima", "Metal Gear", "Bekannt für filmreife Zwischensequenzen."),
+            ("Roberta Williams", "King’s Quest", "Mitbegründerin von Sierra."),
+            ("Tim Schafer", "Grim Fandango", "Er schrieb auch Full Throttle."),
+            ("Amy Hennig", "Uncharted", "Sie schrieb die ersten drei Teile."),
+            ("Masahiro Sakurai", "Super Smash Bros.", "Er erfand auch Kirby."),
+            ("Yu Suzuki", "OutRun", "Sega-Legende, später Shenmue."),
+        ],
+    ),
+    dict(
+        subject="videospiele", slug="bild-zubehoer",
+        title="Zubehör im Bild",
+        description="Zu welchem System gehört das Gerät?",
+        difficulty="medium", source_title="Gamecontroller",
+        source_url="https://de.wikipedia.org/wiki/Gamecontroller",
+        pairs=[
+            ("Wii-Fernbedienung", "Wii", "Gehalten wie eine Fernbedienung, geschwungen wie ein Schläger."),
+            ("Joy-Con", "Nintendo Switch", "Zwei Hälften, die sich abnehmen lassen."),
+            ("DualShock", "PlayStation", "Zwei Sticks und Vibration als Standard."),
+            ("Kinect", "Xbox 360", "Eine Kamera erkennt den ganzen Körper."),
+            ("Oculus Rift", "Meta", "Aus einer Kickstarter-Kampagne entstanden."),
+            ("HTC Vive", "HTC", "Zusammen mit Valve entwickelt."),
+            ("Valve Index", "Valve", "Die Controller erfassen einzelne Finger."),
+            ("PlayStation VR", "PlayStation 4", "VR-Brille für eine Konsole statt für den PC."),
+            ("Joystick", "Atari 2600", "Ein Stick, ein Knopf, mehr nicht."),
+            ("Computermaus", "PC", "Sie macht das genaue Zielen erst möglich."),
+        ],
+    ),
+    dict(
+        subject="videospiele", slug="bild-arcade",
+        title="Automaten im Bild",
+        description="Worum geht es an diesem Automaten?",
+        difficulty="medium", source_title="Arcade-Automat",
+        source_url="https://de.wikipedia.org/wiki/Arcade-Automat",
+        pairs=[
+            ("Pong", "Zwei Balken, ein Ball", "Der Automat, mit dem die Branche begann."),
+            ("Space Invaders", "Aliens in Reihen", "Sie werden schneller, je weniger übrig sind."),
+            ("Pac-Man", "Punkte im Labyrinth", "Verfolgt von vier Geistern."),
+            ("Galaga", "Raumschiffe in Formation", "Gefangene Schiffe lassen sich zurückholen."),
+            ("Frogger", "Frosch überquert Straßen", "Danach wartet noch der Fluss."),
+            ("Street Fighter II", "Zweikampf von der Seite", "Spezialattacken über Tastenfolgen."),
+            ("Tetris", "Fallende Steine stapeln", "Volle Reihen verschwinden."),
+            ("Sega Rally Championship", "Rallye im Automaten", "Mit Lenkrad und Schaltung im Gehäuse."),
+            ("Dance Dance Revolution", "Tanzen auf Pfeilen", "Gespielt wird mit den Füßen."),
+            ("Arcade-Automat", "Gehäuse mit Münzschlitz", "Eine Partie kostet eine Münze."),
+        ],
+    ),
+]

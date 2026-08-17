@@ -24,6 +24,7 @@ SUBJECTS = {
     "musik",
     "film-fernsehen",
     "essen-trinken",
+    "videospiele",
 }
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MIN_PAIRS, MAX_PAIRS = 10, 14

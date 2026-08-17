@@ -49,7 +49,8 @@ insert into subjects (slug, name, description, position) values
     ('technik',           'Technik',           'Erfindungen, Programmiersprachen und Marken.',   6),
     ('musik',             'Musik',             'Instrumente, Komponisten und Bands.',            7),
     ('film-fernsehen',    'Film & Fernsehen',  'Regisseure, Serienfiguren und Genres.',          8),
-    ('essen-trinken',     'Essen & Trinken',   'Gerichte, Zutaten und Getränke.',                9);
+    ('essen-trinken',     'Essen & Trinken',   'Gerichte, Zutaten und Getränke.',                9),
+    ('videospiele',       'Videospiele',       'Konsolen, Spielereihen und Studios.',           10);
 
 
 with spec (subject_slug, slug, title, description, difficulty,

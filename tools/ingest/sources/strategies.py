@@ -35,6 +35,7 @@ SUBJECT_CATEGORIES: dict[str, tuple[str, ...]] = {
     "musik": ("Musikgenre", "Tonart", "Musikinstrument"),
     "film-fernsehen": ("Filmgenre", "Filmpreis"),
     "essen-trinken": ("Käsesorte", "Backware", "Getränk"),
+    "videospiele": ("Computerspiel-Genre", "Spielkonsole", "Computerspielreihe"),
 }
 
 VETTED_CATEGORIES = ("Wikipedia:Exzellent", "Wikipedia:Lesenswert")
