@@ -1,0 +1,82 @@
+{
+  "leicht-erfinder": [
+    ["Fernseher", "John Logie Baird wäre der Name dazu, und der fehlt auf dem Brett."],
+    ["Fahrrad mit Pedalen", "Auf diesem Brett steht nur das Laufrad ohne Pedale."]
+  ],
+  "leicht-beruehmte-personen": [
+    ["Erfinder der Relativitätstheorie", "Das wäre Albert Einstein, der hier nicht steht."],
+    ["Erste Frau im Weltall", "Walentina Tereschkowa fehlt auf diesem Brett."]
+  ],
+  "leicht-aegypten": [
+    ["Ruderboot auf dem Nil", "Es gab sie, aber auf diesem Brett ist es keine Antwort."],
+    ["Tempel für viele Götter", "Auch die gab es, hier wird aber nicht danach gefragt."]
+  ],
+  "leicht-ritter": [
+    ["Waffe zum Schießen aus der Ferne", "Die Armbrust steht nicht auf diesem Brett."],
+    ["Kettenhemd unter der Kleidung", "Es fehlt in dieser Liste."]
+  ],
+  "leicht-steinzeit": [
+    ["Werkzeuge aus Eisen", "Eisen kam erst lange nach der Steinzeit."],
+    ["Das Rad am Wagen", "Es kam später, und auf diesem Brett steht es nicht."]
+  ],
+  "leicht-roemer": [
+    ["Mehrstöckiges Mietshaus", "Die Insula fehlt auf diesem Brett."],
+    ["Öffentliche Toilette", "Die Latrine steht nicht in dieser Liste."]
+  ],
+  "leicht-wikinger": [
+    ["Ihre Hauptstadt", "Die Wikinger hatten keine, und hier steht auch keine."],
+    ["Ihre Schrift auf Papier", "Runen wurden geritzt, nicht geschrieben."]
+  ],
+  "leicht-entdecker": [
+    ["Erreichte den Nordpol", "Robert Peary wird es zugeschrieben, und der fehlt hier."],
+    ["Segelte allein um die Welt", "Das war Joshua Slocum, der nicht auf dem Brett steht."]
+  ],
+  "leicht-deutschland": [
+    ["1871", "Damals wurde das Kaiserreich gegründet, das hier nicht steht."],
+    ["1919", "Die Weimarer Verfassung fällt in dieses Jahr, das auf dem Brett fehlt."]
+  ],
+  "leicht-epochen": [
+    ["Ritter mit Feuerwaffen", "Zu keiner Epoche in dieser Liste gehört das."],
+    ["Erste Städte aus Lehmziegeln", "Die Jungsteinzeit steht nicht auf diesem Brett."]
+  ],
+  "leicht-herrscher-titel": [
+    ["Kalif", "Ein Herrschertitel im Islam, der auf diesem Brett fehlt."],
+    ["Großherzog", "Ein Titel, nach dem hier keine Zeile fragt."]
+  ],
+  "leicht-schule-frueher": [
+    ["Kugelrahmen zum Rechnen", "Der Abakus steht nicht auf diesem Brett."],
+    ["Landkarte an der Wand", "Sie hing dort, ist hier aber keine Antwort."]
+  ],
+  "leicht-geld-frueher": [
+    ["Gold als Deckung des Geldes", "Der Goldstandard fehlt auf diesem Brett."],
+    ["Schecks statt Bargeld", "Sie stehen nicht in dieser Liste."]
+  ],
+  "leicht-symbole-macht": [
+    ["Orden an der Brust", "Eine Auszeichnung, aber kein Zeichen auf diesem Brett."],
+    ["Roter Teppich", "Ein Ehrenzeichen, nach dem hier niemand fragt."]
+  ],
+  "leicht-alte-bauwerke": [
+    ["Türkei", "Die Hagia Sophia stünde dort, und sie fehlt auf dem Brett."],
+    ["Irak", "Babylon lag dort, es steht nicht in dieser Liste."]
+  ],
+  "leicht-verkehr-frueher": [
+    ["Schlitten von Hunden gezogen", "Er fehlt auf diesem Brett."],
+    ["Heißluftballon", "Auch damit reiste man, hier ist es keine Antwort."]
+  ],
+  "leicht-alltag-mittelalter": [
+    ["Fabrikarbeiter in der Stadt", "Fabriken gab es im Mittelalter noch nicht."],
+    ["Lehrer an einer Schule für alle", "Die gab es damals nicht, und hier steht sie nicht."]
+  ],
+  "leicht-jahreszahlen": [
+    ["1848", "Die Märzrevolution fällt in dieses Jahr, das hier fehlt."],
+    ["2001", "Kein Ereignis auf diesem Brett gehört dorthin."]
+  ],
+  "leicht-museum-geschichte": [
+    ["Gemälde in einem Rahmen", "Es hängt im Museum, ist hier aber keine Spur der Geschichte."],
+    ["Nachgemachtes Fundstück zum Verkauf", "Eine Fälschung, und die steht nicht auf dem Brett."]
+  ],
+  "leicht-feiertage": [
+    ["Christi Himmelfahrt", "Ein Feiertag, der auf diesem Brett fehlt."],
+    ["Erntedankfest", "Es erinnert an die Ernte, steht hier aber nicht."]
+  ]
+}

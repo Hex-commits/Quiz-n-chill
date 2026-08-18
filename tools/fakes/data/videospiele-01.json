@@ -1,0 +1,82 @@
+{
+  "studios-hauptwerke": [
+    ["Half-Life 2", "Auch von Valve, doch auf dem Brett steht der erste Teil."],
+    ["Portal 2", "Ebenfalls aus dem Hause Valve, hier aber keine Antwort."]
+  ],
+  "spiele-erscheinungsjahre": [
+    ["1996", "Tomb Raider kam damals, das Spiel fehlt auf diesem Brett."],
+    ["2007", "Portal erschien in dem Jahr, das hier nicht steht."]
+  ],
+  "reihen-publisher": [
+    ["Activision", "Call of Duty käme von dort, und die Reihe fehlt auf dem Brett."],
+    ["Bandai Namco", "Tekken erscheint dort, es steht nicht in dieser Liste."]
+  ],
+  "genres-musterbeispiele": [
+    ["Tetris", "Ein Puzzlespiel, aber kein Genre auf diesem Brett."],
+    ["Gran Turismo", "Die Rennsimulation fehlt in dieser Liste."]
+  ],
+  "engines-firmen": [
+    ["Electronic Arts", "Die Frostbite gehört zu DICE, das zum Konzern zählt."],
+    ["Rockstar Games", "Die RAGE-Engine steht nicht auf diesem Brett."]
+  ],
+  "schoepfer-werke": [
+    ["Yuji Horii", "Dragon Quest stammt von ihm, und das fehlt auf diesem Brett."],
+    ["Fumito Ueda", "Shadow of the Colossus steht nicht in dieser Liste."]
+  ],
+  "schauplaetze": [
+    ["City 17", "Auch aus Half-Life, doch auf dem Brett steht Black Mesa."],
+    ["Hyrule", "Zelda fehlt in dieser Liste."]
+  ],
+  "spielemusik-komponisten": [
+    ["Grant Kirkhope", "Banjo-Kazooie stammt von ihm, und das fehlt auf diesem Brett."],
+    ["Darren Korb", "Hades hat er vertont, das steht nicht in dieser Liste."]
+  ],
+  "esport-turniere": [
+    ["Six Invitational", "Das Turnier von Rainbow Six, und das Spiel fehlt hier."],
+    ["Apex Legends Global Series", "Sie steht nicht auf diesem Brett."]
+  ],
+  "abkuerzungen": [
+    ["Spielstand zum Weiterspielen", "Der Speicherpunkt hat kein Kürzel auf diesem Brett."],
+    ["Zwei Spieler an einem Gerät", "Der Splitscreen fehlt in dieser Liste."]
+  ],
+  "speichermedien": [
+    ["Magnetband auf Spulen", "So kam kein Spiel auf diesem Brett heraus."],
+    ["Laserdisc", "Ein Format, das in dieser Liste nicht vorkommt."]
+  ],
+  "handhelds": [
+    ["Erstes Gerät mit Farbdisplay überhaupt", "Der Game Gear hatte es zuerst, gefragt ist dort anderes."],
+    ["Handheld mit Auswechseln von Modulen im Betrieb", "Das kann kein Gerät in dieser Liste."]
+  ],
+  "studios-laender": [
+    ["Niederlande", "Guerrilla Games sitzt dort, und das Studio fehlt auf dem Brett."],
+    ["Südkorea", "Kein Spiel in dieser Liste stammt von dort."]
+  ],
+  "alterskennzeichen": [
+    ["Ab vierzehn Jahren", "Eine solche Stufe gibt es bei der USK nicht."],
+    ["CERO", "Das japanische Kennzeichen fehlt auf diesem Brett."]
+  ],
+  "technik-begriffe": [
+    ["Zahl der Spieler im Netz", "Kein Begriff auf diesem Brett meint das."],
+    ["Speicherplatz auf der Festplatte", "Danach fragt hier keine Zeile."]
+  ],
+  "geschaeftsmodelle": [
+    ["Werbung zwischen den Runden", "Sie finanziert manches Spiel, steht aber nicht auf dem Brett."],
+    ["Verleih auf Zeit im Laden", "Ein altes Modell, das hier fehlt."]
+  ],
+  "konsolen-jahre": [
+    ["1977", "Das Atari VCS kam damals, es fehlt auf diesem Brett."],
+    ["2005", "Die Xbox 360 erschien in dem Jahr, das hier nicht steht."]
+  ],
+  "neunziger-klassiker": [
+    ["Erste offene Welt in 3D", "Kein Spiel auf diesem Brett steht dafür."],
+    ["Kämpfe mit sehr blutigen Finishern", "Mortal Kombat wäre das, und es fehlt hier."]
+  ],
+  "spielkultur": [
+    ["Turnier unter Freunden im Wohnzimmer", "Es hat keinen Begriff auf diesem Brett."],
+    ["Sammeln alter Konsolen im Regal", "Das fehlt in dieser Liste."]
+  ],
+  "messen-preise": [
+    ["PAX", "Eine Publikumsmesse in den USA, die hier fehlt."],
+    ["DreamHack", "Ein Festival mit LAN-Party, das nicht auf dem Brett steht."]
+  ]
+}

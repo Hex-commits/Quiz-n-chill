@@ -1,0 +1,42 @@
+{
+  "bild-wahrzeichen-laender": [
+    ["Ägypten", "Die Pyramiden von Gizeh stünden dort, und die fehlen auf dem Brett."],
+    ["Griechenland", "Die Akropolis steht nicht in dieser Liste."]
+  ],
+  "bild-bruecken-laender": [
+    ["Dänemark", "Die Öresundbrücke stünde dort, und die fehlt auf dem Brett."],
+    ["Türkei", "Die Bosporus-Brücke steht nicht in dieser Liste."]
+  ],
+  "bild-gemaelde-maler": [
+    ["Salvador Dalí", "Die zerfließenden Uhren wären das Bild dazu, und die fehlen hier."],
+    ["Pablo Picasso", "Guernica steht nicht auf diesem Brett."]
+  ],
+  "bild-hunderassen-herkunft": [
+    ["Ungarn", "Der Puli käme von dort, und die Rasse fehlt auf dem Brett."],
+    ["Australien", "Der Australian Shepherd steht nicht in dieser Liste."]
+  ],
+  "bild-berge-laender": [
+    ["Italien", "Der Gran Sasso stünde dort, und der fehlt auf dem Brett."],
+    ["Chile", "Der Ojos del Salado steht nicht in dieser Liste."]
+  ],
+  "bild-gerichte-laender": [
+    ["Thailand", "Pad Thai käme von dort, und das Gericht fehlt auf dem Brett."],
+    ["Indien", "Das Curry steht nicht in dieser Liste."]
+  ],
+  "bild-schloesser-laender": [
+    ["Ungarn", "Die Budaer Burg stünde dort, und die fehlt auf dem Brett."],
+    ["Schweden", "Schloss Drottningholm steht nicht in dieser Liste."]
+  ],
+  "bild-flugzeuge-hersteller": [
+    ["Tupolew", "Die Tu-144 käme von dort, und die fehlt auf diesem Brett."],
+    ["Bombardier", "Der CRJ steht nicht in dieser Liste."]
+  ],
+  "bild-tiere-kontinente": [
+    ["Madagaskar", "Die Lemuren lebten dort, und die fehlen auf diesem Brett."],
+    ["Japan", "Kein Tier in dieser Liste lebt dort in freier Wildbahn."]
+  ],
+  "bild-bauwerke-baustile": [
+    ["Bauhaus", "Kein Bau auf diesem Brett steht in diesem Stil."],
+    ["Romanik", "Der Dom zu Speyer wäre das Beispiel, und der fehlt hier."]
+  ]
+}

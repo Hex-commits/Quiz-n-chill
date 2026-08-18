@@ -1,0 +1,82 @@
+{
+  "extreme-der-erde": [
+    ["Atacama", "Der trockenste Ort der Erde, aber kein Rekord auf diesem Brett."],
+    ["Mount Everest", "Der höchste Berg, und danach fragt hier keine Zeile."]
+  ],
+  "laenderrekorde": [
+    ["Nauru", "Der kleinste Inselstaat, aber kein Rekord in dieser Liste."],
+    ["Indien", "Das bevölkerungsreichste Land, und danach wird hier nicht gefragt."]
+  ],
+  "flaggen-merkmale": [
+    ["Südkorea", "Das Yin-Yang-Zeichen wäre das Merkmal, es fehlt auf dem Brett."],
+    ["Bhutan und Wales", "Beide führen Drachen, gefragt ist hier aber nur einer."]
+  ],
+  "enklaven": [
+    ["Frankreich", "Kein Gebiet auf diesem Brett gehört dazu."],
+    ["Indien", "Die Enklaven in Bangladesch waren indisch, sie stehen hier nicht."]
+  ],
+  "gebirgspaesse": [
+    ["Peru", "Der Ticlio läge dort, und der Pass fehlt auf dem Brett."],
+    ["Georgien", "Die Heerstraße über den Kaukasus steht nicht in dieser Liste."]
+  ],
+  "meere-besonderheiten": [
+    ["Ganz ohne Gezeiten", "Auf kein Gewässer in dieser Liste trifft das zu."],
+    ["Tiefste Stelle aller Ozeane", "Das wäre der Pazifik, der hier nicht steht."]
+  ],
+  "fernstrassen": [
+    ["Kanada", "Der Icefields Parkway führte dorthin, er fehlt auf dem Brett."],
+    ["Vietnam", "Der Hai-Van-Pass steht nicht in dieser Liste."]
+  ],
+  "vulkanausbrueche": [
+    ["1902", "Der Montagne Pelée brach damals aus, er fehlt auf dem Brett."],
+    ["1963", "Der Agung auf Bali, und der steht nicht in dieser Liste."]
+  ],
+  "erdbeben-orte": [
+    ["Nepal", "Das Beben von 2015 traf Kathmandu, es fehlt auf dem Brett."],
+    ["Armenien", "Spitak wurde 1988 zerstört, das Beben steht hier nicht."]
+  ],
+  "mehrsprachige-laender": [
+    ["Elf Amtssprachen bis 2023", "Südafrika hatte so viele, gefragt ist hier der heutige Stand."],
+    ["Nur eine Amtssprache", "Kein Land auf diesem Brett steht dafür."]
+  ],
+  "ortsnamen-bedeutung": [
+    ["Wüstenland", "Auf keinen Namen in dieser Liste trifft das zu."],
+    ["Land des Feuers", "Aserbaidschan wäre gemeint, und das fehlt auf dem Brett."]
+  ],
+  "stadt-beinamen": [
+    ["Paris", "Die Stadt der Liebe, und sie steht nicht auf dem Brett."],
+    ["Wien", "Die Stadt der Musik fehlt in dieser Liste."]
+  ],
+  "kartenprojektionen": [
+    ["Zeigt die Erde als Scheibe", "Keine Projektion auf diesem Brett tut das."],
+    ["Längentreu in jede Richtung", "Eine solche Karte gibt es nicht."]
+  ],
+  "monarchien-titel": [
+    ["Schah", "Der Titel im Iran, der heute keine Monarchie mehr ist."],
+    ["Zar", "Ein Titel, den kein Staat auf diesem Brett führt."]
+  ],
+  "naturwunder": [
+    ["Sambia", "Die Victoriafälle lägen dort, sie fehlen auf dem Brett."],
+    ["Neuseeland", "Der Milford Sound steht nicht in dieser Liste."]
+  ],
+  "plattentektonik": [
+    ["Kamtschatka", "Auch dort schiebt sich Kruste unter Kruste, hier steht es nicht."],
+    ["Mittelozeanischer Rücken unter Wasser", "Gefragt ist die Stelle, an der er herausragt."]
+  ],
+  "deutsche-fluesse-staedte": [
+    ["Havel", "Potsdam läge daran, und die Stadt fehlt auf dem Brett."],
+    ["Spree", "Berlin steht nicht in dieser Liste."]
+  ],
+  "inselstaaten-hauptstaedte": [
+    ["Colombo", "Der Regierungssitz Sri Lankas, und der Staat fehlt auf dem Brett."],
+    ["Suva", "Die Hauptstadt Fidschis, das hier nicht steht."]
+  ],
+  "gletscher-eis": [
+    ["Norwegen", "Der Jostedalsbreen läge dort, er fehlt auf dem Brett."],
+    ["Italien", "Der Marmolata-Gletscher steht nicht in dieser Liste."]
+  ],
+  "grenzkuriosa": [
+    ["Grenze mitten durch eine Insel", "Sankt Martin wäre das, und es fehlt auf dem Brett."],
+    ["Grenze, die einmal im Jahr wandert", "So etwas gibt es nirgends in dieser Liste."]
+  ]
+}

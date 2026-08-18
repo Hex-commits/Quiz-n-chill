@@ -1,0 +1,82 @@
+{
+  "regionale-namen": [
+    ["Rockman X", "Der japanische Name eines Ablegers, der hier nicht steht."],
+    ["Sega Master System", "Es hieß überall so und fehlt deshalb auf diesem Brett."]
+  ],
+  "gescheiterte-hardware": [
+    ["Zu wenig Werbung im Fernsehen", "Daran krankte keines der Geräte auf diesem Brett."],
+    ["Erschien nur in Japan", "Das trifft auf keines in dieser Liste zu."]
+  ],
+  "crash-1983": [
+    ["Zu wenige Spiele auf dem Markt", "Es waren zu viele, nicht zu wenige."],
+    ["Sega übernahm den Markt", "Es war Nintendo, wie das Brett auch sagt."]
+  ],
+  "game-awards-goty": [
+    ["2013", "Damals gab es die Game Awards in dieser Form noch nicht."],
+    ["2024", "Der Sieger dieses Jahres steht nicht auf dem Brett."]
+  ],
+  "arcade-hersteller": [
+    ["Frogger", "Der Automat kam von Konami, und das fehlt auf diesem Brett."],
+    ["Galaga", "Ein Namco-Titel, doch auf dem Brett steht dort Pac-Man."]
+  ],
+  "chips-systeme": [
+    ["Sega Saturn", "Kein Chip auf diesem Brett gehört dazu."],
+    ["Xbox 360", "Der Xenon-Prozessor steckte darin, und er fehlt hier."]
+  ],
+  "fehlstarts": [
+    ["Erschien pünktlich und lief fehlerfrei", "Das ist von keinem Titel in dieser Liste bekannt."],
+    ["Redfall", "Auch ein missglückter Start, der hier nicht steht."]
+  ],
+  "speedrun-begriffe": [
+    ["Low%", "So wenig wie möglich einsammeln, und das fehlt auf diesem Brett."],
+    ["Zusammen mit anderen laufen", "Das Race steht nicht in dieser Liste."]
+  ],
+  "mmo-geschichte": [
+    ["The Elder Scrolls Online", "Es kam 2014 und fehlt auf diesem Brett."],
+    ["Erstes MMO mit Sprachausgabe", "Star Wars: The Old Republic wäre das, es steht hier nicht."]
+  ],
+  "adventure-legenden": [
+    ["Baphomets Fluch", "Ein Klassiker aus England, der auf diesem Brett fehlt."],
+    ["Myst", "Rätsel auf einer Insel, aber kein Eintrag in dieser Liste."]
+  ],
+  "kult-fehler": [
+    ["Zelda: Breath of the Wild", "Kein Fehler auf diesem Brett stammt daraus."],
+    ["Der Blaue Bildschirm", "Ein Fehler des Betriebssystems, nicht eines Spiels."]
+  ],
+  "jrpg": [
+    ["Kingdom Hearts", "Disney und Final Fantasy vermischt, und die Reihe fehlt hier."],
+    ["Kämpfe nur in Echtzeit ohne Menü", "Auf keine Reihe in dieser Liste trifft das zu."]
+  ],
+  "indie-erfolge": [
+    ["Among Us", "Der Verrat in der Gruppe fehlt auf diesem Brett."],
+    ["Minecraft", "Es begann als Indie-Titel, steht aber nicht in dieser Liste."]
+  ],
+  "jugendschutz-deutschland": [
+    ["Freigabe ab Geburt für alles", "So etwas gibt es beim Jugendschutz nicht."],
+    ["PEGI", "Das europäische Kennzeichen, das hier nicht gefragt ist."]
+  ],
+  "netzwerk-technik": [
+    ["Zahl der Spieler auf dem Server", "Kein Begriff auf diesem Brett meint das."],
+    ["Warteschlange vor dem Einloggen", "Sie steht nicht in dieser Liste."]
+  ],
+  "emulation-retro": [
+    ["Neuauflage mit besserer Grafik", "Das Remaster fehlt auf diesem Brett."],
+    ["Der Spielstand in der Cloud", "Er kommt in dieser Liste nicht vor."]
+  ],
+  "konsolenkriege": [
+    ["Preiskampf um die günstigste Konsole", "So geführt wurde kein Streit auf diesem Brett."],
+    ["Sega gegen Atari in den Achtzigern", "Dieses Duell fehlt in dieser Liste."]
+  ],
+  "rekorde": [
+    ["Tetris", "Sehr oft verkauft, aber kein Rekord auf diesem Brett."],
+    ["Meistverkaufte Konsole eines Jahres", "Danach fragt hier keine Zeile."]
+  ],
+  "pruegelspiel-begriffe": [
+    ["Fatality", "Der tödliche Abschluss bei Mortal Kombat fehlt auf diesem Brett."],
+    ["Der Rundenzähler oben im Bild", "Er hat keinen Fachbegriff in dieser Liste."]
+  ],
+  "vorlagen": [
+    ["Brettspiel von Klaus Teuber", "Die Siedler von Catan fehlen auf diesem Brett."],
+    ["Ein historisches Ereignis", "Kein Spiel in dieser Liste beruht darauf."]
+  ]
+}

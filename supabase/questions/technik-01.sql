@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('technik', 'dateiformate', 'Dateiformate & ihr Zweck',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["CSV", "Tabellendaten als Text", "Werte, durch Kommas getrennt."],
        ["ZIP", "Gepacktes Archiv", "Mehrere Dateien in einer, komprimiert."],
        ["HTML", "Aufbau einer Webseite", "Beschreibt Struktur, nicht Aussehen."],
-       ["EXE", "Ausführbares Programm", "Unter Windows direkt startbar."]]'::jsonb),
+       ["EXE", "Ausführbares Programm", "Unter Windows direkt startbar."]]'::jsonb,
+     '[["Tabelle mit Formeln und Formatierung", "Das wäre XLSX, und das fehlt auf diesem Brett."],
+       ["Schriftart für den Rechner", "Die Datei TTF steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'netzwerk-ports', 'Netzwerkdienste & Ports',
      'Auf welchem Port läuft der Dienst üblicherweise?',
@@ -37,7 +39,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["NTP", "123", "Hält Uhren im Netz synchron."],
        ["IMAP", "143", "Lässt Postfächer auf dem Server liegen."],
        ["RDP", "3389", "Fernzugriff auf einen Windows-Desktop."],
-       ["PostgreSQL", "5432", "Standardport der Datenbank."]]'::jsonb),
+       ["PostgreSQL", "5432", "Standardport der Datenbank."]]'::jsonb,
+     '[["3306", "Der Port von MySQL, und die Datenbank fehlt auf diesem Brett."],
+       ["8080", "Ein häufiger Ausweichport für HTTP, hier aber keine Antwort."]]'::jsonb),
 
     ('technik', 'it-abkuerzungen', 'Abkürzungen der Informatik',
      'Wofür steht die Abkürzung?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["RAID", "Verbund mehrerer Festplatten", "Für Ausfallsicherheit oder Geschwindigkeit."],
        ["BIOS", "Startprogramm der Hardware", "Läuft vor dem Betriebssystem, heute meist UEFI."],
        ["URL", "Adresse einer Ressource", "Protokoll, Host und Pfad in einer Zeile."],
-       ["IDE", "Integrierte Entwicklungsumgebung", "Editor, Compiler und Debugger in einem."]]'::jsonb),
+       ["IDE", "Integrierte Entwicklungsumgebung", "Editor, Compiler und Debugger in einem."]]'::jsonb,
+     '[["Nur-Lese-Speicher", "Das wäre ROM, und das fehlt auf diesem Brett."],
+       ["Adresse eines Geräts im Netz", "Die IP-Adresse steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'betriebssysteme-hersteller', 'Betriebssysteme & Hersteller',
      'Wer steht hinter dem System?',
@@ -68,7 +74,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["AIX", "IBM", "Unix für die eigenen Großrechner."],
        ["HarmonyOS", "Huawei", "Nach dem Ausschluss von Google-Diensten entwickelt."],
        ["OS/2", "IBM und Microsoft", "Gemeinsam begonnen, dann getrennt weitergeführt."],
-       ["FreeBSD", "FreeBSD-Projekt", "Aus der Berkeley-Unix-Linie hervorgegangen."]]'::jsonb),
+       ["FreeBSD", "FreeBSD-Projekt", "Aus der Berkeley-Unix-Linie hervorgegangen."]]'::jsonb,
+     '[["Oracle", "Oracle Linux käme von dort, und das fehlt auf diesem Brett."],
+       ["Nokia", "Symbian stammte von dort, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'computerpioniere', 'Computerpioniere',
      'Wofür steht der Name?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Linus Torvalds", "Linux-Kernel", "1991 als Studentenprojekt begonnen."],
        ["Steve Wozniak", "Apple I", "Er baute den Rechner, den Jobs verkaufte."],
        ["Edsger Dijkstra", "Kürzeste-Wege-Algorithmus", "Steckt in jedem Navigationsgerät."],
-       ["Barbara Liskov", "Substitutionsprinzip", "Grundregel für saubere Vererbung."]]'::jsonb),
+       ["Barbara Liskov", "Substitutionsprinzip", "Grundregel für saubere Vererbung."]]'::jsonb,
+     '[["Erste Programmiererin der Geschichte", "Das wäre Ada Lovelace, und die fehlt hier."],
+       ["Objektorientierung mit Smalltalk", "Alan Kay steht nicht auf diesem Brett."]]'::jsonb),
 
     ('technik', 'elektronik-bauteile', 'Elektronische Bauteile',
      'Was tut das Bauteil?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sicherung", "Unterbricht bei Überlast", "Ein Draht schmilzt, bevor die Leitung brennt."],
        ["Schwingquarz", "Gibt den Takt vor", "Schwingt mechanisch mit fester Frequenz."],
        ["Fotowiderstand", "Reagiert auf Licht", "Bei Helligkeit sinkt sein Widerstand."],
-       ["Thermistor", "Reagiert auf Wärme", "Wird als Temperaturfühler eingesetzt."]]'::jsonb),
+       ["Thermistor", "Reagiert auf Wärme", "Wird als Temperaturfühler eingesetzt."]]'::jsonb,
+     '[["Wandelt Schall in Spannung", "Das Mikrofon ist kein Bauteil auf diesem Brett."],
+       ["Erzeugt eine feste Ausgangsspannung", "Der Spannungsregler fehlt in dieser Liste."]]'::jsonb),
 
     ('technik', 'automarken-konzerne', 'Automarken & Konzerne',
      'Zu welchem Konzern gehört die Marke?',
@@ -118,7 +130,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Infiniti", "Nissan", "Als Antwort auf Lexus gestartet."],
        ["Dacia", "Renault", "Seit 1999 französisch geführt."],
        ["Cadillac", "General Motors", "Traditionsmarke aus Detroit."],
-       ["Ferrari", "Exor", "Seit 2016 eigenständig, kontrolliert von der Agnelli-Holding."]]'::jsonb),
+       ["Ferrari", "Exor", "Seit 2016 eigenständig, kontrolliert von der Agnelli-Holding."]]'::jsonb,
+     '[["Ford", "Lincoln gehörte dazu, und die Marke fehlt auf diesem Brett."],
+       ["Mercedes-Benz Group", "Smart gehört dorthin, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'smartphone-technik', 'Technik im Smartphone',
      'Was steckt hinter dem Begriff?',
@@ -134,7 +148,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["IP68", "Staub- und wasserdicht", "Die erste Ziffer steht für Staub, die zweite für Wasser."],
        ["QR-Code", "Zweidimensionaler Strichcode", "Speichert deutlich mehr als ein Barcode."],
        ["Firmware", "Fest eingebaute Software", "Sitzt zwischen Hardware und Betriebssystem."],
-       ["Gyroskop", "Erkennt Drehungen", "Dreht das Bild und stabilisiert die Kamera."]]'::jsonb),
+       ["Gyroskop", "Erkennt Drehungen", "Dreht das Bild und stabilisiert die Kamera."]]'::jsonb,
+     '[["Funk der fünften Generation", "Das wäre 5G, und das fehlt auf diesem Brett."],
+       ["Entsperren per Fingerabdruck", "Der Sensor steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'flugzeuge-hersteller', 'Flugzeuge & Hersteller',
      'Wer hat das Flugzeug gebaut?',
@@ -150,7 +166,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["An-225", "Antonow", "Sechs Triebwerke, gebaut für den Transport einer Raumfähre."],
        ["E195", "Embraer", "Regionaljet aus Brasilien."],
        ["CRJ", "Bombardier", "Kanadischer Regionaljet auf Kurzstrecken."],
-       ["Gripen", "Saab", "Schwedischer Jäger, für Starts von Landstraßen ausgelegt."]]'::jsonb),
+       ["Gripen", "Saab", "Schwedischer Jäger, für Starts von Landstraßen ausgelegt."]]'::jsonb,
+     '[["Lockheed", "Die SR-71 käme von dort, und sie fehlt auf diesem Brett."],
+       ["Tupolew", "Die Tu-144 steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'raketen-laender', 'Trägerraketen & Länder',
      'Aus welchem Land oder Verbund stammt die Rakete?',
@@ -165,7 +183,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Shavit", "Israel", "Startet nach Westen, gegen die Erdrotation."],
        ["Safir", "Iran", "Brachte 2009 den ersten eigenen Satelliten ins All."],
        ["Naro-1", "Südkorea", "Erste eigene Trägerrakete des Landes."],
-       ["VLS-1", "Brasilien", "Vom Startplatz Alcântara nahe dem Äquator."]]'::jsonb),
+       ["VLS-1", "Brasilien", "Vom Startplatz Alcântara nahe dem Äquator."]]'::jsonb,
+     '[["Nordkorea", "Die Unha stammt von dort, und sie fehlt auf diesem Brett."],
+       ["Ukraine", "Die Zenit steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'top-level-domains', 'Länderdomains',
      'Zu welchem Land gehört die Endung?',
@@ -182,7 +202,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        [".hu", "Ungarn", "Von Hungaria."],
        [".hr", "Kroatien", "Von Hrvatska."],
        [".in", "Indien", "Auch für viele englischsprachige Wortspiele beliebt."],
-       [".mx", "Mexiko", "Beliebt bei Kurz-URLs."]]'::jsonb),
+       [".mx", "Mexiko", "Beliebt bei Kurz-URLs."]]'::jsonb,
+     '[["Italien", "Die Endung .it gehört dorthin, und sie fehlt auf dem Brett."],
+       ["Schweden", "Die Endung .se steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'werkzeuge-verwendung', 'Werkzeuge & ihr Zweck',
      'Wozu dient das Werkzeug?',
@@ -198,7 +220,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bandmaß", "Längen messen", "Rollt sich selbst wieder auf."],
        ["Schleifpapier", "Oberflächen glätten", "Die Körnung gibt die Feinheit an."],
        ["Drehmomentschlüssel", "Schrauben genau anziehen", "Klickt beim eingestellten Wert."],
-       ["Schieblehre", "Genau messen", "Der Nonius erlaubt Zehntelmillimeter."]]'::jsonb),
+       ["Schieblehre", "Genau messen", "Der Nonius erlaubt Zehntelmillimeter."]]'::jsonb,
+     '[["Löcher in Wände bohren", "Die Bohrmaschine fehlt auf diesem Brett."],
+       ["Nägel einschlagen", "Der Hammer steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'autotechnik-bauteile', 'Autotechnik & Funktion',
      'Was macht dieses Bauteil im Auto?',
@@ -214,7 +238,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Stoßdämpfer", "Beruhigt die Federung", "Ohne ihn schaukelt das Auto nach."],
        ["Kardanwelle", "Überträgt zur Hinterachse", "Gleicht Bewegungen über Kreuzgelenke aus."],
        ["ABS", "Verhindert blockierende Räder", "Lenken bleibt auch bei Vollbremsung möglich."],
-       ["ESP", "Stabilisiert bei Schleudergefahr", "Bremst einzelne Räder gezielt ab."]]'::jsonb),
+       ["ESP", "Stabilisiert bei Schleudergefahr", "Bremst einzelne Räder gezielt ab."]]'::jsonb,
+     '[["Kühlt den Motor mit Flüssigkeit", "Der Kühler fehlt auf diesem Brett."],
+       ["Filtert Ruß aus den Abgasen", "Der Partikelfilter steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'software-zweck', 'Programme & ihr Zweck',
      'Wofür wird das Programm benutzt?',
@@ -230,7 +256,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["WordPress", "Verwaltung von Webseiten", "Ein erheblicher Teil aller Websites läuft damit."],
        ["Ableton Live", "Musikproduktion", "Auf Auftritte in Echtzeit ausgelegt."],
        ["MATLAB", "Numerische Berechnungen", "Rechnet von Haus aus mit Matrizen."],
-       ["QGIS", "Geografische Karten", "Quelloffene Alternative für Geodaten."]]'::jsonb),
+       ["QGIS", "Geografische Karten", "Quelloffene Alternative für Geodaten."]]'::jsonb,
+     '[["Präsentationen erstellen", "PowerPoint fehlt auf diesem Brett."],
+       ["Videos schneiden", "Ein Schnittprogramm steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'messgeraete', 'Messgeräte & Messgrößen',
      'Was misst das Gerät?',
@@ -246,7 +274,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ohmmeter", "Elektrischen Widerstand", "Legt eine kleine Spannung an und misst den Strom."],
        ["Luxmeter", "Beleuchtungsstärke", "Wichtig für Arbeitsplätze und Fotografie."],
        ["Schallpegelmesser", "Lautstärke", "Bewertet nach dem Empfinden des Ohrs."],
-       ["Refraktometer", "Zuckergehalt in Flüssigkeit", "Über die Lichtbrechung bestimmt."]]'::jsonb),
+       ["Refraktometer", "Zuckergehalt in Flüssigkeit", "Über die Lichtbrechung bestimmt."]]'::jsonb,
+     '[["Temperatur", "Das Thermometer fehlt auf diesem Brett."],
+       ["Höhe über dem Meer", "Der Höhenmesser steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'it-sicherheit', 'Begriffe der IT-Sicherheit',
      'Was bezeichnet der Begriff?',
@@ -263,7 +293,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zero-Day", "Noch unbekannte Lücke", "Es gibt noch keinen Patch dagegen."],
        ["Backdoor", "Heimlicher Zugang", "Absichtlich eingebaut oder nachträglich gesetzt."],
        ["Sandbox", "Abgeschottete Umgebung", "Schadcode kann dort nichts anrichten."],
-       ["Social Engineering", "Angriff auf den Menschen", "Kein System wird geknackt, sondern Vertrauen."]]'::jsonb),
+       ["Social Engineering", "Angriff auf den Menschen", "Kein System wird geknackt, sondern Vertrauen."]]'::jsonb,
+     '[["Kopie der Daten für den Notfall", "Das Backup fehlt auf diesem Brett."],
+       ["Programm, das sich selbst verbreitet", "Der Wurm steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'marken-branchen', 'Marken & Branchen',
      'In welcher Branche ist die Marke zu Hause?',
@@ -280,7 +312,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fender", "Musikinstrumente", "Die Stratocaster prägte den Klang des Rock."],
        ["Canon", "Kameras", "Der Name geht auf eine buddhistische Gottheit zurück."],
        ["Caterpillar", "Baumaschinen", "Das Gelb ist als Farbe eingetragen."],
-       ["Pfizer", "Pharmazie", "Gegründet 1849 in Brooklyn."]]'::jsonb),
+       ["Pfizer", "Pharmazie", "Gegründet 1849 in Brooklyn."]]'::jsonb,
+     '[["Möbel", "Ikea wäre die Marke dazu, und die fehlt auf diesem Brett."],
+       ["Fluggesellschaften", "Keine Marke in dieser Liste gehört dorthin."]]'::jsonb),
 
     ('technik', 'bahntechnik', 'Bahntechnik',
      'Was bezeichnet der Begriff bei der Eisenbahn?',
@@ -296,7 +330,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zahnstange", "Hilft an starken Steigungen", "Ein Zahnrad greift in die Mitte des Gleises."],
        ["ETCS", "Europäische Zugsicherung", "Signale wandern in den Führerstand."],
        ["Rangierbahnhof", "Sortiert Güterwagen", "Über den Ablaufberg rollen sie in die richtigen Gleise."],
-       ["Blockabschnitt", "Sichert den Abstand", "In einen Abschnitt darf immer nur ein Zug."]]'::jsonb),
+       ["Blockabschnitt", "Sichert den Abstand", "In einen Abschnitt darf immer nur ein Zug."]]'::jsonb,
+     '[["Rad, das auf der Schiene läuft", "Der Radsatz fehlt auf diesem Brett."],
+       ["Bremsen mit Druckluft", "Die Druckluftbremse steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'ki-begriffe', 'Begriffe der künstlichen Intelligenz',
      'Was bedeutet der Begriff?',
@@ -313,7 +349,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Überanpassung", "Auswendiglernen der Beispiele", "Das Modell versagt bei neuen Daten."],
        ["Prompt", "Eingabe an das Modell", "Formulierung und Kontext ändern das Ergebnis."],
        ["Embedding", "Bedeutung als Zahlenvektor", "Ähnliche Begriffe liegen nah beieinander."],
-       ["Benchmark", "Standardisierter Vergleichstest", "Erlaubt es, Modelle nebeneinander zu stellen."]]'::jsonb),
+       ["Benchmark", "Standardisierter Vergleichstest", "Erlaubt es, Modelle nebeneinander zu stellen."]]'::jsonb,
+     '[["Zahl der Bilder pro Sekunde", "Das hat mit künstlicher Intelligenz nichts zu tun."],
+       ["Modell ohne jedes Training", "Kein Begriff auf diesem Brett meint das."]]'::jsonb),
 
     ('technik', 'fototechnik', 'Fototechnik',
      'Was stellt man damit ein?',
@@ -329,7 +367,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Polfilter", "Spiegelungen und Himmelsblau", "Wirkt nur in bestimmten Winkeln zur Sonne."],
        ["Stativ", "Ruhige Kameraposition", "Voraussetzung für Langzeitbelichtungen."],
        ["Belichtungskorrektur", "Bewusst heller oder dunkler", "Gegen die Fehleinschätzung der Automatik."],
-       ["Blitzsynchronzeit", "Kürzeste Zeit mit Blitz", "Darunter wäre der Sensor nur teilweise offen."]]'::jsonb)
+       ["Blitzsynchronzeit", "Kürzeste Zeit mit Blitz", "Darunter wäre der Sensor nur teilweise offen."]]'::jsonb,
+     '[["Bildgröße in Megapixeln", "Sie lässt sich nicht einstellen und fehlt hier."],
+       ["Selbstauslöser mit Verzögerung", "Er steht nicht auf diesem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -354,15 +394,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

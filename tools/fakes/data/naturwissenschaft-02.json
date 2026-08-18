@@ -1,0 +1,82 @@
+{
+  "tierklassen-merkmale": [
+    ["Tausend Beinpaare", "Tausendfüßer haben deutlich weniger, und sie fehlen auf dem Brett."],
+    ["Panzer aus Kalk ohne Beine", "Auf keine Gruppe in dieser Liste trifft das zu."]
+  ],
+  "pflanzenteile-funktionen": [
+    ["Lockt Insekten mit Duft", "Das tut die Blüte, gefragt ist dort die Fortpflanzung."],
+    ["Bildet Wurzelknöllchen mit Bakterien", "Kein Pflanzenteil auf diesem Brett steht dafür."]
+  ],
+  "wetterphaenomene": [
+    ["Wirbelsturm über warmem Meer", "Der Hurrikan fehlt auf diesem Brett."],
+    ["Wasser gefriert am Boden zu Glätte", "Das Blitzeis steht nicht in dieser Liste."]
+  ],
+  "zellorganellen": [
+    ["Bewegt die Zelle mit einem Schwanz", "Die Geißel fehlt auf diesem Brett."],
+    ["Stellt Ribosomen her", "Das tut der Nukleolus, der hier nicht steht."]
+  ],
+  "krankheiten-organe": [
+    ["Bauchspeicheldrüse", "Die Pankreatitis wäre die Krankheit dazu, und die fehlt hier."],
+    ["Schilddrüse", "Kein Leiden in dieser Liste betrifft sie."]
+  ],
+  "formelzeichen": [
+    ["Q", "Das Zeichen für die Ladung, und die steht nicht auf dem Brett."],
+    ["T", "Für die Temperatur, nach der hier keine Zeile fragt."]
+  ],
+  "astronomie-begriffe": [
+    ["Bahn eines Körpers um einen anderen", "Der Orbit fehlt auf diesem Brett."],
+    ["Schatten des Mondes auf der Erde", "Die Sonnenfinsternis steht nicht in dieser Liste."]
+  ],
+  "blut-kreislauf": [
+    ["Bildet die Blutzellen", "Das tut das Knochenmark, und das fehlt auf dem Brett."],
+    ["Reinigt das Blut von Harnstoff", "Die Niere steht nicht in dieser Liste."]
+  ],
+  "saeuren-vorkommen": [
+    ["Brennnesselhaare", "Sie enthalten unter anderem Ameisensäure, die schon vergeben ist."],
+    ["Essigessenz", "Die Essigsäure steht nicht auf diesem Brett."]
+  ],
+  "erneuerbare-energien": [
+    ["Gespaltene Atomkerne", "Kernkraft ist nicht erneuerbar und steht hier nicht."],
+    ["Verbrannte Steinkohle", "Auch das ist keine erneuerbare Quelle."]
+  ],
+  "meeresstroemungen": [
+    ["Grönland", "Kein Strom auf diesem Brett ist dieser Küste zugeordnet."],
+    ["Kalifornien", "Der Kalifornienstrom fehlt in dieser Liste."]
+  ],
+  "ordnungszahlen": [
+    ["3", "Das wäre Lithium, und das steht nicht auf dem Brett."],
+    ["29", "Kupfer trägt sie, und das fehlt in dieser Liste."]
+  ],
+  "oekologie-begriffe": [
+    ["Art, die nur an einem Ort vorkommt", "Der Endemit fehlt auf diesem Brett."],
+    ["Zahl der Arten in einem Gebiet", "Die Artenvielfalt steht nicht in dieser Liste."]
+  ],
+  "skalen-messung": [
+    ["Helligkeit von Sternen", "Die Größenklassen fehlen auf diesem Brett."],
+    ["Schärfe von Chilischoten", "Die Scoville-Skala steht nicht in dieser Liste."]
+  ],
+  "formeln-bedeutung": [
+    ["Umfang eines Kreises", "Die Formel dafür fehlt auf diesem Brett."],
+    ["Fläche eines Dreiecks", "Sie steht nicht in dieser Liste."]
+  ],
+  "tierbauten": [
+    ["Wabe aus Wachs mit sechseckigen Zellen", "Die Honigbiene fehlt auf diesem Brett."],
+    ["Röhre aus Sand am Meeresboden", "Kein Tier in dieser Liste baut so."]
+  ],
+  "gifte-herkunft": [
+    ["Skorpion", "Sein Gift steht nicht auf diesem Brett."],
+    ["Seeanemone", "Kein Gift in dieser Liste stammt von ihr."]
+  ],
+  "muskeln-bewegungen": [
+    ["Dreht den Kopf zur Seite", "Der Kopfwender fehlt auf diesem Brett."],
+    ["Hält die Wirbelsäule aufrecht", "Der Rückenstrecker steht nicht in dieser Liste."]
+  ],
+  "klimazonen": [
+    ["Ewiges Eis ohne Pflanzen", "Das Eisklima fehlt auf diesem Brett."],
+    ["Nebelwüste an der Küste", "Sie steht nicht in dieser Liste."]
+  ],
+  "medizin-erfindungen": [
+    ["Entdeckung der Röntgenstrahlen", "Wilhelm Conrad Röntgen fehlt auf diesem Brett."],
+    ["Robert Koch", "Der Nachweis des Tuberkelbakteriums steht nicht in dieser Liste."]
+  ]
+}

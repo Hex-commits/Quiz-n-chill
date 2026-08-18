@@ -50,17 +50,52 @@ class CopyError(RuntimeError):
 
 
 
+PAGE = 1000
+
+
+def read_all(client: Client, table: str) -> list[dict]:
+    """Every row of `table`, in pages.
+
+    PostgREST caps a response at `db-max-rows` -- 1000 by default -- and says so
+    only in the Content-Range header, which the client does not surface. An
+    unpaged read therefore *succeeds* and returns a prefix. That is the worst
+    possible failure for this script: a pool of 8000 answers copies as the first
+    1000, and every quiz past the cut arrives with a handful of pairs or none,
+    which looks like a written question and plays as a broken one.
+
+    Paged by `id` rather than by `position`, because the page boundary needs a
+    total order. `position` repeats across quizzes, and PostgREST resolves ties
+    however the plan happens to, so consecutive pages could drop or repeat rows.
+    Callers order by `position` themselves once the rows are in hand.
+    """
+    rows: list[dict] = []
+    start = 0
+    while True:
+        page = (
+            client.table(table)
+            .select("*")
+            .order("id")
+            .range(start, start + PAGE - 1)
+            .execute()
+            .data
+        )
+        rows.extend(page)
+        if len(page) < PAGE:
+            return rows
+        start += PAGE
+
+
 def read_pool(client: Client) -> tuple[list[dict], list[dict], dict, dict]:
-    """Everything needed to rebuild the pool elsewhere, in four reads."""
-    subjects = client.table("subjects").select("*").order("position").execute().data
-    quizzes = client.table("quizzes").select("*").execute().data
+    """Everything needed to rebuild the pool elsewhere."""
+    subjects = sorted(read_all(client, "subjects"), key=lambda row: row.get("position") or 0)
+    quizzes = read_all(client, "quizzes")
 
     categories = defaultdict(list)
-    for row in client.table("categories").select("*").order("position").execute().data:
+    for row in sorted(read_all(client, "categories"), key=lambda row: row["position"]):
         categories[row["quiz_id"]].append(row)
 
     items = defaultdict(list)
-    for row in client.table("items").select("*").order("position").execute().data:
+    for row in sorted(read_all(client, "items"), key=lambda row: row["position"]):
         items[row["quiz_id"]].append(row)
 
     return subjects, quizzes, categories, items
@@ -112,6 +147,13 @@ def copy_question(
     The quiz row is deleted again if a later step fails: the three tables have
     no transaction between them through PostgREST, and a quiz with categories
     but no answers would be dealt into a round and be unplayable.
+
+    Every column that decides how a question is *played* has to cross with it.
+    `category_kind` is the sharpest: it defaults to 'text', and a picture
+    question copied as text has its category labels served to the players --
+    labels that name the photographed thing, which is the answer. So the image
+    columns and the kind move together, and `origin` comes along too, or a
+    hand-written question arrives claiming to be machine-written.
     """
     written_quiz = (
         target.table("quizzes")
@@ -124,6 +166,8 @@ def copy_question(
                 "difficulty": quiz.get("difficulty", "medium"),
                 "source_url": quiz.get("source_url"),
                 "source_title": quiz.get("source_title"),
+                "category_kind": quiz.get("category_kind", "text"),
+                "origin": quiz.get("origin", "ingest"),
             }
         )
         .execute()
@@ -140,6 +184,10 @@ def copy_question(
                         "quiz_id": quiz_id,
                         "label": category["label"],
                         "position": category["position"],
+                        "image_file": category.get("image_file"),
+                        "image_credit": category.get("image_credit"),
+                        "image_licence": category.get("image_licence"),
+                        "image_licence_url": category.get("image_licence_url"),
                     }
                     for category in categories
                 ]
@@ -236,7 +284,9 @@ def main(argv: list[str] | None = None) -> int:
     subject_slug = {subject["id"]: subject["slug"] for subject in subjects}
     subject_id = sync_subjects(target, subjects, commit=args.commit)
 
-    already = {row["slug"] for row in target.table("quizzes").select("slug").execute().data}
+    # Paged like the source reads: past 1000 questions on the target, an unpaged
+    # read would hand back a prefix and this set would claim they are new.
+    already = {row["slug"] for row in read_all(target, "quizzes")}
 
     copied = skipped = failed = 0
     for quiz in sorted(quizzes, key=lambda q: q["slug"]):
@@ -247,8 +297,9 @@ def main(argv: list[str] | None = None) -> int:
             skipped += 1
             continue
 
+        kind = quiz.get("category_kind", "text")
         if not args.commit:
-            print(f"  would  {quiz['slug']:<34} {pairs} pair(s)")
+            print(f"  would  {quiz['slug']:<34} {pairs} pair(s)  {kind}")
             copied += 1
             continue
 
@@ -266,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
             failed += 1
             continue
 
-        print(f"  copied {quiz['slug']:<34} {pairs} pair(s)")
+        print(f"  copied {quiz['slug']:<34} {pairs} pair(s)  {kind}")
         copied += 1
 
     print(f"\n  {'Would copy' if not args.commit else 'Copied'}  {copied}")

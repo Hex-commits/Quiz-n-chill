@@ -131,9 +131,14 @@ def pair_counts() -> dict[str, int]:
     Used to decide which questions are worth replaying: one holding far more
     pairs than a board deals is a different board every time it comes up, so
     "already played" means much less for it. See `_replayable` in `lobbies`.
+
+    Counts categories, not items. Since fakes came back the two differ by
+    however many a question carries, and counting items would credit every
+    question with two pairs it does not have -- pushing the ones sitting just
+    under the replay threshold over it.
     """
-    rows = get_client().table("quizzes").select("slug, items(count)").execute().data
-    return {row["slug"]: _embedded_count(row, "items") for row in rows}
+    rows = get_client().table("quizzes").select("slug, categories(count)").execute().data
+    return {row["slug"]: _embedded_count(row, "categories") for row in rows}
 
 
 def _to_summary(row: dict) -> QuizSummary:
@@ -205,7 +210,11 @@ def public_category(row: dict, *, hide_name: bool = False) -> Category:
 
 
 def item_solution(row: dict) -> ItemSolution:
-    """Server-side view of one answer, including the category it belongs to."""
+    """Server-side view of one answer, including the category it belongs to.
+
+    A null `category_id` on the row is a fake and stays null here; nothing
+    downstream may show it before the round is over.
+    """
     return ItemSolution(
         id=row["id"],
         label=row["label"],

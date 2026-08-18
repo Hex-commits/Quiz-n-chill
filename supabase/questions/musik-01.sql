@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('musik', 'instrumente-herkunft', 'Instrumente & ihre Herkunft',
@@ -21,7 +21,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Panflöte", "Anden", "Mehrere Rohre unterschiedlicher Länge nebeneinander."],
        ["Ukulele", "Hawaii", "Aus einem portugiesischen Instrument entstanden."],
        ["Djembé", "Westafrika", "Bechertrommel, mit bloßen Händen gespielt."],
-       ["Bandoneon", "Argentinien", "In Deutschland erfunden, im Tango heimisch geworden."]]'::jsonb),
+       ["Bandoneon", "Argentinien", "In Deutschland erfunden, im Tango heimisch geworden."]]'::jsonb,
+     '[["Irland", "Die keltische Harfe käme von dort, und sie fehlt auf dem Brett."],
+       ["Türkei", "Die Saz steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'musiktheorie-grundbegriffe', 'Grundbegriffe der Musiktheorie',
      'Was bezeichnet der Begriff?',
@@ -37,7 +39,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Dynamik", "Abstufung der Lautstärke", "Von pianissimo bis fortissimo."],
        ["Vorzeichen", "Kreuz oder B", "Am Zeilenanfang gelten sie für das ganze Stück."],
        ["Modulation", "Wechsel der Tonart", "Meist über einen gemeinsamen Akkord."],
-       ["Transposition", "Versetzen in andere Tonhöhe", "Alle Abstände bleiben gleich."]]'::jsonb),
+       ["Transposition", "Versetzen in andere Tonhöhe", "Alle Abstände bleiben gleich."]]'::jsonb,
+     '[["Anzahl der Musiker im Stück", "Die Besetzung ist kein Begriff auf diesem Brett."],
+       ["Zusammenklang zweier Stücke", "So etwas gibt es in der Musiktheorie nicht."]]'::jsonb),
 
     ('musik', 'vortragsbezeichnungen', 'Italienische Vortragsbezeichnungen',
      'Was bedeutet die Anweisung?',
@@ -54,7 +58,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Diminuendo", "Allmählich leiser", "Die Gabel schließt sich."],
        ["Staccato", "Kurz abgestoßen", "Ein Punkt über der Note."],
        ["Legato", "Gebunden gespielt", "Ein Bogen über mehreren Tönen."],
-       ["Ritardando", "Langsamer werdend", "Häufig am Ende eines Satzes."]]'::jsonb),
+       ["Ritardando", "Langsamer werdend", "Häufig am Ende eines Satzes."]]'::jsonb,
+     '[["Sehr langsam und feierlich", "Grave wäre die Anweisung dazu, und die fehlt hier."],
+       ["Mit Nachdruck betont", "Marcato steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'genres-ursprung', 'Musikrichtungen & ihre Wiege',
      'Wo entstand die Musikrichtung?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Grunge", "Seattle", "Verzerrte Gitarren und Flanellhemden."],
        ["K-Pop", "Südkorea", "Ab den 1990er Jahren systematisch aufgebaut."],
        ["Bossa Nova", "Rio de Janeiro", "Leiser, harmonisch verfeinerter Samba."],
-       ["Chanson", "Paris", "Der Text steht über der Melodie."]]'::jsonb),
+       ["Chanson", "Paris", "Der Text steht über der Melodie."]]'::jsonb,
+     '[["Wien", "Der Walzer entstand dort, und der fehlt auf diesem Brett."],
+       ["Trinidad", "Der Calypso steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'alben-interpreten', 'Alben & Interpreten',
      'Wer hat das Album aufgenommen?',
@@ -86,7 +94,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Purple Rain", "Prince", "Soundtrack zu seinem eigenen Film."],
        ["Born in the U.S.A.", "Bruce Springsteen", "Oft als patriotisch missverstanden."],
        ["Like a Prayer", "Madonna", "Das Video kostete sie einen Werbevertrag."],
-       ["21", "Adele", "Verkaufsstärkstes Album der 2010er Jahre."]]'::jsonb),
+       ["21", "Adele", "Verkaufsstärkstes Album der 2010er Jahre."]]'::jsonb,
+     '[["David Bowie", "Ziggy Stardust wäre das Album dazu, und es fehlt hier."],
+       ["Led Zeppelin", "Ihr viertes Album steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'musiker-instrumente', 'Musiker & ihre Instrumente',
      'Welches Instrument spielte die Person?',
@@ -102,7 +112,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jaco Pastorius", "E-Bass", "Spielte bundlos und veränderte die Rolle des Basses."],
        ["James Galway", "Querflöte", "Bekannt für seine goldene Flöte."],
        ["Andrés Segovia", "Konzertgitarre", "Machte die klassische Gitarre konzertfähig."],
-       ["Toots Thielemans", "Mundharmonika", "Auch als Pfeifer auf Filmmusiken zu hören."]]'::jsonb),
+       ["Toots Thielemans", "Mundharmonika", "Auch als Pfeifer auf Filmmusiken zu hören."]]'::jsonb,
+     '[["Kontrabass", "Charles Mingus spielte ihn, und der fehlt auf diesem Brett."],
+       ["Orgel", "Kein Musiker in dieser Liste ist dafür bekannt."]]'::jsonb),
 
     ('musik', 'musicals-komponisten', 'Musicals & ihre Musik',
      'Wer schrieb die Musik?',
@@ -118,7 +130,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["The Rocky Horror Show", "Richard O''Brien", "Kultstück mit Publikumsritualen."],
        ["Wicked", "Stephen Schwartz", "Die Vorgeschichte der Hexen von Oz."],
        ["Sweeney Todd", "Stephen Sondheim", "Ein Barbier mit sehr dunklen Absichten."],
-       ["Hair", "Galt MacDermot", "Das Musical der Hippiebewegung."]]'::jsonb),
+       ["Hair", "Galt MacDermot", "Das Musical der Hippiebewegung."]]'::jsonb,
+     '[["Richard Rodgers", "The Sound of Music stammt von ihm, und das Musical fehlt hier."],
+       ["Jule Styne", "Gypsy wäre sein Stück, und es steht nicht auf dem Brett."]]'::jsonb),
 
     ('musik', 'klassische-werke', 'Klassische Werke & Komponisten',
      'Wer komponierte das Werk?',
@@ -135,7 +149,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Peer-Gynt-Suite", "Edvard Grieg", "Enthält die Morgenstimmung."],
        ["Boléro", "Maurice Ravel", "Ein einziges Thema, immer lauter wiederholt."],
        ["Also sprach Zarathustra", "Richard Strauss", "Die Anfangstakte kennt fast jeder aus dem Kino."],
-       ["Rhapsody in Blue", "George Gershwin", "Beginnt mit einem Klarinettenglissando."]]'::jsonb),
+       ["Rhapsody in Blue", "George Gershwin", "Beginnt mit einem Klarinettenglissando."]]'::jsonb,
+     '[["Johann Sebastian Bach", "Die Brandenburgischen Konzerte fehlen auf diesem Brett."],
+       ["Joseph Haydn", "Die Schöpfung steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'tonerzeugung', 'Instrumente & Tonerzeugung',
      'Wie entsteht der Ton?',
@@ -152,7 +168,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Querflöte", "Luftstrom an der Anblaskante", "Kein Rohrblatt, nur die Anblaskante."],
        ["Pauke", "Angeschlagenes Fell schwingt", "Über ein Pedal stimmbar."],
        ["Akkordeon", "Durchschlagende Zungen im Luftstrom", "Der Balg liefert den Wind."],
-       ["Theremin", "Hand verändert ein Feld", "Wird gespielt, ohne es zu berühren."]]'::jsonb),
+       ["Theremin", "Hand verändert ein Feld", "Wird gespielt, ohne es zu berühren."]]'::jsonb,
+     '[["Zungen schwingen im Mundstück", "Die Mundharmonika fehlt auf diesem Brett."],
+       ["Kristall schwingt im Stromkreis", "So arbeitet kein Instrument in dieser Liste."]]'::jsonb),
 
     ('musik', 'musikpreise-laender', 'Musikpreise & Länder',
      'In welchem Land wird der Preis vergeben?',
@@ -168,7 +186,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fryderyk", "Polen", "Nach dem Vornamen Chopins benannt."],
        ["Echo", "Deutschland", "2018 nach einem Skandal abgeschafft."],
        ["Latin Grammy", "Lateinamerika", "Eigene Verleihung für spanische und portugiesische Musik."],
-       ["Mercury Prize", "Irland und Großbritannien", "Für das beste Album des Jahres."]]'::jsonb),
+       ["Mercury Prize", "Irland und Großbritannien", "Für das beste Album des Jahres."]]'::jsonb,
+     '[["Japan", "Der Japan Record Award wird dort vergeben, er fehlt auf dem Brett."],
+       ["Norwegen", "Der Spellemannprisen steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'stimmlagen', 'Stimmlagen',
      'Welche Stimme ist gemeint?',
@@ -182,7 +202,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bass", "Tiefe Männerstimme", "Oft in Rollen von Königen und Priestern."],
        ["Koloratursopran", "Besonders bewegliche Höhe", "Etwa die Königin der Nacht."],
        ["Basso profondo", "Sehr tiefer Bass", "In der russischen Kirchenmusik verbreitet."],
-       ["Knabensopran", "Unmutierte Jungenstimme", "Endet mit dem Stimmbruch."]]'::jsonb),
+       ["Knabensopran", "Unmutierte Jungenstimme", "Endet mit dem Stimmbruch."]]'::jsonb,
+     '[["Sehr hohe Männerstimme in voller Bruststimme", "Auf keine Lage in dieser Liste trifft das zu."],
+       ["Stimme ohne feste Tonhöhe", "Der Sprechgesang steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'notenwerte', 'Notenwerte & Zeichen',
      'Was bedeutet das im Notenbild?',
@@ -198,7 +220,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fermate", "Länger aushalten", "Die Dauer entscheidet der Ausführende."],
        ["Haltebogen", "Zwei Noten zu einer", "Verbindet gleiche Tonhöhen über den Taktstrich."],
        ["Auftakt", "Unvollständiger erster Takt", "Die fehlenden Schläge stehen am Schluss."],
-       ["Synkope", "Verschobene Betonung", "Betont wird gegen den Grundschlag."]]'::jsonb),
+       ["Synkope", "Verschobene Betonung", "Betont wird gegen den Grundschlag."]]'::jsonb,
+     '[["Acht Schläge lang", "Die Doppelganze wäre das, und die fehlt auf dem Brett."],
+       ["Zwei Töne gleichzeitig", "Das ist ein Zusammenklang, kein Notenwert."]]'::jsonb),
 
     ('musik', 'bands-frontmaenner', 'Bands & ihre Sänger',
      'Wer stand am Mikrofon?',
@@ -214,7 +238,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Metallica", "James Hetfield", "Singt und spielt Rhythmusgitarre."],
        ["Oasis", "Liam Gallagher", "Der Streit mit dem Bruder wurde legendär."],
        ["Depeche Mode", "Dave Gahan", "Der Bandname stammt aus einem Modemagazin."],
-       ["Rammstein", "Till Lindemann", "Gelernter Korbmacher und früherer Leistungsschwimmer."]]'::jsonb),
+       ["Rammstein", "Till Lindemann", "Gelernter Korbmacher und früherer Leistungsschwimmer."]]'::jsonb,
+     '[["Steven Tyler", "Er sang bei Aerosmith, und die Band fehlt auf dem Brett."],
+       ["Ozzy Osbourne", "Black Sabbath steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'musikepochen-merkmale', 'Musikepochen & Merkmale',
      'Woran ist die Epoche zu erkennen?',
@@ -231,7 +257,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Serielle Musik", "Auch Rhythmus wird geordnet", "Nicht nur die Tonhöhen folgen einer Reihe."],
        ["Aleatorik", "Der Zufall entscheidet mit", "Der Ablauf ist nicht vollständig festgelegt."],
        ["Minimal Music", "Kleine Muster, ständig wiederholt", "Veränderung geschieht in winzigen Schritten."],
-       ["Elektronische Musik", "Klang aus dem Generator", "Kein Instrument im herkömmlichen Sinn."]]'::jsonb),
+       ["Elektronische Musik", "Klang aus dem Generator", "Kein Instrument im herkömmlichen Sinn."]]'::jsonb,
+     '[["Erste Aufnahmen auf Tonträger", "Eine technische Neuerung, keine Epoche auf dem Brett."],
+       ["Improvisation über feste Akkordfolgen", "Das kennzeichnet den Jazz, der hier nicht steht."]]'::jsonb),
 
     ('musik', 'weltmusik-traditionen', 'Musiktraditionen der Welt',
      'Woher stammt die Tradition?',
@@ -247,7 +275,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Highlife", "Ghana", "Blasinstrumente über westafrikanischen Rhythmen."],
        ["Cumbia", "Kolumbien", "Von der Karibikküste in ganz Lateinamerika verbreitet."],
        ["Enka", "Japan", "Sentimentale Balladen mit fester Gesangstechnik."],
-       ["Morna", "Kap Verde", "Cesária Évora machte sie weltweit bekannt."]]'::jsonb),
+       ["Morna", "Kap Verde", "Cesária Évora machte sie weltweit bekannt."]]'::jsonb,
+     '[["Irland", "Die Sessions in den Pubs fehlen auf diesem Brett."],
+       ["Peru", "Die Huayno-Musik steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'filmkomponisten', 'Filmkomponisten & Filme',
      'Zu welchem Film schrieb die Person die Musik?',
@@ -263,7 +293,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ryuichi Sakamoto", "Der letzte Kaiser", "Verband westliche und ostasiatische Klangwelt."],
        ["Michael Giacchino", "Ratatouille", "Französische Akkordeonfarben in Paris."],
        ["Justin Hurwitz", "La La Land", "Jazzklavier als roter Faden."],
-       ["Hildur Guðnadóttir", "Joker", "Cello als Stimme der Hauptfigur."]]'::jsonb),
+       ["Hildur Guðnadóttir", "Joker", "Cello als Stimme der Hauptfigur."]]'::jsonb,
+     '[["Der weiße Hai", "Auch von John Williams, doch auf dem Brett steht Star Wars."],
+       ["Der Pianist", "Wojciech Kilar schrieb die Musik, und der fehlt hier."]]'::jsonb),
 
     ('musik', 'tontraeger', 'Tonträger & Technik',
      'Wie wird die Musik gespeichert?',
@@ -277,7 +309,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["DAT-Kassette", "Digitales Band", "Lange Standard im Studio."],
        ["MP3-Datei", "Verlustbehaftete Datei", "Was das Ohr verdeckt, wird weggelassen."],
        ["FLAC-Datei", "Verlustfreie Kompression", "Kleiner als WAV, klanglich identisch."],
-       ["Streaming", "Abruf aus dem Netz", "Nichts liegt dauerhaft auf dem Gerät."]]'::jsonb),
+       ["Streaming", "Abruf aus dem Netz", "Nichts liegt dauerhaft auf dem Gerät."]]'::jsonb,
+     '[["Löcher in einer Papierrolle", "So arbeitet das Pianola, das hier nicht steht."],
+       ["Ton auf dem Filmstreifen", "Die Lichttonspur fehlt auf diesem Brett."]]'::jsonb),
 
     ('musik', 'jazzstile', 'Jazzstile',
      'Was kennzeichnet den Stil?',
@@ -291,7 +325,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Free Jazz", "Ohne feste Form", "Auch Tonart und Puls sind offen."],
        ["Jazz-Rock", "Elektrische Instrumente", "Rockrhythmus trifft Improvisation."],
        ["Latin Jazz", "Afrokubanische Rhythmen", "Clave statt Swingachtel."],
-       ["Smooth Jazz", "Glatt produzierte Melodien", "Für das Radioformat gemacht."]]'::jsonb),
+       ["Smooth Jazz", "Glatt produzierte Melodien", "Für das Radioformat gemacht."]]'::jsonb,
+     '[["Mit indischen Ragas verbunden", "Der Indo-Jazz steht nicht auf diesem Brett."],
+       ["Ganz ohne Improvisation", "Auf keinen Stil in dieser Liste trifft das zu."]]'::jsonb),
 
     ('musik', 'festivals-laender', 'Musikfestivals & Länder',
      'In welchem Land findet das Festival statt?',
@@ -307,7 +343,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Montreux Jazz Festival", "Schweiz", "Am Ufer des Genfersees."],
        ["Fuji Rock", "Japan", "In einem Skigebiet in den Bergen."],
        ["Exit", "Serbien", "In einer Festung über der Donau."],
-       ["Salzburger Festspiele", "Österreich", "Seit 1920, mit dem Jedermann am Domplatz."]]'::jsonb),
+       ["Salzburger Festspiele", "Österreich", "Seit 1920, mit dem Jedermann am Domplatz."]]'::jsonb,
+     '[["Frankreich", "Die Vieilles Charrues fänden dort statt, sie fehlen auf dem Brett."],
+       ["Niederlande", "Das Lowlands steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'notation-zeichen', 'Zeichen der Notenschrift',
      'Was bedeutet das Zeichen?',
@@ -324,7 +362,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Coda", "Eigener Schlussteil", "Wird über ein Zeichen angesprungen."],
        ["Triller", "Schneller Wechsel zweier Töne", "Als tr über der Note notiert."],
        ["Arpeggio", "Akkord nacheinander", "Als Wellenlinie vor dem Akkord."],
-       ["Generalpause", "Alle schweigen", "Im Notenbild als G.P. vermerkt."]]'::jsonb)
+       ["Generalpause", "Alle schweigen", "Im Notenbild als G.P. vermerkt."]]'::jsonb,
+     '[["Legt das c fest", "Das täte der C-Schlüssel, und der fehlt auf diesem Brett."],
+       ["Zeigt die Anzahl der Musiker", "So ein Zeichen gibt es in der Notenschrift nicht."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -349,15 +389,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

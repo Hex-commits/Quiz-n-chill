@@ -7,7 +7,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('naturwissenschaft', 'leicht-tierkinder', 'Tierkinder',
@@ -24,7 +24,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Reh", "Kitz", "Liegt die ersten Tage regungslos im Gras."],
        ["Ziege", "Zicklein", "Springt schon nach wenigen Tagen herum."],
        ["Gans", "Gössel", "Folgt dem ersten, das es sieht."],
-       ["Hirsch", "Hirschkalb", "Trägt im ersten Jahr noch weiße Flecken."]]'::jsonb),
+       ["Hirsch", "Hirschkalb", "Trägt im ersten Jahr noch weiße Flecken."]]'::jsonb,
+     '[["Fohlen im Beutel", "Ein Känguru-Junges heißt Joey, und das Tier fehlt hier."],
+       ["Rehkitz-Zwilling", "Auf diesem Brett steht nur das Kitz selbst."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-tierlaute', 'Tierstimmen',
      'Welches Geräusch macht das Tier?',
@@ -40,7 +42,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Biene", "Summen", "Der Ton kommt von den Flügelschlägen."],
        ["Frosch", "Quaken", "Die Schallblase verstärkt den Ruf."],
        ["Löwe", "Brüllen", "Bis zu acht Kilometer weit zu hören."],
-       ["Maus", "Piepsen", "Vieles davon liegt über unserer Hörgrenze."]]'::jsonb),
+       ["Maus", "Piepsen", "Vieles davon liegt über unserer Hörgrenze."]]'::jsonb,
+     '[["Zwitschern", "Der Singvogel wäre das Tier dazu, und der fehlt auf dem Brett."],
+       ["Fauchen", "Kein Tier in dieser Liste ist dafür genannt."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-sinne', 'Die fünf Sinne',
      'Womit nimmt man das wahr?',
@@ -56,7 +60,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Denken", "Gehirn", "Verbraucht ein Fünftel unserer Energie."],
        ["Gleichgewicht halten", "Innenohr", "Drei Bogengänge messen jede Drehung."],
        ["Kauen", "Zähne", "Erwachsene haben davon zweiunddreißig."],
-       ["Blut filtern", "Niere", "Zwei Stück, jede etwa faustgroß."]]'::jsonb),
+       ["Blut filtern", "Niere", "Zwei Stück, jede etwa faustgroß."]]'::jsonb,
+     '[["Leber", "Sie entgiftet, danach fragt auf diesem Brett aber keine Zeile."],
+       ["Darm", "Er nimmt Nährstoffe auf, und das steht hier nicht."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-planeten', 'Unser Sonnensystem',
      'Welcher Himmelskörper ist gemeint?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Stern in unserer Mitte", "Sonne", "Ihr Licht braucht acht Minuten zu uns."],
        ["Der Begleiter der Erde", "Mond", "Zeigt uns immer dieselbe Seite."],
        ["Ein Schweifstern aus Eis", "Komet", "Der Schweif entsteht erst nahe der Sonne."],
-       ["Eine Sternschnuppe am Himmel", "Meteor", "Meist nur ein Staubkorn, das verglüht."]]'::jsonb),
+       ["Eine Sternschnuppe am Himmel", "Meteor", "Meist nur ein Staubkorn, das verglüht."]]'::jsonb,
+     '[["Der zweite Planet von der Sonne", "Das ist die Venus, und die fehlt auf dem Brett."],
+       ["Ein Zwergplanet weit draußen", "Pluto wäre das, und der steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-lebensraeume', 'Wo Tiere leben',
      'Wo lebt das Tier?',
@@ -86,7 +94,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kuh", "Weide", "Sie kaut ihr Futter mehrfach wieder."],
        ["Adler", "Berge", "Er baut den Horst an steilen Felsen."],
        ["Känguru", "Steppe", "Es bewegt sich springend fort."],
-       ["Regenwurm", "Gartenboden", "Er lockert die Erde beim Fressen."]]'::jsonb),
+       ["Regenwurm", "Gartenboden", "Er lockert die Erde beim Fressen."]]'::jsonb,
+     '[["Korallenriff", "Kein Tier auf diesem Brett lebt dort."],
+       ["Hochmoor", "Es kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-farben-mischen', 'Farben mischen',
      'Welche Farbe entsteht?',
@@ -100,7 +110,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Blau und Weiß", "Hellblau", "Wie ein Himmel im Sommer."],
        ["Rot und Grün in der Farbe", "Braun", "Zwei Gegenfarben ergeben ein trübes Braun."],
        ["Alle Regenbogenfarben im Licht", "Weiß", "Beim Licht mischt sich alles zu Weiß."],
-       ["Gar keine Farbe im Licht", "Schwarz", "Wo kein Licht ankommt, sehen wir Schwarz."]]'::jsonb),
+       ["Gar keine Farbe im Licht", "Schwarz", "Wo kein Licht ankommt, sehen wir Schwarz."]]'::jsonb,
+     '[["Türkis", "Diese Farbe entsteht auf diesem Brett aus keiner Mischung."],
+       ["Gold", "Es lässt sich gar nicht anmischen."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-koerper-zahlen', 'Der Körper in Zahlen',
      'Wie viele sind es beim Menschen?',
@@ -115,7 +127,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rippenpaare", "12", "Die untersten enden frei."],
        ["Halswirbel", "7", "Die Giraffe hat ebenso viele."],
        ["Milchzähne bei Kindern", "20", "Sie fallen alle wieder aus."],
-       ["Beine eines Insekts", "6", "Daran erkennt man jedes Insekt."]]'::jsonb),
+       ["Beine eines Insekts", "6", "Daran erkennt man jedes Insekt."]]'::jsonb,
+     '[["1", "Danach fragt keine Zeile auf diesem Brett."],
+       ["24", "So viele Rippen hat der Mensch insgesamt, gefragt sind hier die Paare."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-jahreszeiten', 'Jahreszeiten',
      'Zu welcher Jahreszeit gehört das?',
@@ -129,7 +143,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schneeglöckchen blühen", "Vorfrühling", "Die erste Blüte des Jahres."],
        ["Zugvögel kehren zurück", "Frühjahr", "Sie folgen dem wärmeren Wetter."],
        ["Tage und Nächte gleich lang", "Tagundnachtgleiche", "Zweimal im Jahr, im März und September."],
-       ["Sonne geht nördlich nicht unter", "Polartag", "Nördlich des Polarkreises im Sommer."]]'::jsonb),
+       ["Sonne geht nördlich nicht unter", "Polartag", "Nördlich des Polarkreises im Sommer."]]'::jsonb,
+     '[["Die Uhren werden umgestellt", "Das gehört zu keiner Jahreszeit auf diesem Brett."],
+       ["Regenzeit im Monsun", "Sie kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-wasser', 'Wasser im Alltag',
      'Wie nennt man das?',
@@ -143,7 +159,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wolke am Boden", "Nebel", "Sichtweite unter einem Kilometer."],
        ["Wasser auf dem Gras am Morgen", "Tau", "Die Luft kühlt ab und gibt Feuchtigkeit ab."],
        ["Salziges Wasser", "Meerwasser", "Rund fünfunddreißig Gramm Salz je Liter."],
-       ["Wasser tief unter der Erde", "Grundwasser", "Daraus kommt unser Trinkwasser."]]'::jsonb),
+       ["Wasser tief unter der Erde", "Grundwasser", "Daraus kommt unser Trinkwasser."]]'::jsonb,
+     '[["Wasser mit Kohlensäure", "Sprudel steht nicht auf diesem Brett."],
+       ["Wasser im Wasserhahn", "Das Leitungswasser fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-obst-gemuese', 'Obst & Gemüse',
      'Was ist es?',
@@ -159,7 +177,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wächst als Kopf und wird zu Sauerkraut", "Weißkohl", "Milchsauer vergoren haltbar gemacht."],
        ["Klein, grün und in einer Hülse", "Erbse", "Mendel forschte an ihr."],
        ["Braune Schale, innen grün, mit Kernen", "Kiwi", "Trotz des Namens aus China."],
-       ["Wächst am Strauch und färbt die Zunge blau", "Heidelbeere", "Auch Blaubeere genannt."]]'::jsonb),
+       ["Wächst am Strauch und färbt die Zunge blau", "Heidelbeere", "Auch Blaubeere genannt."]]'::jsonb,
+     '[["Rund, orange und schwer, gut für Suppe", "Der Kürbis fehlt auf diesem Brett."],
+       ["Grün und rund, mit vielen Blättern innen", "Der Kopfsalat steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-vogel-oder-nicht', 'Vögel & andere Tiere',
      'Um was für ein Tier handelt es sich?',
@@ -174,7 +194,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schnecke", "Weichtier", "Das Haus wächst mit ihr mit."],
        ["Krebs", "Krebstier", "Er wirft seinen Panzer beim Wachsen ab."],
        ["Regenwurm", "Ringelwurm", "Der Körper besteht aus vielen Ringen."],
-       ["Seestern", "Stachelhäuter", "Er kann verlorene Arme nachbilden."]]'::jsonb),
+       ["Seestern", "Stachelhäuter", "Er kann verlorene Arme nachbilden."]]'::jsonb,
+     '[["Säugetier, das Eier legt", "Das Schnabeltier fehlt auf diesem Brett."],
+       ["Quallentier", "Kein Tier in dieser Liste gehört dazu."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-wetter', 'Wetter',
      'Wie heißt diese Wettererscheinung?',
@@ -188,7 +210,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Eiskörner aus der Gewitterwolke", "Hagel", "Kann Autos und Ernten beschädigen."],
        ["Wirbelnder Schlauch bis zum Boden", "Tornado", "Windgeschwindigkeiten über 400 km/h möglich."],
        ["Feiner, lang anhaltender Regen", "Nieselregen", "Sehr kleine Tropfen."],
-       ["Wolkenloser blauer Himmel", "Sonnenschein", "Hochdruckgebiete bringen ihn."]]'::jsonb),
+       ["Wolkenloser blauer Himmel", "Sonnenschein", "Hochdruckgebiete bringen ihn."]]'::jsonb,
+     '[["Warmer Fallwind über die Berge", "Der Föhn steht nicht auf diesem Brett."],
+       ["Glatte Straße durch gefrorenen Regen", "Das Glatteis fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-baeume', 'Bäume erkennen',
      'Zu welchem Baum gehört das?',
@@ -204,7 +228,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Herzförmige Blätter und Duft im Juni", "Linde", "Bienen lieben ihre Blüten."],
        ["Rote Beeren, aber giftig", "Eibe", "Nur der rote Mantel ist ungiftig."],
        ["Süße Früchte am Steinobstbaum", "Kirsche", "Blüht im Frühling weiß."],
-       ["Zapfen und lange Nadeln zu zweit", "Kiefer", "Wächst auch auf sandigem Boden."]]'::jsonb),
+       ["Zapfen und lange Nadeln zu zweit", "Kiefer", "Wächst auch auf sandigem Boden."]]'::jsonb,
+     '[["Bittere Nüsse in grüner Schale", "Der Walnussbaum fehlt auf diesem Brett."],
+       ["Blätter wie eine Hand mit fünf Fingern", "Kein Baum in dieser Liste ist so beschrieben."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-magnet-strom', 'Strom & Magnet',
      'Was passiert hier?',
@@ -218,7 +244,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Blitz am Himmel", "Elektrische Entladung", "Spannungen von Millionen Volt."],
        ["Wollpullover über den Kopf gezogen", "Haare stehen ab", "Statische Aufladung."],
        ["Batterie falsch herum eingelegt", "Gerät bleibt aus", "Plus und Minus müssen stimmen."],
-       ["Glühbirne nach langer Brenndauer", "Wird sehr heiß", "Der größte Teil des Stroms wird Wärme."]]'::jsonb),
+       ["Glühbirne nach langer Brenndauer", "Wird sehr heiß", "Der größte Teil des Stroms wird Wärme."]]'::jsonb,
+     '[["Wasser leitet gar keinen Strom", "Das stimmt nicht, und auf dem Brett steht es auch nicht."],
+       ["Ein Magnet zieht Holz an", "Magnete wirken nicht auf Holz."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-blumen', 'Blumen',
      'Welche Blume ist gemeint?',
@@ -234,7 +262,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wasserpflanze mit großen Blättern", "Seerose", "Die Blätter tragen kleine Tiere."],
        ["Rot und steht für den Klatschmohn", "Mohnblume", "Die Blüte hält nur wenige Tage."],
        ["Wächst in den Alpen und steht unter Schutz", "Edelweiß", "Der weiße Filz schützt vor Kälte."],
-       ["Blüht im Advent in vielen Wohnzimmern", "Weihnachtsstern", "Die roten Teile sind Blätter, keine Blüten."]]'::jsonb),
+       ["Blüht im Advent in vielen Wohnzimmern", "Weihnachtsstern", "Die roten Teile sind Blätter, keine Blüten."]]'::jsonb,
+     '[["Blüht als Strauch und duftet im Mai", "Der Flieder fehlt auf diesem Brett."],
+       ["Wächst als Zwiebel und blüht gelb im März", "Die Narzisse steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-insekten', 'Kleine Tiere',
      'Welches Tier ist das?',
@@ -250,7 +280,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Leuchtet nachts im Gras", "Glühwürmchen", "Das Licht entsteht ohne Wärme."],
        ["Rollt Mist zu einer Kugel", "Mistkäfer", "Räumt die Weiden auf."],
        ["Springt weit und war eine Plage", "Heuschrecke", "Schwärme können Felder kahl fressen."],
-       ["Lebt im Holz und nagt Gänge", "Holzwurm", "Eigentlich die Larve eines Käfers."]]'::jsonb),
+       ["Lebt im Holz und nagt Gänge", "Holzwurm", "Eigentlich die Larve eines Käfers."]]'::jsonb,
+     '[["Frisst Blattläuse als Larve", "Das tut der Marienkäfer, gefragt ist dort sein Aussehen."],
+       ["Läuft über Wasser, ohne einzusinken", "Der Wasserläufer fehlt auf diesem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-koerperpflege', 'Gesundheit im Alltag',
      'Warum macht man das?',
@@ -264,7 +296,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Obst und Gemüse essen", "Für Vitamine", "Fünf Portionen am Tag gelten als Ziel."],
        ["Fahrradhelm tragen", "Zum Schutz des Kopfes", "Er verteilt die Wucht eines Aufpralls."],
        ["Impfen lassen", "Zum Schutz vor Infektionen", "Der Körper übt an einem harmlosen Reiz."],
-       ["Lüften im Winter", "Für frische Luft", "Stoßlüften kostet wenig Wärme."]]'::jsonb),
+       ["Lüften im Winter", "Für frische Luft", "Stoßlüften kostet wenig Wärme."]]'::jsonb,
+     '[["Gegen Langeweile", "Das ist kein Grund für etwas auf diesem Brett."],
+       ["Für schönere Kleidung", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-himmel', 'Am Himmel',
      'Was sieht man da?',
@@ -278,7 +312,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Stern, der immer im Norden steht", "Polarstern", "Er zeigt Wanderern die Richtung."],
        ["Bunte Lichter am Polarhimmel", "Polarlicht", "Teilchen der Sonne treffen die Luft."],
        ["Ein künstlicher Punkt, der stetig zieht", "Satellit", "Er blinkt nicht wie ein Flugzeug."],
-       ["Die Sonne verschwindet am Abend", "Sonnenuntergang", "Nicht die Sonne wandert, sondern die Erde dreht sich."]]'::jsonb),
+       ["Die Sonne verschwindet am Abend", "Sonnenuntergang", "Nicht die Sonne wandert, sondern die Erde dreht sich."]]'::jsonb,
+     '[["Der Mond ist halb zu sehen", "Der Halbmond fehlt auf diesem Brett."],
+       ["Ein Regenbogen bei Nacht", "Er kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-stoffe', 'Stoffe im Haushalt',
      'Was trifft zu?',
@@ -292,7 +328,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Luftballon in der Kälte", "Wird kleiner", "Kalte Luft braucht weniger Platz."],
        ["Brausetablette im Wasser", "Sprudelt", "Es entsteht Kohlendioxid."],
        ["Kerze unter einem Glas", "Geht aus", "Ohne Sauerstoff kein Feuer."],
-       ["Apfel an der Luft aufgeschnitten", "Wird braun", "Zitronensaft bremst das."]]'::jsonb),
+       ["Apfel an der Luft aufgeschnitten", "Wird braun", "Zitronensaft bremst das."]]'::jsonb,
+     '[["Sand im Wasserglas", "Er sinkt zu Boden, steht aber nicht auf diesem Brett."],
+       ["Milch in heißem Kaffee", "Sie mischt sich, und das fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'leicht-saeugetiere', 'Säugetiere',
      'Welches Tier ist gesucht?',
@@ -308,7 +346,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hängt kopfüber und schläft am Tag", "Fledermaus", "Sie orientiert sich mit Ultraschall."],
        ["Frisst fast nur Bambus", "Großer Panda", "Er ist eigentlich ein Raubtier."],
        ["Trägt ein Horn auf der Nase", "Nashorn", "Das Horn besteht aus Keratin."],
-       ["Lebt in Rudeln und heult den Mond an", "Wolf", "Stammvater aller Haushunde."]]'::jsonb)
+       ["Lebt in Rudeln und heult den Mond an", "Wolf", "Stammvater aller Haushunde."]]'::jsonb,
+     '[["Trägt einen Panzer aus Hornplatten", "Das Gürteltier fehlt auf diesem Brett."],
+       ["Hat den längsten Winterschlaf im Wald", "Der Siebenschläfer steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -333,15 +373,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

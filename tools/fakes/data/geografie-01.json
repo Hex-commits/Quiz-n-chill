@@ -1,0 +1,82 @@
+{
+  "hauptstaedte-afrikas": [
+    ["Lusaka", "Die Hauptstadt Sambias, und das Land steht nicht auf dem Brett."],
+    ["Casablanca", "Die größte Stadt Marokkos, aber nicht dessen Hauptstadt."]
+  ],
+  "hauptstaedte-suedamerikas": [
+    ["Rio de Janeiro", "Bis 1960 Hauptstadt Brasiliens, heute nicht mehr."],
+    ["Guayaquil", "Die größte Stadt Ecuadors, dessen Hauptstadt aber Quito ist."]
+  ],
+  "fluesse-muendungen": [
+    ["Ostsee", "Kein Fluss auf diesem Brett mündet dort."],
+    ["Rotes Meer", "Kein Strom in dieser Liste erreicht es."]
+  ],
+  "inseln-laender": [
+    ["Portugal", "Madeira gehörte dazu, und die Insel steht nicht auf dem Brett."],
+    ["Norwegen", "Die Lofoten wären es, und die fehlen hier."]
+  ],
+  "seen-laender": [
+    ["Schweiz", "Der Genfersee läge dort, er steht nicht auf dem Brett."],
+    ["Kanada", "Der Große Bärensee fehlt in dieser Liste."]
+  ],
+  "wuesten-laender": [
+    ["Mongolei", "Die Gobi läge dort, sie steht nicht auf dem Brett."],
+    ["Peru", "Die Sechura-Wüste fehlt in dieser Liste."]
+  ],
+  "vulkane-laender": [
+    ["Neuseeland", "Der Ruapehu stünde dort, er fehlt auf dem Brett."],
+    ["Kamerun", "Der Kamerunberg steht nicht in dieser Liste."]
+  ],
+  "nationalparks-laender": [
+    ["Costa Rica", "Der Corcovado läge dort, er fehlt auf dem Brett."],
+    ["Namibia", "Der Etosha-Nationalpark steht nicht in dieser Liste."]
+  ],
+  "bruecken-staedte": [
+    ["Budapest", "Die Kettenbrücke stünde dort, sie fehlt auf dem Brett."],
+    ["Porto", "Die Ponte Dom Luís I steht nicht in dieser Liste."]
+  ],
+  "landeshauptstaedte-deutschland": [
+    ["Nordrhein-Westfalen", "Düsseldorf wäre die Stadt dazu, und die fehlt auf dem Brett."],
+    ["Bremen", "Ein Stadtstaat, der hier nicht vorkommt."]
+  ],
+  "kantone-hauptorte": [
+    ["Zug", "Hauptort des gleichnamigen Kantons, der hier fehlt."],
+    ["Schwyz", "Hauptort des Kantons Schwyz, und der steht nicht auf dem Brett."]
+  ],
+  "us-bundesstaaten-hauptstaedte": [
+    ["Phoenix", "Die Hauptstadt Arizonas, und der Staat fehlt hier."],
+    ["Los Angeles", "Die größte Stadt Kaliforniens, aber nicht dessen Hauptstadt."]
+  ],
+  "groesste-staedte-laender": [
+    ["Melbourne", "Die zweitgrößte Stadt Australiens, nicht die größte."],
+    ["Rio de Janeiro", "Nach São Paulo die zweitgrößte Stadt Brasiliens."]
+  ],
+  "nationalitaetszeichen": [
+    ["SK", "Das Zeichen der Slowakei, und die steht nicht auf dem Brett."],
+    ["FIN", "Finnland führt es, und das Land fehlt hier."]
+  ],
+  "meerengen-anrainer": [
+    ["Japan und Südkorea", "Die Koreastraße trennt sie, und die fehlt auf dem Brett."],
+    ["Italien und Albanien", "Die Straße von Otranto steht nicht in dieser Liste."]
+  ],
+  "kanaele-laender": [
+    ["Belgien", "Der Albertkanal läge dort, er fehlt auf dem Brett."],
+    ["Vereinigtes Königreich", "Der Caledonian Canal steht nicht in dieser Liste."]
+  ],
+  "flughafencodes-staedte": [
+    ["Madrid", "MAD wäre der Code dazu, und der fehlt auf dem Brett."],
+    ["Amsterdam", "AMS steht nicht in dieser Liste."]
+  ],
+  "nationalfeiertage": [
+    ["12. Oktober", "Spanien feiert dann, und das Land fehlt auf dem Brett."],
+    ["6. Dezember", "Der Nationalfeiertag Finnlands, das hier nicht steht."]
+  ],
+  "plaetze-staedte": [
+    ["Wien", "Der Stephansplatz läge dort, er fehlt auf dem Brett."],
+    ["Venedig", "Der Markusplatz steht nicht in dieser Liste."]
+  ],
+  "halbinseln-laender": [
+    ["Italien", "Das Salento gehörte dazu, und die Halbinsel fehlt auf dem Brett."],
+    ["Indien", "Kathiawar steht nicht in dieser Liste."]
+  ]
+}

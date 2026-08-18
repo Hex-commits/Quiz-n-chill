@@ -1,0 +1,82 @@
+{
+  "leicht-hauptstaedte-europa": [
+    ["Lissabon", "Die Hauptstadt Portugals, und das Land steht nicht auf dem Brett."],
+    ["Zürich", "Die größte Stadt der Schweiz, deren Hauptstadt aber Bern ist."]
+  ],
+  "leicht-staedte-laender": [
+    ["Japan", "Keine Stadt auf diesem Brett liegt dort."],
+    ["Mexiko", "Guadalajara läge dort, und die Stadt fehlt hier."]
+  ],
+  "leicht-flaggen-farben": [
+    ["Rot, Weiß, Blau von oben nach unten", "So sieht die russische Flagge aus, und Russland fehlt hier."],
+    ["Sterne auf blauem Feld", "Das wäre die Flagge der USA, die nicht auf dem Brett steht."]
+  ],
+  "leicht-himmelsrichtungen": [
+    ["Zeigt die Höhe über dem Meer", "Das täte eine Höhenlinie, und die steht hier nicht."],
+    ["Trennt Ost und West", "So etwas gibt es auf der Karte nicht."]
+  ],
+  "leicht-rekorde-erde": [
+    ["Sahara-Wüste in Asien", "Die Sahara liegt in Afrika, der Satz stimmt nicht."],
+    ["Australien", "Ein Kontinent und ein Land zugleich, aber kein Rekord auf dem Brett."]
+  ],
+  "leicht-sprachen-laender": [
+    ["Norwegisch", "Norwegen steht nicht auf diesem Brett."],
+    ["Dänisch", "Auch Dänemark fehlt in dieser Liste."]
+  ],
+  "leicht-deutschland-sehenswert": [
+    ["Nürnberg", "Die Kaiserburg stünde dort, und sie fehlt auf dem Brett."],
+    ["Heidelberg", "Das Schloss über dem Neckar steht nicht in dieser Liste."]
+  ],
+  "leicht-fluesse-laender": [
+    ["Österreich", "Die Donau fließt auch dort, gefragt ist hier aber ein anderer Fluss."],
+    ["Portugal", "Kein Fluss auf diesem Brett fließt vor allem dort."]
+  ],
+  "leicht-meere": [
+    ["Zwischen Australien und Asien", "Kein Meer auf diesem Brett liegt so."],
+    ["Der zweitgrößte Ozean", "Das wäre der Atlantik, gefragt ist dort aber etwas anderes."]
+  ],
+  "leicht-laender-typisch": [
+    ["Fjorde und Trolle", "Das wäre Norwegen, und das Land fehlt auf dem Brett."],
+    ["Flamenco und Stierkampf", "Spanien steht nicht in dieser Liste."]
+  ],
+  "leicht-landschaften": [
+    ["Vom Menschen bebautes Land", "Ein Acker ist keine der Landschaften auf diesem Brett."],
+    ["Ein zugefrorener See", "Keine Landschaft in dieser Liste."]
+  ],
+  "leicht-europa-nachbarn": [
+    ["Im Südwesten hinter den Pyrenäen", "Spanien ist kein Nachbarland Deutschlands."],
+    ["Im Nordosten über die Ostsee", "Schweden grenzt nicht an Deutschland."]
+  ],
+  "leicht-inseln": [
+    ["Rotes Meer", "Keine Insel auf diesem Brett liegt dort."],
+    ["Spanien", "Mallorca gehört dazu, gefragt ist dort aber das Meer."]
+  ],
+  "leicht-reisen": [
+    ["Schutz für den Notfall", "Die Reiseversicherung steht nicht auf dem Brett."],
+    ["Karte für die Fahrt vor Ort", "Der Stadtplan kommt hier nicht vor."]
+  ],
+  "leicht-berge-bekannt": [
+    ["Frankreich", "Der Mont Blanc stünde dort, und er fehlt auf dem Brett."],
+    ["Spanien", "Der Teide steht nicht in dieser Liste."]
+  ],
+  "leicht-kontinente-tiere": [
+    ["Grönland", "Kein Tier auf diesem Brett lebt nur dort."],
+    ["Madagaskar", "Die Lemuren leben dort, und die fehlen in dieser Liste."]
+  ],
+  "leicht-wetter-orte": [
+    ["Ständig windstill", "Auf keinen Ort in dieser Liste trifft das zu."],
+    ["Sechs Monate Dunkelheit", "Das gilt am Südpol, der hier nicht steht."]
+  ],
+  "leicht-europa-fakten": [
+    ["Größtes Land Europas nach Fläche", "Das wäre Russland, und danach fragt hier keine Zeile."],
+    ["Insel im Mittelmeer", "Zypern wäre es, und es fehlt auf dem Brett."]
+  ],
+  "leicht-karte-lesen": [
+    ["Gelbe Flächen", "Für Sand oder Wüste, auf diesem Brett aber keine Antwort."],
+    ["Kleines Zeltsymbol", "Ein Campingplatz, und der steht hier nicht."]
+  ],
+  "leicht-welt-zahlen": [
+    ["12", "Die Zahl der Monate, und danach fragt hier keine Zeile."],
+    ["60", "Minuten einer Stunde, aber keine Antwort auf diesem Brett."]
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "elemente-verwendung": [
+    ["Bleistiftminen", "Dafür braucht es Graphit, und Kohlenstoff steht nicht auf dem Brett."],
+    ["Fieberthermometer von früher", "Das war Quecksilber, und das fehlt in dieser Liste."]
+  ],
+  "planeten-merkmale": [
+    ["Größter Mond des Sonnensystems", "Das ist Ganymed, und der fehlt auf diesem Brett."],
+    ["Schweif aus Staub und Gas", "Das trifft auf Kometen zu, die hier nicht stehen."]
+  ],
+  "knochen-namen": [
+    ["Wirbel", "Vertebra wäre der Name dazu, und der fehlt auf diesem Brett."],
+    ["Steißbein", "Das Os coccygis steht nicht in dieser Liste."]
+  ],
+  "hormone-wirkungen": [
+    ["Bindet Sauerstoff im Blut", "Das leistet Hämoglobin, und das ist kein Hormon."],
+    ["Löst Niesreiz aus", "Kein Hormon auf diesem Brett tut das."]
+  ],
+  "vitamine-mangel": [
+    ["Vitamin E", "Sein Mangel ruft keine Krankheit auf diesem Brett hervor."],
+    ["Magnesium", "Ein Mangel führt zu Krämpfen, die hier nicht stehen."]
+  ],
+  "wissenschaftler-theorien": [
+    ["Periodensystem der Elemente", "Das geht auf Mendelejew zurück, der hier fehlt."],
+    ["Nikolaus Kopernikus", "Das heliozentrische Weltbild steht nicht auf diesem Brett."]
+  ],
+  "tiere-rekorde": [
+    ["Längstes Tier der Erde", "Das ist der Nesseltier-Staat, der hier nicht steht."],
+    ["Kleinstes Säugetier", "Die Schweinsnasenfledermaus fehlt auf diesem Brett."]
+  ],
+  "mohs-haerteskala": [
+    ["0", "Die Skala beginnt bei eins, eine Null gibt es nicht."],
+    ["11", "Die Skala endet beim Diamanten mit zehn."]
+  ],
+  "verbindungen-alltagsnamen": [
+    ["Zitronensäure", "Sie steckt in Entkalkern, ihr chemischer Name fehlt hier."],
+    ["Trockeneis", "Das ist festes Kohlendioxid, und das steht nicht auf dem Brett."]
+  ],
+  "erreger-krankheiten": [
+    ["Masern", "Das Masernvirus wäre der Erreger dazu, und der fehlt hier."],
+    ["Fußpilz", "Er wird von Pilzen verursacht, die in dieser Liste nicht stehen."]
+  ],
+  "sterne-sternbilder": [
+    ["Kassiopeia", "Kein Stern auf diesem Brett steht in diesem Sternbild."],
+    ["Großer Wagen", "Das ist kein eigenes Sternbild, sondern Teil des Großen Bären."]
+  ],
+  "erdzeitalter": [
+    ["Erste Vielzeller im Wasser", "Das gehört ins Ediacarium, das hier fehlt."],
+    ["Bildung der ersten Kontinente", "Das war im Präkambrium, und das steht nicht auf dem Brett."]
+  ],
+  "baumarten-merkmale": [
+    ["Stachelige Blätter und rote Beeren", "Das wäre die Stechpalme, und die fehlt hier."],
+    ["Rinde löst sich in Platten ab", "Die Platane steht nicht auf diesem Brett."]
+  ],
+  "gesteine-entstehung": [
+    ["Zusammengepresster Meeresschlamm", "Der Tonstein fehlt auf diesem Brett."],
+    ["Eingeschlagener Meteorit", "Impaktgestein steht nicht in dieser Liste."]
+  ],
+  "raumsonden-ziele": [
+    ["Uranus", "Nur Voyager 2 flog dorthin, und die Sonde fehlt auf dem Brett."],
+    ["Titan", "Die Landesonde Huygens erreichte ihn, sie steht hier nicht."]
+  ],
+  "einheiten-praefixe": [
+    ["Milliardstel eines Milliardstels", "Kein Vorsatz auf diesem Brett meint das."],
+    ["Zehn", "Deka wäre der Vorsatz dazu, und der fehlt in dieser Liste."]
+  ],
+  "genetik-begriffe": [
+    ["Zelle ohne Zellkern", "Das beschreibt Prokaryoten, kein Begriff auf dem Brett."],
+    ["Übertragung durch Viren", "Die Transduktion steht nicht in dieser Liste."]
+  ],
+  "nobelpreise-entdeckungen": [
+    ["Entdeckung des Penicillins", "Alexander Fleming wurde dafür geehrt, er fehlt hier."],
+    ["Niels Bohr", "Sein Atommodell steht nicht auf diesem Brett."]
+  ],
+  "experimente-personen": [
+    ["Nachweis der Erdrotation im Labor", "Das leistete Foucaults Pendel, und das steht schon da."],
+    ["Kartoffelversuche zur Vererbung", "Mendel arbeitete mit Erbsen, und er fehlt auf dem Brett."]
+  ],
+  "mathematische-konstanten": [
+    ["Verhältnis von Fläche zu Umfang", "Keine Konstante auf diesem Brett steht dafür."],
+    ["Kleinste Primzahl", "Die Zwei ist es, und danach fragt hier keine Zeile."]
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "bild-entwickler-zwei": [
+    ["Metal Gear", "Das wäre Hideo Kojima, und der ist hier nicht abgebildet."],
+    ["Minecraft", "Markus Persson steht auf diesem Brett nicht."]
+  ],
+  "bild-komponisten": [
+    ["Doom", "Mick Gordon schrieb sie, und der fehlt auf diesem Brett."],
+    ["Minecraft", "Die Musik stammt von C418, der hier nicht abgebildet ist."]
+  ],
+  "bild-hauptsitze": [
+    ["Montreal", "Ubisofts größtes Studio steht dort, gefragt ist hier der Hauptsitz."],
+    ["Seattle", "Kein Gebäude auf diesem Brett steht dort."]
+  ],
+  "bild-kuriose-hardware": [
+    ["Bildschirm zum Aufklappen", "Der Nintendo DS wäre das, und der fehlt auf dem Brett."],
+    ["Spiele auf Kassette laden", "Kein Gerät in dieser Liste tut das."]
+  ]
+}

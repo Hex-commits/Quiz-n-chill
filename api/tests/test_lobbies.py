@@ -26,12 +26,16 @@ DE, FR, ES, IT = uuid4(), uuid4(), uuid4(), uuid4()
 
 
 def make_round(slug: str):
-    """Four categories, one answer each -- a one-to-one pairing.
+    """Four categories, one answer each -- a one-to-one pairing, and no fakes.
 
     Four rather than three so the default two-player game is two whole laps of
     the table. A round now ends on a lap boundary, so a three-pair board would
     end after two placements and every test that plays one out would be
     describing a rule it does not mean to.
+
+    No fakes, because most of the tests below are about the rotation, the
+    review and the settling round, and every one of them counts placements. The
+    fake mechanic gets its own board -- see `make_round_with_fake`.
     """
     return lobbies.Round(
         quiz_id=uuid4(),
@@ -65,6 +69,23 @@ def make_round(slug: str):
             ),
         ],
     )
+
+
+def make_round_with_fake(slug: str):
+    """The same board with one answer that belongs to no category.
+
+    Zürich against four capitals is the shape the written questions aim for:
+    close enough to the subject that ruling it out is knowing something, not
+    noticing that one word looks out of place.
+    """
+    round_ = make_round(slug)
+    round_.items.append(
+        ItemSolution(
+            id=uuid4(), label="Zürich", position=5, category_id=None,
+            explanation="Größte Stadt der Schweiz -- Hauptstadt ist aber Bern.",
+        )
+    )
+    return round_
 
 
 @pytest.fixture(autouse=True)
@@ -204,14 +225,69 @@ def test_a_correct_placement_scores_a_point():
     assert [s.label for s in view.round_view.solved_items] == ["Madrid"]
 
 
-def test_a_turn_must_name_a_category():
-    """There is no "this one fits nowhere" move any more: a question is a
-    one-to-one pairing, so every turn places an answer in some category.
+def test_a_turn_may_name_no_category_at_all():
+    """"This one fits nowhere" is a move again, so the schema has to carry it.
 
-    Guarded at the schema rather than in the service, which is why this asserts
-    on `TurnSubmit` -- the router never builds a call without one."""
-    with pytest.raises(PydanticValidationError):
-        TurnSubmit(player_id=uuid4(), item_id=uuid4(), category_id=None)
+    Asserted on `TurnSubmit` rather than through the service because the router
+    is what builds the call, and a required field there would refuse the move
+    before any rule got to see it."""
+    submit = TurnSubmit(player_id=uuid4(), item_id=uuid4(), category_id=None)
+
+    assert submit.category_id is None
+
+
+@pytest.fixture
+def with_fake(monkeypatch):
+    """Deal the fake-carrying board instead of the plain one."""
+    monkeypatch.setattr(lobbies, "_load_round", make_round_with_fake)
+
+
+def test_spotting_a_fake_scores_a_point(with_fake):
+    code, (anna, _ben) = setup_game()
+    items = items_of(code)
+
+    view = lobbies.submit_turn(code, anna, items["Zürich"], None)
+
+    assert view.players[0].score == 1
+    assert [s.label for s in view.round_view.solved_items] == ["Zürich"]
+
+
+def test_placing_a_fake_in_a_category_is_wrong(with_fake):
+    """The fake earns its place by costing something when it works."""
+    code, (anna, _ben) = setup_game()
+    items = items_of(code)
+
+    view = lobbies.submit_turn(code, anna, items["Zürich"], DE)
+
+    assert view.players[0].score == 0
+    assert view.players[0].is_active is False
+
+
+def test_calling_a_real_answer_a_fake_is_wrong(with_fake):
+    code, (anna, _ben) = setup_game()
+    items = items_of(code)
+
+    view = lobbies.submit_turn(code, anna, items["Berlin"], None)
+
+    assert view.players[0].score == 0
+    assert view.players[0].is_active is False
+
+
+def test_a_finished_round_names_the_fakes_it_held(with_fake):
+    """Otherwise the two answers nobody could place read as an oversight."""
+    code, (anna, ben) = setup_game()
+    items = items_of(code)
+
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    lobbies.submit_turn(code, ben, items["Rom"], IT)
+    view = lobbies.submit_turn(code, anna, items["Zürich"], None)
+
+    finished = view.finished_rounds[-1]
+    assert [f.item_label for f in finished.fakes] == ["Zürich"]
+    assert finished.fakes[0].solved_by == anna
+    assert "Zürich" not in [p.item_label for p in finished.solution]
 
 
 def test_a_solved_item_cannot_be_played_again():

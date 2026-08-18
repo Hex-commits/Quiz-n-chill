@@ -1,0 +1,82 @@
+{
+  "filmzitate": [
+    ["Apocalypse Now", "Der Satz über den Napalmgeruch stammt daher, der Film fehlt hier."],
+    ["Casablanca", "Ich sehe dir in die Augen, Kleines -- auf diesem Brett steht der Film nicht."]
+  ],
+  "drehorte": [
+    ["Island", "Interstellar entstand dort, und der Film fehlt auf dem Brett."],
+    ["Prag", "Amadeus wurde dort gedreht, er steht nicht in dieser Liste."]
+  ],
+  "serien-laender": [
+    ["Norwegen", "Skam käme von dort, die Serie fehlt hier."],
+    ["Japan", "Keine Serie auf diesem Brett stammt von dort."]
+  ],
+  "regie-handschrift": [
+    ["Handkamera ganz ohne Stativ", "Das wäre Lars von Trier, der hier nicht steht."],
+    ["Filme ganz ohne Musik", "Auf keine Regie in dieser Liste trifft das zu."]
+  ],
+  "festivals-trophaeen": [
+    ["Goldene Himbeere", "Ein Negativpreis, der zu keinem Festival auf dem Brett gehört."],
+    ["Goldener Delfin", "Diesen Preis vergibt keines der Festivals hier."]
+  ],
+  "animationsstudios": [
+    ["Warner Bros. Animation", "Auch ein großes Studio, nur steht kein Film davon hier."],
+    ["Nickelodeon Animation", "Kein Werk auf diesem Brett stammt daher."]
+  ],
+  "filmtechnik": [
+    ["Das Bild wird zum Standbild angehalten", "Der Freeze Frame steht nicht auf dem Brett."],
+    ["Zwei Bilder übereinander geblendet", "Die Doppelbelichtung fehlt in dieser Liste."]
+  ],
+  "durchbruchsrollen": [
+    ["Good Will Hunting", "Damit kam Matt Damon heraus, und der steht hier nicht."],
+    ["Der Pianist", "Adrien Brody wurde damit bekannt, er fehlt auf dem Brett."]
+  ],
+  "filmfiguren-darsteller": [
+    ["Kate Winslet", "Sie spielte Rose, und die Figur steht nicht auf dem Brett."],
+    ["Ian McKellen", "Als Gandalf, der hier fehlt."]
+  ],
+  "deutscher-film": [
+    ["Rainer Werner Fassbinder", "Die Ehe der Maria Braun stammt von ihm, der Film fehlt hier."],
+    ["Doris Dörrie", "Männer wäre ihr Film, und der steht nicht auf dem Brett."]
+  ],
+  "sitcom-schauplaetze": [
+    ["Chicago", "Keine Serie auf diesem Brett spielt dort."],
+    ["San Francisco", "Full House spielte dort, die Serie fehlt hier."]
+  ],
+  "fiktive-welten": [
+    ["Narnia", "Die Chroniken von Narnia stehen nicht auf dem Brett."],
+    ["Oz", "Der Zauberer von Oz fehlt in dieser Liste."]
+  ],
+  "filmberufe": [
+    ["Musik für den Film schreiben", "Die Filmmusik steht nicht auf diesem Brett."],
+    ["Kinostart und Werbung planen", "Der Verleih kommt hier nicht vor."]
+  ],
+  "fernsehgeschichte": [
+    ["1994", "Kein Meilenstein auf diesem Brett fällt in dieses Jahr."],
+    ["2013", "House of Cards startete damals, das steht hier nicht."]
+  ],
+  "stummfilm-stars": [
+    ["Der Vampir aus Nosferatu", "Das wäre Max Schreck, und der steht nicht auf dem Brett."],
+    ["Die Erfinderin des Farbfilms", "Auf niemanden in dieser Liste trifft das zu."]
+  ],
+  "untergenres": [
+    ["Gesungene Dialoge statt gesprochener", "Das Musical fehlt auf diesem Brett."],
+    ["Verhandlung im Gerichtssaal", "Ein Genre, das hier nicht vorkommt."]
+  ],
+  "anime-regisseure": [
+    ["Osamu Tezuka", "Astro Boy stammt von ihm, das Werk fehlt hier."],
+    ["Gorō Miyazaki", "Er führte bei Die Chroniken von Erdsee Regie, die nicht auf dem Brett steht."]
+  ],
+  "kultfilme-jahre": [
+    ["1968", "2001: Odyssee im Weltraum kam damals, der Film fehlt hier."],
+    ["2008", "The Dark Knight startete in dem Jahr, er steht nicht auf dem Brett."]
+  ],
+  "serienfiguren-berufe": [
+    ["Chemielehrer", "Walter White wäre das, und die Figur fehlt auf dem Brett."],
+    ["Werbefachmann", "Don Draper steht nicht in dieser Liste."]
+  ],
+  "filmpreise-laender": [
+    ["Österreich", "Der Österreichische Filmpreis fehlt auf dem Brett."],
+    ["Südkorea", "Die Blue Dragon Awards stehen hier nicht."]
+  ]
+}

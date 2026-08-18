@@ -1,0 +1,82 @@
+{
+  "griechische-goetter": [
+    ["Herdfeuer und Haus", "Das wäre Hestia, und die fehlt auf diesem Brett."],
+    ["Ehe und Geburt", "Hera stünde dafür, und sie steht nicht in dieser Liste."]
+  ],
+  "goetter-griechisch-roemisch": [
+    ["Saturn", "Der römische Name des Kronos, und der fehlt auf dem Brett."],
+    ["Apollo", "Er heißt bei beiden gleich, deshalb steht er hier nicht."]
+  ],
+  "literaturepochen-werke": [
+    ["Vormärz", "Heines Deutschland gehört dorthin, und das Werk fehlt hier."],
+    ["Biedermeier", "Keine Zeile auf diesem Brett steht für diese Epoche."]
+  ],
+  "kunstepochen-merkmale": [
+    ["Farbfelder ohne jeden Gegenstand", "Das wäre die abstrakte Malerei, die hier fehlt."],
+    ["Punkte statt Pinselstriche", "Der Pointillismus steht nicht auf diesem Brett."]
+  ],
+  "skulpturen-kuenstler": [
+    ["Niki de Saint Phalle", "Ihre Nanas wären das Werk dazu, und die fehlen hier."],
+    ["Henry Moore", "Seine liegenden Figuren stehen nicht auf diesem Brett."]
+  ],
+  "weltliteratur-laender": [
+    ["Nigeria", "Things Fall Apart stammt von dort, und das Werk fehlt hier."],
+    ["Tschechien", "Der brave Soldat Schwejk steht nicht auf diesem Brett."]
+  ],
+  "comicfiguren-schoepfer": [
+    ["Wilhelm Busch", "Max und Moritz wären die Figuren dazu, und die fehlen hier."],
+    ["René Goscinny allein", "Asterix schuf er zusammen mit Uderzo, wie das Brett auch sagt."]
+  ],
+  "architekten-bauwerke": [
+    ["Oscar Niemeyer", "Die Bauten von Brasília stammen von ihm, sie fehlen hier."],
+    ["Mies van der Rohe", "Die Neue Nationalgalerie steht nicht auf diesem Brett."]
+  ],
+  "theaterstuecke-autoren": [
+    ["Molière", "Der Geizige wäre das Stück dazu, und es fehlt auf dem Brett."],
+    ["Georg Büchner", "Woyzeck steht nicht in dieser Liste."]
+  ],
+  "kunstwerke-museen": [
+    ["Eremitage", "Kein Werk auf diesem Brett hängt dort."],
+    ["Vatikanische Museen", "Die Sixtinische Kapelle gehört dazu, genannt ist sie hier selbst."]
+  ],
+  "maltechniken": [
+    ["Farbe direkt aus der Tube auf die Leinwand", "Die Pastose Malweise fehlt auf dem Brett."],
+    ["Bild aus vielen kleinen Fotos", "Die Fotomontage steht nicht in dieser Liste."]
+  ],
+  "dichter-gedichte": [
+    ["Bertolt Brecht", "Die Ballade vom Wasserrad wäre das Gedicht dazu, es fehlt hier."],
+    ["Annette von Droste-Hülshoff", "Der Knabe im Moor steht nicht auf diesem Brett."]
+  ],
+  "sprachen-schriften": [
+    ["Lateinisches Alphabet", "Die Sprachen, die es nutzen, fehlen auf diesem Brett."],
+    ["Keilschrift", "Sie wird für keine der Sprachen hier verwendet."]
+  ],
+  "taenze-herkunft": [
+    ["Irland", "Der Stepptanz käme von dort, und er fehlt auf dem Brett."],
+    ["Frankreich", "Das Menuett steht nicht in dieser Liste."]
+  ],
+  "literaturnobelpreis-laender": [
+    ["Russland", "Boris Pasternak stammte von dort, und er fehlt auf dem Brett."],
+    ["Norwegen", "Jon Fosse steht nicht in dieser Liste."]
+  ],
+  "gemaelde-epochen": [
+    ["Die Sixtinische Madonna", "Ein Werk Raffaels, das keiner Zeile auf dem Brett zugeordnet ist."],
+    ["Das Abendmahl", "Von Leonardo, und es steht hier nicht."]
+  ],
+  "zeitungen-laender": [
+    ["Schweden", "Dagens Nyheter erschiene dort, und die Zeitung fehlt hier."],
+    ["Brasilien", "A Folha de S. Paulo steht nicht auf diesem Brett."]
+  ],
+  "philosophen-begriffe": [
+    ["Panta rhei", "Der Satz stammt von Heraklit, der hier nicht steht."],
+    ["Der Schleier des Nichtwissens", "John Rawls prägte ihn, und der fehlt auf dem Brett."]
+  ],
+  "maerchen-herkunft": [
+    ["Wilhelm Hauff", "Das kalte Herz stammt von ihm, und es fehlt auf dem Brett."],
+    ["Isländische Sage", "Keine Geschichte in dieser Liste kommt von dort."]
+  ],
+  "kunsthandwerk-laender": [
+    ["Portugal", "Die Azulejos kämen von dort, und sie fehlen auf dem Brett."],
+    ["Türkei", "Die Iznik-Fliesen stehen nicht in dieser Liste."]
+  ]
+}

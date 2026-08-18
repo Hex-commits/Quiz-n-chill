@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geografie', 'hauptstaedte-afrikas', 'Hauptstädte Afrikas',
@@ -21,7 +21,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Simbabwe", "Harare", "Hieß bis 1982 Salisbury."],
        ["Algerien", "Algier", "Die weiße Stadt an der Mittelmeerküste."],
        ["Tunesien", "Tunis", "Liegt neben den Ruinen von Karthago."],
-       ["Uganda", "Kampala", "Auf Hügeln nahe dem Viktoriasee erbaut."]]'::jsonb),
+       ["Uganda", "Kampala", "Auf Hügeln nahe dem Viktoriasee erbaut."]]'::jsonb,
+     '[["Lusaka", "Die Hauptstadt Sambias, und das Land steht nicht auf dem Brett."],
+       ["Casablanca", "Die größte Stadt Marokkos, aber nicht dessen Hauptstadt."]]'::jsonb),
 
     ('geografie', 'hauptstaedte-suedamerikas', 'Hauptstädte Südamerikas',
      'Welche Stadt ist die Hauptstadt des Landes?',
@@ -37,7 +39,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Uruguay", "Montevideo", "Liegt Buenos Aires am Río de la Plata gegenüber."],
        ["Paraguay", "Asunción", "1537 gegründet, eine der ältesten Städte des Kontinents."],
        ["Guyana", "Georgetown", "Liegt unter dem Meeresspiegel, geschützt von einer Seemauer."],
-       ["Suriname", "Paramaribo", "Die niederländisch geprägte Innenstadt ist Welterbe."]]'::jsonb),
+       ["Suriname", "Paramaribo", "Die niederländisch geprägte Innenstadt ist Welterbe."]]'::jsonb,
+     '[["Rio de Janeiro", "Bis 1960 Hauptstadt Brasiliens, heute nicht mehr."],
+       ["Guayaquil", "Die größte Stadt Ecuadors, dessen Hauptstadt aber Quito ist."]]'::jsonb),
 
     ('geografie', 'fluesse-muendungen', 'Flüsse & Mündungen',
      'In welches Meer mündet der Fluss?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jangtse", "Ostchinesisches Meer", "Mündet bei Shanghai."],
        ["Lena", "Laptewsee", "Mündet in Sibirien in ein Randmeer des Nordpolarmeers."],
        ["Ob", "Karasee", "Mündet über einen 800 Kilometer langen Meeresarm."],
-       ["Colorado", "Golf von Kalifornien", "Erreicht das Meer wegen der Entnahmen kaum noch."]]'::jsonb),
+       ["Colorado", "Golf von Kalifornien", "Erreicht das Meer wegen der Entnahmen kaum noch."]]'::jsonb,
+     '[["Ostsee", "Kein Fluss auf diesem Brett mündet dort."],
+       ["Rotes Meer", "Kein Strom in dieser Liste erreicht es."]]'::jsonb),
 
     ('geografie', 'inseln-laender', 'Inseln & Länder',
      'Zu welchem Land gehört die Insel?',
@@ -69,7 +75,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tasmanien", "Australien", "Durch die Bass-Straße vom Festland getrennt."],
        ["Hokkaidō", "Japan", "Nördlichste der vier Hauptinseln."],
        ["Jeju", "Südkorea", "Vulkaninsel südlich des Festlands."],
-       ["Vancouver Island", "Kanada", "Vor der Pazifikküste, mit der Provinzhauptstadt Victoria."]]'::jsonb),
+       ["Vancouver Island", "Kanada", "Vor der Pazifikküste, mit der Provinzhauptstadt Victoria."]]'::jsonb,
+     '[["Portugal", "Madeira gehörte dazu, und die Insel steht nicht auf dem Brett."],
+       ["Norwegen", "Die Lofoten wären es, und die fehlen hier."]]'::jsonb),
 
     ('geografie', 'seen-laender', 'Seen & Länder',
      'In welchem Land liegt der See?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Michigansee", "USA", "Einziger der Großen Seen, der ganz in einem Land liegt."],
        ["Poyang-See", "China", "Größter Süßwassersee des Landes, am Jangtse."],
        ["Chiemsee", "Deutschland", "Bayerisches Meer genannt, mit der Herreninsel."],
-       ["Wörthersee", "Österreich", "Kärntner See, im Sommer einer der wärmsten der Alpen."]]'::jsonb),
+       ["Wörthersee", "Österreich", "Kärntner See, im Sommer einer der wärmsten der Alpen."]]'::jsonb,
+     '[["Schweiz", "Der Genfersee läge dort, er steht nicht auf dem Brett."],
+       ["Kanada", "Der Große Bärensee fehlt in dieser Liste."]]'::jsonb),
 
     ('geografie', 'wuesten-laender', 'Wüsten & Länder',
      'In welchem Land liegt die Wüste?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Karakum", "Turkmenistan", "Bedeckt rund 70 Prozent des Landes."],
        ["Negev", "Israel", "Trockenes Bergland im Süden des Landes."],
        ["Danakil", "Äthiopien", "Senke mit Salzseen, eine der heißesten Gegenden der Erde."],
-       ["Sinai", "Ägypten", "Wüstenhalbinsel zwischen Rotem Meer und Mittelmeer."]]'::jsonb),
+       ["Sinai", "Ägypten", "Wüstenhalbinsel zwischen Rotem Meer und Mittelmeer."]]'::jsonb,
+     '[["Mongolei", "Die Gobi läge dort, sie steht nicht auf dem Brett."],
+       ["Peru", "Die Sechura-Wüste fehlt in dieser Liste."]]'::jsonb),
 
     ('geografie', 'vulkane-laender', 'Vulkane & Länder',
      'In welchem Land steht der Vulkan?',
@@ -117,7 +129,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Nyiragongo", "Demokratische Republik Kongo", "Sein Lavasee liegt über der Stadt Goma."],
        ["Pinatubo", "Philippinen", "Sein Ausbruch 1991 kühlte weltweit das Klima."],
        ["Villarrica", "Chile", "Schneebedeckter Kegel über dem Ort Pucón."],
-       ["Ol Doinyo Lengai", "Tansania", "Einziger Vulkan, der Karbonatit-Lava fördert."]]'::jsonb),
+       ["Ol Doinyo Lengai", "Tansania", "Einziger Vulkan, der Karbonatit-Lava fördert."]]'::jsonb,
+     '[["Neuseeland", "Der Ruapehu stünde dort, er fehlt auf dem Brett."],
+       ["Kamerun", "Der Kamerunberg steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'nationalparks-laender', 'Nationalparks & Länder',
      'In welchem Land liegt der Nationalpark?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Uluru-Kata Tjuta", "Australien", "Um den roten Sandsteinberg im Zentrum des Kontinents."],
        ["Fiordland", "Neuseeland", "Fjorde im Südwesten der Südinsel."],
        ["Bayerischer Wald", "Deutschland", "Erster Nationalpark des Landes, gegründet 1970."],
-       ["Doñana", "Spanien", "Feuchtgebiet an der Mündung des Guadalquivir."]]'::jsonb),
+       ["Doñana", "Spanien", "Feuchtgebiet an der Mündung des Guadalquivir."]]'::jsonb,
+     '[["Costa Rica", "Der Corcovado läge dort, er fehlt auf dem Brett."],
+       ["Namibia", "Der Etosha-Nationalpark steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'bruecken-staedte', 'Brücken & Städte',
      'In welcher Stadt steht die Brücke?',
@@ -149,7 +165,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bosporus-Brücke", "Istanbul", "Verbindet Europa und Asien über die Meerenge."],
        ["Stari Most", "Mostar", "1993 zerstört und 2004 wieder aufgebaut."],
        ["Erasmusbrücke", "Rotterdam", "Weiße Schrägseilbrücke, der Schwan genannt."],
-       ["Vasco-da-Gama-Brücke", "Lissabon", "Über zwölf Kilometer lang, über den Tejo."]]'::jsonb),
+       ["Vasco-da-Gama-Brücke", "Lissabon", "Über zwölf Kilometer lang, über den Tejo."]]'::jsonb,
+     '[["Budapest", "Die Kettenbrücke stünde dort, sie fehlt auf dem Brett."],
+       ["Porto", "Die Ponte Dom Luís I steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'landeshauptstaedte-deutschland', 'Landeshauptstädte Deutschlands',
      'In welchem Bundesland liegt die Stadt?',
@@ -166,7 +184,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schwerin", "Mecklenburg-Vorpommern", "Kleinste Landeshauptstadt, mit dem Schloss im See."],
        ["Saarbrücken", "Saarland", "Landeshauptstadt an der Saar, nahe der französischen Grenze."],
        ["Potsdam", "Brandenburg", "Landeshauptstadt mit Schloss Sanssouci."],
-       ["Wiesbaden", "Hessen", "Landeshauptstadt, obwohl Frankfurt die größere Stadt ist."]]'::jsonb),
+       ["Wiesbaden", "Hessen", "Landeshauptstadt, obwohl Frankfurt die größere Stadt ist."]]'::jsonb,
+     '[["Nordrhein-Westfalen", "Düsseldorf wäre die Stadt dazu, und die fehlt auf dem Brett."],
+       ["Bremen", "Ein Stadtstaat, der hier nicht vorkommt."]]'::jsonb),
 
     ('geografie', 'kantone-hauptorte', 'Kantone & Hauptorte',
      'Welcher Ort ist der Hauptort des Kantons?',
@@ -183,7 +203,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Obwalden", "Sarnen", "Liegt am Sarnersee."],
        ["Uri", "Altdorf", "Schauplatz der Tell-Sage, mit dem Telldenkmal."],
        ["Jura", "Delsberg", "Französisch Delémont, Hauptort des jüngsten Kantons."],
-       ["Basel-Landschaft", "Liestal", "Kleiner Hauptort südöstlich von Basel."]]'::jsonb),
+       ["Basel-Landschaft", "Liestal", "Kleiner Hauptort südöstlich von Basel."]]'::jsonb,
+     '[["Zug", "Hauptort des gleichnamigen Kantons, der hier fehlt."],
+       ["Schwyz", "Hauptort des Kantons Schwyz, und der steht nicht auf dem Brett."]]'::jsonb),
 
     ('geografie', 'us-bundesstaaten-hauptstaedte', 'US-Bundesstaaten & Hauptstädte',
      'Welche Stadt ist die Hauptstadt des Bundesstaates?',
@@ -200,7 +222,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Georgia", "Atlanta", "Zugleich die größte Stadt des Bundesstaates."],
        ["Colorado", "Denver", "Die Mile High City, 1609 Meter über dem Meer."],
        ["Louisiana", "Baton Rouge", "Am Mississippi, nicht New Orleans."],
-       ["Michigan", "Lansing", "In der Mitte des Staates, nicht Detroit."]]'::jsonb),
+       ["Michigan", "Lansing", "In der Mitte des Staates, nicht Detroit."]]'::jsonb,
+     '[["Phoenix", "Die Hauptstadt Arizonas, und der Staat fehlt hier."],
+       ["Los Angeles", "Die größte Stadt Kaliforniens, aber nicht dessen Hauptstadt."]]'::jsonb),
 
     ('geografie', 'groesste-staedte-laender', 'Größte Städte, nicht Hauptstädte',
      'Welche Stadt ist die größte des Landes — die Hauptstadt ist es nicht?',
@@ -216,7 +240,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Vietnam", "Ho-Chi-Minh-Stadt", "Früher Saigon, größer als Hanoi."],
        ["Neuseeland", "Auckland", "Etwa ein Drittel des Landes lebt hier; Wellington regiert."],
        ["Nigeria", "Lagos", "Eine der größten Städte Afrikas; Abuja ist Hauptstadt."],
-       ["Pakistan", "Karatschi", "Hafenstadt am Arabischen Meer, bis 1959 Hauptstadt."]]'::jsonb),
+       ["Pakistan", "Karatschi", "Hafenstadt am Arabischen Meer, bis 1959 Hauptstadt."]]'::jsonb,
+     '[["Melbourne", "Die zweitgrößte Stadt Australiens, nicht die größte."],
+       ["Rio de Janeiro", "Nach São Paulo die zweitgrößte Stadt Brasiliens."]]'::jsonb),
 
     ('geografie', 'nationalitaetszeichen', 'Länder & Nationalitätszeichen',
      'Welches Nationalitätszeichen führt das Land?',
@@ -233,7 +259,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tschechien", "CZ", "Von Cesko, ohne die Häkchen geschrieben."],
        ["Slowenien", "SLO", "Von Slovenija."],
        ["Griechenland", "GR", "Vom lateinischen Graecia."],
-       ["Schweden", "S", "Von Sverige."]]'::jsonb),
+       ["Schweden", "S", "Von Sverige."]]'::jsonb,
+     '[["SK", "Das Zeichen der Slowakei, und die steht nicht auf dem Brett."],
+       ["FIN", "Finnland führt es, und das Land fehlt hier."]]'::jsonb),
 
     ('geografie', 'meerengen-anrainer', 'Meerengen & Anrainer',
      'Welche Küsten trennt die Meerenge?',
@@ -249,7 +277,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Torres-Straße", "Australien und Papua-Neuguinea", "Flache Meerenge voller Riffe."],
        ["Magellanstraße", "Chile", "1520 von Magellan durchfahren, nördlich von Feuerland."],
        ["Straße von Taiwan", "China und Taiwan", "Rund 130 Kilometer breit an der engsten Stelle."],
-       ["Skagerrak", "Norwegen und Dänemark", "Verbindet die Nordsee mit dem Kattegat."]]'::jsonb),
+       ["Skagerrak", "Norwegen und Dänemark", "Verbindet die Nordsee mit dem Kattegat."]]'::jsonb,
+     '[["Japan und Südkorea", "Die Koreastraße trennt sie, und die fehlt auf dem Brett."],
+       ["Italien und Albanien", "Die Straße von Otranto steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'kanaele-laender', 'Kanäle & Länder',
      'In welchem Land liegt der Kanal?',
@@ -265,7 +295,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Eriekanal", "USA", "Verband ab 1825 die Großen Seen mit dem Hudson."],
        ["Kaiserkanal", "China", "Ältester und längster künstlicher Wasserweg der Welt."],
        ["Nordseekanal", "Niederlande", "Verbindet Amsterdam mit der Nordsee bei IJmuiden."],
-       ["Wellandkanal", "Kanada", "Überwindet den Höhenunterschied der Niagarafälle."]]'::jsonb),
+       ["Wellandkanal", "Kanada", "Überwindet den Höhenunterschied der Niagarafälle."]]'::jsonb,
+     '[["Belgien", "Der Albertkanal läge dort, er fehlt auf dem Brett."],
+       ["Vereinigtes Königreich", "Der Caledonian Canal steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'flughafencodes-staedte', 'Flughafencodes & Städte',
      'Zu welcher Stadt gehört der Flughafencode?',
@@ -282,7 +314,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["MEX", "Mexiko-Stadt", "Flughafen Benito Juárez, auf 2200 Metern Höhe."],
        ["GRU", "São Paulo", "Flughafen Guarulhos, größter Brasiliens."],
        ["SYD", "Sydney", "Ältester durchgehend betriebener Flughafen der Welt."],
-       ["ZRH", "Zürich", "Größter Flughafen der Schweiz, in Kloten."]]'::jsonb),
+       ["ZRH", "Zürich", "Größter Flughafen der Schweiz, in Kloten."]]'::jsonb,
+     '[["Madrid", "MAD wäre der Code dazu, und der fehlt auf dem Brett."],
+       ["Amsterdam", "AMS steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'nationalfeiertage', 'Länder & Nationalfeiertage',
      'An welchem Tag feiert das Land seinen Nationalfeiertag?',
@@ -298,7 +332,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Brasilien", "7. September", "Unabhängigkeit von Portugal 1822."],
        ["Griechenland", "25. März", "Beginn des Aufstands gegen die Osmanen 1821."],
        ["Irland", "17. März", "Todestag des Nationalheiligen Patrick."],
-       ["Kanada", "1. Juli", "Gründung des Dominions 1867."]]'::jsonb),
+       ["Kanada", "1. Juli", "Gründung des Dominions 1867."]]'::jsonb,
+     '[["12. Oktober", "Spanien feiert dann, und das Land fehlt auf dem Brett."],
+       ["6. Dezember", "Der Nationalfeiertag Finnlands, das hier nicht steht."]]'::jsonb),
 
     ('geografie', 'plaetze-staedte', 'Plätze & Straßen',
      'In welcher Stadt liegt der Platz oder die Straße?',
@@ -314,7 +350,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Spanische Treppe", "Rom", "137 Stufen hinauf zur Kirche Trinità dei Monti."],
        ["Nyhavn", "Kopenhagen", "Bunter Kanal mit Segelschiffen, Wohnort Andersens."],
        ["Grand-Place", "Brüssel", "Marktplatz mit Rathaus und Gildehäusern, Welterbe."],
-       ["Bahnhofstrasse", "Zürich", "Eine der teuersten Einkaufsstraßen der Welt."]]'::jsonb),
+       ["Bahnhofstrasse", "Zürich", "Eine der teuersten Einkaufsstraßen der Welt."]]'::jsonb,
+     '[["Wien", "Der Stephansplatz läge dort, er fehlt auf dem Brett."],
+       ["Venedig", "Der Markusplatz steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'halbinseln-laender', 'Halbinseln & Länder',
      'Zu welchem Land gehört die Halbinsel?',
@@ -330,7 +368,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Malakka", "Malaysia", "Trennt die Andamanensee vom Südchinesischen Meer."],
        ["Anatolien", "Türkei", "Auch Kleinasien genannt."],
        ["Bretagne", "Frankreich", "Ragt in den Atlantik, mit keltischem Erbe."],
-       ["Nova Scotia", "Kanada", "Atlantikprovinz, deren Name Neuschottland bedeutet."]]'::jsonb)
+       ["Nova Scotia", "Kanada", "Atlantikprovinz, deren Name Neuschottland bedeutet."]]'::jsonb,
+     '[["Italien", "Das Salento gehörte dazu, und die Halbinsel fehlt auf dem Brett."],
+       ["Indien", "Kathiawar steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -355,15 +395,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

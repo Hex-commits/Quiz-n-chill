@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('sport', 'olympiastaedte-sommer', 'Olympische Sommerspiele',
@@ -21,7 +21,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["2008", "Peking", "Eröffnung am achten Tag des achten Monats."],
        ["2012", "London", "Erste Stadt mit drei Sommerspielen."],
        ["2016", "Rio de Janeiro", "Erste Spiele in Südamerika."],
-       ["2024", "Paris", "Die Eröffnung fand auf der Seine statt."]]'::jsonb),
+       ["2024", "Paris", "Die Eröffnung fand auf der Seine statt."]]'::jsonb,
+     '[["Moskau", "Die Spiele von 1980 fanden dort statt, das Jahr fehlt auf dem Brett."],
+       ["Seoul", "Gastgeber 1988, und auch dieses Jahr steht nicht in der Liste."]]'::jsonb),
 
     ('sport', 'olympiastaedte-winter', 'Olympische Winterspiele',
      'Wo wurden die Winterspiele ausgetragen?',
@@ -38,7 +40,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["2010", "Vancouver", "Regen und Schneemangel begleiteten die Spiele."],
        ["2014", "Sotschi", "Subtropischer Kurort am Schwarzen Meer."],
        ["2018", "Pyeongchang", "Nord- und Südkorea liefen gemeinsam ein."],
-       ["2022", "Peking", "Erste Stadt mit Sommer- und Winterspielen."]]'::jsonb),
+       ["2022", "Peking", "Erste Stadt mit Sommer- und Winterspielen."]]'::jsonb,
+     '[["Sarajevo", "Gastgeber 1984, und das Jahr fehlt auf diesem Brett."],
+       ["Grenoble", "Die Spiele von 1968 fanden dort statt, sie stehen hier nicht."]]'::jsonb),
 
     ('sport', 'fussball-wm-gastgeber', 'Fußball-Weltmeisterschaften',
      'In welchem Land wurde das Turnier ausgetragen?',
@@ -55,7 +59,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["2010", "Südafrika", "Erste WM auf dem afrikanischen Kontinent."],
        ["2014", "Brasilien", "Das Halbfinale endete 7:1."],
        ["2018", "Russland", "Elf Spielorte von Kaliningrad bis Jekaterinburg."],
-       ["2022", "Katar", "Wegen der Hitze im November und Dezember gespielt."]]'::jsonb),
+       ["2022", "Katar", "Wegen der Hitze im November und Dezember gespielt."]]'::jsonb,
+     '[["Mexiko", "Gastgeber 1970 und 1986, beide Jahre fehlen auf dem Brett."],
+       ["Spanien", "Die WM 1982 fand dort statt, das Jahr steht hier nicht."]]'::jsonb),
 
     ('sport', 'sportler-disziplinen', 'Sportgrößen & ihre Disziplin',
      'In welcher Sportart wurde die Person berühmt?',
@@ -71,7 +77,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wayne Gretzky", "Eishockey", "Seine Rückennummer 99 ist ligaweit gesperrt."],
        ["Eddy Merckx", "Radsport", "Der Kannibale gewann fünfmal die Tour."],
        ["Nadia Comăneci", "Turnen", "Erste perfekte Zehn bei Olympischen Spielen."],
-       ["Katarina Witt", "Eiskunstlauf", "Zweimal olympisches Gold in Folge."]]'::jsonb),
+       ["Katarina Witt", "Eiskunstlauf", "Zweimal olympisches Gold in Folge."]]'::jsonb,
+     '[["Skispringen", "Kein Name auf diesem Brett steht für diese Sportart."],
+       ["Marathon", "Eliud Kipchoge wäre der Name dazu, und der fehlt hier."]]'::jsonb),
 
     ('sport', 'sportbegriffe', 'Fachbegriffe & Sportarten',
      'Zu welcher Sportart gehört der Begriff?',
@@ -87,7 +95,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Peloton", "Radsport", "Das geschlossene Hauptfeld im Rennen."],
        ["Pirouette", "Eiskunstlauf", "Drehung auf der Stelle um die eigene Achse."],
        ["Schmetterball", "Volleyball", "Angriffsschlag von oben über das Netz."],
-       ["Rochade", "Schach", "Der einzige Zug, bei dem zwei Figuren zugleich ziehen."]]'::jsonb),
+       ["Rochade", "Schach", "Der einzige Zug, bei dem zwei Figuren zugleich ziehen."]]'::jsonb,
+     '[["Eisstockschießen", "Kein Begriff auf diesem Brett gehört dazu."],
+       ["Hattrick", "Er kommt in mehreren Sportarten vor und steht hier nicht."]]'::jsonb),
 
     ('sport', 'stadien-staedte', 'Stadien & Städte',
      'In welcher Stadt steht das Stadion?',
@@ -103,7 +113,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wembley", "London", "Erkennbar am Bogen über dem Dach."],
        ["Stade de France", "Paris", "Für die WM 1998 in Saint-Denis gebaut."],
        ["Estadio Azteca", "Mexiko-Stadt", "Schauplatz zweier WM-Endspiele."],
-       ["Olympiastadion", "Berlin", "Austragungsort des DFB-Pokalfinales."]]'::jsonb),
+       ["Olympiastadion", "Berlin", "Austragungsort des DFB-Pokalfinales."]]'::jsonb,
+     '[["Buenos Aires", "La Bombonera stünde dort, und das Stadion fehlt auf dem Brett."],
+       ["Lissabon", "Das Estádio da Luz steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'formel1-strecken', 'Formel-1-Strecken & Länder',
      'In welchem Land liegt die Strecke?',
@@ -119,7 +131,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Red Bull Ring", "Österreich", "Kurze Runde in der Steiermark."],
        ["Hockenheimring", "Deutschland", "Früher mit langen Geraden durch den Wald."],
        ["Circuit of the Americas", "USA", "Steile Anfahrt auf die erste Kurve."],
-       ["Marina Bay", "Singapur", "Nachtrennen unter Flutlicht."]]'::jsonb),
+       ["Marina Bay", "Singapur", "Nachtrennen unter Flutlicht."]]'::jsonb,
+     '[["Frankreich", "Paul Ricard läge dort, und die Strecke fehlt auf dem Brett."],
+       ["Spanien", "Der Circuit de Catalunya steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'tennisturniere-orte', 'Tennisturniere & Orte',
      'Wo wird das Turnier gespielt?',
@@ -135,7 +149,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mutua Madrid Open", "Madrid", "Auf über 600 Metern Höhe gespielt."],
        ["Rolex Shanghai Masters", "Shanghai", "Wichtigstes Turnier der Asienserie."],
        ["ATP Finals", "Turin", "Nur die besten acht der Saison treten an."],
-       ["Canada Masters", "Toronto", "Wechselt jährlich mit Montreal."]]'::jsonb),
+       ["Canada Masters", "Toronto", "Wechselt jährlich mit Montreal."]]'::jsonb,
+     '[["Hamburg", "Das Sandplatzturnier dort fehlt auf diesem Brett."],
+       ["Peking", "Die China Open stehen nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'kampfsport-herkunft', 'Kampfkünste & Herkunft',
      'Woher stammt die Kampfkunst?',
@@ -151,7 +167,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Savate", "Frankreich", "Fußkampf, der mit Schuhen ausgeübt wird."],
        ["Escrima", "Philippinen", "Kampf mit kurzen Rattanstöcken."],
        ["Kalarippayattu", "Indien", "Gilt als eine der ältesten Kampfkünste überhaupt."],
-       ["Lucha Libre", "Mexiko", "Ringkampf mit Masken und fliegenden Manövern."]]'::jsonb),
+       ["Lucha Libre", "Mexiko", "Ringkampf mit Masken und fliegenden Manövern."]]'::jsonb,
+     '[["Griechenland", "Das Pankration stammt von dort, und es fehlt auf dem Brett."],
+       ["Vereinigtes Königreich", "Das Boxen nach Queensberry-Regeln steht hier nicht."]]'::jsonb),
 
     ('sport', 'mannschaftsgroessen', 'Mannschaften & Spielerzahl',
      'Wie viele Spieler stehen pro Team auf dem Feld?',
@@ -167,7 +185,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Beachvolleyball", "2", "Kein Auswechseln, kein Rotationszwang."],
        ["Viererbob", "4", "Pilot, zwei Anschieber und ein Bremser."],
        ["Ruder-Achter", "8", "Dazu kommt der Steuermann, der nicht rudert."],
-       ["3x3-Basketball", "3", "Seit 2021 olympisch, auf einem halben Feld."]]'::jsonb),
+       ["3x3-Basketball", "3", "Seit 2021 olympisch, auf einem halben Feld."]]'::jsonb,
+     '[["12", "Keine Sportart auf diesem Brett spielt mit so vielen auf dem Feld."],
+       ["1", "Eine Einzelsportart passt zu keiner Zeile in dieser Liste."]]'::jsonb),
 
     ('sport', 'nationalteam-spitznamen', 'Nationalmannschaften & Spitznamen',
      'Wie wird die Mannschaft genannt?',
@@ -184,7 +204,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mexiko", "El Tri", "Nach den drei Farben der Flagge."],
        ["Belgien", "Rote Teufel", "Der Name stammt aus den 1900er Jahren."],
        ["Kroatien", "Vatreni", "Die Feurigen, im rot-weißen Schachbrettmuster."],
-       ["Kamerun", "Unbezähmbare Löwen", "Erste afrikanische Mannschaft im WM-Viertelfinale."]]'::jsonb),
+       ["Kamerun", "Unbezähmbare Löwen", "Erste afrikanische Mannschaft im WM-Viertelfinale."]]'::jsonb,
+     '[["Die Wikinger", "So nennt man Island, und das fehlt auf diesem Brett."],
+       ["Socceroos", "Der Spitzname Australiens steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'radsport-trikots', 'Radsport & Trikots',
      'Welches Trikot gehört zu dieser Wertung?',
@@ -199,7 +221,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gesamtwertung der Vuelta", "Rotes Trikot", "Seit 2010 in dieser Farbe."],
        ["Weltmeister im Straßenrennen", "Regenbogentrikot", "Fünf Streifen in den olympischen Farben."],
        ["Führender im Weltcup der Bahn", "Blau-weißes Trikot", "Für die Führung in der Gesamtwertung auf der Bahn."],
-       ["Kämpferischster Fahrer der Tour", "Rote Startnummer", "Wird täglich von einer Jury vergeben."]]'::jsonb),
+       ["Kämpferischster Fahrer der Tour", "Rote Startnummer", "Wird täglich von einer Jury vergeben."]]'::jsonb,
+     '[["Schwarzes Trikot", "Keine Wertung auf diesem Brett vergibt eines."],
+       ["Gelbes Trikot beim Giro", "Der Giro vergibt Rosa, nicht Gelb."]]'::jsonb),
 
     ('sport', 'sportmasse', 'Maße im Sport',
      'Welches Maß gilt hier?',
@@ -215,7 +239,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Länge der Tischtennisplatte", "2,74 Meter", "Neun Fuß, bei 1,525 Meter Breite."],
        ["Disziplinen im Zehnkampf", "10", "An zwei Tagen zu absolvieren."],
        ["Elfmeterpunkt vom Tor", "11 Meter", "Daher der deutsche Name des Strafstoßes."],
-       ["Seitenlänge des Boxrings", "6,10 Meter", "Zwischen den Seilen gemessen."]]'::jsonb),
+       ["Seitenlänge des Boxrings", "6,10 Meter", "Zwischen den Seilen gemessen."]]'::jsonb,
+     '[["9,15 Meter", "Der Abstand der Mauer beim Freistoß, und der fehlt auf dem Brett."],
+       ["100 Meter", "Die Sprintstrecke, nach der hier keine Zeile fragt."]]'::jsonb),
 
     ('sport', 'vereins-spitznamen', 'Vereine & ihre Spitznamen',
      'Wie wird der Verein genannt?',
@@ -232,7 +258,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Borussia Dortmund", "Die Schwarzgelben", "Vereinsfarben seit der Gründung 1909."],
        ["Tottenham Hotspur", "Spurs", "Kurzform des Vereinsnamens."],
        ["Ajax Amsterdam", "Godenzonen", "Die Göttersöhne, nach dem griechischen Helden."],
-       ["Celtic Glasgow", "The Bhoys", "Schreibweise aus einer alten Postkarte übernommen."]]'::jsonb),
+       ["Celtic Glasgow", "The Bhoys", "Schreibweise aus einer alten Postkarte übernommen."]]'::jsonb,
+     '[["Die Reds", "So heißt der FC Liverpool, und der fehlt auf diesem Brett."],
+       ["Bayerns Stern des Südens", "Der FC Bayern steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'wintersport-disziplinen', 'Wintersport & seine Regeln',
      'Was kennzeichnet die Disziplin?',
@@ -248,7 +276,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Snowboardcross", "Vier fahren gegeneinander", "Sprünge und Wellen auf einem engen Kurs."],
        ["Eiskunstlauf", "Sprünge zur Musik", "Bewertet werden Technik und künstlerischer Ausdruck."],
        ["Buckelpiste", "Buckel und zwei Sprünge", "Tempo, Technik und Sprünge zählen zusammen."],
-       ["Eisstockschießen", "Stöcke auf eine Daube", "Vor allem im Alpenraum verbreitet."]]'::jsonb),
+       ["Eisstockschießen", "Stöcke auf eine Daube", "Vor allem im Alpenraum verbreitet."]]'::jsonb,
+     '[["Abfahrt durch Tore im Slalom", "Der Slalom fehlt auf diesem Brett."],
+       ["Rennen auf dem Eisschnelllaufoval allein gegen die Uhr", "Auf dem Brett steht der Lauf zu zweit."]]'::jsonb),
 
     ('sport', 'schach-weltmeister', 'Schachweltmeister & Länder',
      'Aus welchem Land kam der Weltmeister?',
@@ -264,7 +294,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Garri Kasparow", "Aserbaidschan", "In Baku geboren, verlor 1997 gegen einen Computer."],
        ["Viswanathan Anand", "Indien", "Löste in seiner Heimat einen Schachboom aus."],
        ["Magnus Carlsen", "Norwegen", "Gab den Titel 2023 freiwillig ab."],
-       ["Ding Liren", "China", "Erster Weltmeister seines Landes."]]'::jsonb),
+       ["Ding Liren", "China", "Erster Weltmeister seines Landes."]]'::jsonb,
+     '[["Russland", "Wladimir Kramnik käme von dort, und der fehlt auf diesem Brett."],
+       ["Frankreich", "Kein Weltmeister in dieser Liste stammt von dort."]]'::jsonb),
 
     ('sport', 'sportverbaende', 'Verbände & Sportarten',
      'Welche Sportart vertritt der Verband?',
@@ -280,7 +312,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["FIDE", "Schach", "Ihr Motto: Gens una sumus."],
        ["IBU", "Biathlon", "1993 vom Verband der Modernen Fünfkämpfer getrennt."],
        ["World Rugby", "Rugby", "Vergibt die Weltmeisterschaft alle vier Jahre."],
-       ["FEI", "Reitsport", "Zuständig für Dressur, Springen und Vielseitigkeit."]]'::jsonb),
+       ["FEI", "Reitsport", "Zuständig für Dressur, Springen und Vielseitigkeit."]]'::jsonb,
+     '[["Handball", "Die IHF wäre der Verband dazu, und der fehlt auf dem Brett."],
+       ["Volleyball", "Die FIVB steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'nba-teams-staedte', 'NBA-Teams & Städte',
      'In welcher Stadt spielt das Team?',
@@ -297,7 +331,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rockets", "Houston", "Der Name spielt auf die Raumfahrtindustrie an."],
        ["Raptors", "Toronto", "Einziges Team außerhalb der USA."],
        ["Nuggets", "Denver", "Der Name erinnert an den Goldrausch."],
-       ["Suns", "Phoenix", "Passend zur Wüstenstadt in Arizona."]]'::jsonb),
+       ["Suns", "Phoenix", "Passend zur Wüstenstadt in Arizona."]]'::jsonb,
+     '[["Philadelphia", "Die 76ers spielen dort, und das Team fehlt auf diesem Brett."],
+       ["Detroit", "Die Pistons stehen nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leichtathletik-geraete', 'Leichtathletik & Geräte',
      'Womit wird die Disziplin ausgetragen?',
@@ -312,7 +348,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hochsprung", "Latte über zwei Ständern", "Seit Fosbury wird rücklings gesprungen."],
        ["Weitsprung", "Absprungbalken und Sandgrube", "Ein Übertritt macht den Versuch ungültig."],
        ["Staffellauf", "Staffelstab", "Der Wechsel muss innerhalb einer Zone erfolgen."],
-       ["Hindernislauf", "Feste Balken und Wassergraben", "3000 Meter mit 28 Hindernissen und sieben Wassersprüngen."]]'::jsonb),
+       ["Hindernislauf", "Feste Balken und Wassergraben", "3000 Meter mit 28 Hindernissen und sieben Wassersprüngen."]]'::jsonb,
+     '[["Startblock", "Er gehört zum Sprint, und der fehlt auf diesem Brett."],
+       ["Gehstock", "Kein Gerät in dieser Liste, und im Sport auch keines."]]'::jsonb),
 
     ('sport', 'sportarten-herkunft', 'Sportarten & ihre Herkunft',
      'Wo entstand die Sportart?',
@@ -328,7 +366,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pelota", "Baskenland", "Der Ball wird gegen eine Wand geschlagen."],
        ["Sepak Takraw", "Malaysia", "Volleyball, aber nur mit Fuß, Knie und Kopf."],
        ["Polo", "Persien", "Ursprünglich ein Training für die Reiterei."],
-       ["Surfen", "Hawaii", "Von den Königen der Inseln überliefert."]]'::jsonb)
+       ["Surfen", "Hawaii", "Von den Königen der Inseln überliefert."]]'::jsonb,
+     '[["Frankreich", "Boule käme von dort, und die Sportart fehlt auf dem Brett."],
+       ["Australien", "Australian Football steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -353,15 +393,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

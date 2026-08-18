@@ -1,0 +1,46 @@
+{
+  "bild-sportler-disziplinen": [
+    ["Skispringen", "Keine Person auf diesem Brett wurde darin berühmt."],
+    ["Marathon", "Eliud Kipchoge stünde dafür, und der ist hier nicht abgebildet."]
+  ],
+  "bild-stadien-laender": [
+    ["England", "Wembley stünde dort, und das Stadion fehlt auf dem Brett."],
+    ["Argentinien", "Das Monumental steht nicht in dieser Liste."]
+  ],
+  "bild-sportgeraete": [
+    ["Handball", "Der Ball dafür fehlt auf diesem Brett."],
+    ["Rudern", "Kein Gerät in dieser Liste gehört dazu."]
+  ],
+  "bild-regisseure-filme": [
+    ["Der Pate", "Von Francis Ford Coppola, der hier nicht abgebildet ist."],
+    ["Metropolis", "Von Fritz Lang, und der fehlt auf diesem Brett."]
+  ],
+  "bild-schauspieler-rollen": [
+    ["James Bond", "Sean Connery stünde dafür, und der ist hier nicht abgebildet."],
+    ["Vito Corleone", "Marlon Brando fehlt auf diesem Brett."]
+  ],
+  "bild-musiker-instrumente": [
+    ["Kontrabass", "Charles Mingus spielte ihn, und der ist hier nicht abgebildet."],
+    ["Orgel", "Keine Person auf diesem Brett ist dafür bekannt."]
+  ],
+  "bild-opernhaeuser-staedte": [
+    ["Sydney", "Das Opernhaus dort fehlt auf diesem Brett."],
+    ["Bayreuth", "Das Festspielhaus steht nicht in dieser Liste."]
+  ],
+  "bild-antike-staetten": [
+    ["Italien", "Pompeji läge dort, und die Stätte fehlt auf dem Brett."],
+    ["Jordanien", "Petra steht nicht in dieser Liste."]
+  ],
+  "bild-erfindungen-erfinder": [
+    ["Guglielmo Marconi", "Die Funktelegrafie fehlt auf diesem Brett."],
+    ["James Watt", "Seine Dampfmaschine steht nicht in dieser Liste."]
+  ],
+  "bild-heimcomputer-hersteller": [
+    ["NEC", "Die PC Engine käme von dort, und die fehlt auf dem Brett."],
+    ["SNK", "Das Neo Geo steht nicht in dieser Liste."]
+  ],
+  "bild-getraenke-laender": [
+    ["Frankreich", "Der Cognac käme von dort, und der fehlt auf dem Brett."],
+    ["Peru", "Der Pisco steht nicht in dieser Liste."]
+  ]
+}

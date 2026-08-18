@@ -1,0 +1,82 @@
+{
+  "sportjargon": [
+    ["Tennis", "Auch daher stammen Redewendungen, auf diesem Brett aber keine."],
+    ["Rudern", "Aus dem Wasser stammt hier keine Wendung."]
+  ],
+  "trikotnummern": [
+    ["Nummer 8 im Fußball", "Sie steht für den zentralen Mittelfeldspieler und fehlt hier."],
+    ["Gepunktetes Trikot", "Es steht für die Bergwertung und ist auf diesem Brett keine Antwort."]
+  ],
+  "schiedsrichterzeichen": [
+    ["Anstoß nach dem Wechsel", "Kein Zeichen auf diesem Brett meint das."],
+    ["Beide Arme über dem Kopf gekreuzt", "So etwas zeigt kein Schiedsrichter in dieser Liste."]
+  ],
+  "olympische-symbole": [
+    ["Das Maskottchen der Spiele", "Es gehört dazu, steht auf diesem Brett aber nicht."],
+    ["Die Eröffnungsfeier im Stadion", "Sie fehlt in dieser Liste."]
+  ],
+  "paralympics": [
+    ["Bogenschießen im Sitzen", "Es gehört zum Programm, fehlt aber auf diesem Brett."],
+    ["Rollstuhltanz", "Er steht nicht in dieser Liste."]
+  ],
+  "sportskandale": [
+    ["Handschlag der Gegner nach dem Spiel", "Das ist kein Wendepunkt auf diesem Brett."],
+    ["München 1972", "Das Attentat auf die Spiele fehlt in dieser Liste."]
+  ],
+  "sportstaetten-begriffe": [
+    ["Zielhang beim Skirennen", "Kein Begriff auf diesem Brett meint das."],
+    ["Sprungturm im Schwimmbad", "Er steht nicht in dieser Liste."]
+  ],
+  "sport-mathematik": [
+    ["11", "Die Spielerzahl im Fußball, nach der hier keine Zeile fragt."],
+    ["26", "Keine Zahl auf diesem Brett meint das."]
+  ],
+  "sportarten-laender-dominanz": [
+    ["Kenia", "Der Langstreckenlauf wäre die Sportart dazu, und die fehlt hier."],
+    ["Ungarn", "Der Wasserball steht nicht auf diesem Brett."]
+  ],
+  "trainerlegenden": [
+    ["Ottmar Hitzfeld", "Der Doppelsieger der Champions League fehlt auf diesem Brett."],
+    ["Alex Ferguson", "Die lange Ära in Manchester steht nicht in dieser Liste."]
+  ],
+  "sportmedien": [
+    ["Radioreportage vom Spielfeldrand", "Sie fehlt auf diesem Brett."],
+    ["Livestream über das Internet", "Er steht nicht in dieser Liste."]
+  ],
+  "wintersport-orte": [
+    ["Tschechien", "Špindlerův Mlýn läge dort, und der Ort fehlt auf dem Brett."],
+    ["USA", "Aspen steht nicht in dieser Liste."]
+  ],
+  "ballsport-varianten": [
+    ["Fußball auf Kunstrasen statt Naturrasen", "Der Belag macht keine eigene Sportart."],
+    ["Basketball mit drei gegen drei", "Das 3x3 fehlt auf diesem Brett."]
+  ],
+  "sportbegriffe-herkunft": [
+    ["Griechisch für Wettlauf", "Kein Name auf diesem Brett kommt daher."],
+    ["Nach einem Erfinder benannt", "Keine Bezeichnung in dieser Liste geht so zurück."]
+  ],
+  "sportverbaende-sitze": [
+    ["Genf", "Kein Verband auf diesem Brett sitzt dort."],
+    ["Brüssel", "Auch dort hat keiner in dieser Liste seinen Sitz."]
+  ],
+  "sport-koerper": [
+    ["Ruhepuls", "Ein Maß für die Fitness, aber keine Antwort auf diesem Brett."],
+    ["Körperfettanteil", "Er steht nicht in dieser Liste."]
+  ],
+  "olympische-sportarten-wandel": [
+    ["Squash", "Es wurde lange abgelehnt und fehlt auf diesem Brett."],
+    ["Cricket", "Die Rückkehr 2028 steht nicht in dieser Liste."]
+  ],
+  "rekordjagd": [
+    ["Der erste Weltrekord überhaupt", "Kein Rekord auf diesem Brett ist so beschrieben."],
+    ["Rekord, der nie anerkannt wurde", "So etwas steht nicht in dieser Liste."]
+  ],
+  "sportkleidung": [
+    ["Trikot mit Rückennummer", "Es dient der Erkennbarkeit, danach fragt hier keine Zeile."],
+    ["Schienbeinschoner", "Sie schützen das Bein, stehen aber nicht auf diesem Brett."]
+  ],
+  "sportarten-zaehlweise": [
+    ["Höchste Punktzahl aus drei Versuchen", "Keine Sportart auf diesem Brett zählt so."],
+    ["Das Los entscheidet", "So wird in dieser Liste nirgends gewonnen."]
+  ]
+}

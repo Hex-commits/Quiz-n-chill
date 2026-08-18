@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('essen-trinken', 'leicht-woraus-gemacht', 'Woraus wird das gemacht?',
@@ -23,7 +23,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zucker", "Zuckerrüben", "In warmen Ländern aus Zuckerrohr."],
        ["Bier", "Gerste und Hopfen", "Dazu Wasser und Hefe."],
        ["Tofu", "Sojabohnen", "Wie Käse gerinnen gelassen."],
-       ["Popcorn", "Maiskörner", "Sie platzen bei großer Hitze auf."]]'::jsonb),
+       ["Popcorn", "Maiskörner", "Sie platzen bei großer Hitze auf."]]'::jsonb,
+     '[["Reis", "Aus Reis wird vieles, auf diesem Brett aber nichts."],
+       ["Erdnüsse", "Erdnussbutter wäre das Beispiel, und die steht hier nicht."]]'::jsonb),
 
     ('essen-trinken', 'leicht-obst-farben', 'Obst & Gemüse nach Farbe',
      'Welche Farbe hat es innen oder außen?',
@@ -39,7 +41,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rote Bete", "Tiefrot", "Der Saft färbt fast alles."],
        ["Mais", "Goldgelb", "Am Kolben oder aus der Dose."],
        ["Zwiebel", "Weiß bis rot", "Die Schale schützt vor dem Austrocknen."],
-       ["Avocado", "Grün mit großem Kern", "Sie reift erst nach der Ernte."]]'::jsonb),
+       ["Avocado", "Grün mit großem Kern", "Sie reift erst nach der Ernte."]]'::jsonb,
+     '[["Schwarz", "Nichts auf diesem Brett ist schwarz."],
+       ["Rosa innen", "Das wäre die Wassermelone, und die fehlt hier."]]'::jsonb),
 
     ('essen-trinken', 'leicht-mahlzeiten', 'Mahlzeiten am Tag',
      'Wann isst man das?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Feiertagsessen im Dezember", "Weihnachtsessen", "Oft mit Gans oder Karpfen."],
        ["Essen im Freien auf einer Decke", "Picknick", "Der Korb kommt mit."],
        ["Gemeinsames Essen mit vielen Gängen", "Festessen", "Zu Hochzeiten und Jubiläen."],
-       ["Spätes Essen nach dem Ausgehen", "Mitternachtssnack", "Meist etwas Herzhaftes."]]'::jsonb),
+       ["Spätes Essen nach dem Ausgehen", "Mitternachtssnack", "Meist etwas Herzhaftes."]]'::jsonb,
+     '[["Brunch", "Frühstück und Mittagessen in einem, hier aber keine Antwort."],
+       ["Zweites Frühstück", "Eine Zwischenmahlzeit am Vormittag, die hier nicht steht."]]'::jsonb),
 
     ('essen-trinken', 'leicht-kueche-geraete', 'In der Küche',
      'Womit macht man das?',
@@ -69,7 +75,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Etwas im Ofen backen", "Backblech", "Mit Backpapier darauf."],
        ["Wasser zum Kochen bringen", "Topf", "Mit Deckel geht es schneller."],
        ["Ein Steak braten", "Pfanne", "Sie muss richtig heiß sein."],
-       ["Eine Flasche öffnen", "Flaschenöffner", "Der Korkenzieher ist für Wein."]]'::jsonb),
+       ["Eine Flasche öffnen", "Flaschenöffner", "Der Korkenzieher ist für Wein."]]'::jsonb,
+     '[["Toaster", "Zum Rösten von Brot, und das kommt auf dem Brett nicht vor."],
+       ["Mixer", "Zum Pürieren, wonach hier niemand fragt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-getraenke', 'Getränke',
      'Was für ein Getränk ist das?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Milch und Saft gemischt und geschüttelt", "Milchshake", "Meist mit Eis dazu."],
        ["Getränk aus Zitronen und Zucker", "Limonade", "Klassisch selbst gemacht."],
        ["Warmer Wein mit Gewürzen", "Glühwein", "Auf jedem Weihnachtsmarkt."],
-       ["Getränk mit Alkohol und Früchten", "Bowle", "In einer großen Schüssel angesetzt."]]'::jsonb),
+       ["Getränk mit Alkohol und Früchten", "Bowle", "In einer großen Schüssel angesetzt."]]'::jsonb,
+     '[["Smoothie", "Püriertes Obst, das hier nicht beschrieben wird."],
+       ["Buttermilch", "Ein Milchgetränk, das auf dem Brett fehlt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-gerichte-laender', 'Gerichte & Länder',
      'Aus welchem Land kommt das Gericht?',
@@ -102,7 +112,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Croissant", "Frankreich", "Aus Blätterteig, morgens frisch."],
        ["Kebab", "Türkei", "Fleisch vom Drehspieß."],
        ["Pfannkuchen mit Ahornsirup", "Kanada", "Der Sirup kommt vom Ahornbaum."],
-       ["Fondue", "Schweiz", "Brot in geschmolzenen Käse getunkt."]]'::jsonb),
+       ["Fondue", "Schweiz", "Brot in geschmolzenen Käse getunkt."]]'::jsonb,
+     '[["Griechenland", "Moussaka käme von dort, das Gericht fehlt hier."],
+       ["Indien", "Das Curry steht nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'leicht-geschmack', 'Wie schmeckt das?',
      'Welche Geschmacksrichtung ist das?',
@@ -117,7 +129,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pfefferminze", "Kühlend", "Sie täuscht Kälte vor."],
        ["Unreife Banane", "Mehlig", "Die Stärke ist noch nicht Zucker."],
        ["Sehr starker Tee", "Herb", "Die Gerbstoffe ziehen den Mund zusammen."],
-       ["Frisches Brot", "Mild", "Der Duft macht den halben Geschmack."]]'::jsonb),
+       ["Frisches Brot", "Mild", "Der Duft macht den halben Geschmack."]]'::jsonb,
+     '[["Fettig", "Ein Mundgefühl, keine Geschmacksrichtung auf diesem Brett."],
+       ["Rauchig", "Kommt vom Räuchern, hier ist es keine Antwort."]]'::jsonb),
 
     ('essen-trinken', 'leicht-fruehstueck-welt', 'Frühstück in aller Welt',
      'Wo frühstückt man so?',
@@ -131,7 +145,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fladenbrot mit Bohnenmus", "Ägypten", "Ful mit Kreuzkümmel."],
        ["Käse, Oliven, Gurke und Tee", "Türkei", "Viele kleine Schälchen."],
        ["Süßes Milchbrot mit Kaffee", "Brasilien", "Dazu frische Früchte."],
-       ["Haferbrei mit Salz", "Schottland", "Porridge, traditionell ohne Zucker."]]'::jsonb),
+       ["Haferbrei mit Salz", "Schottland", "Porridge, traditionell ohne Zucker."]]'::jsonb,
+     '[["Italien", "Cornetto und Espresso wären das, Italien fehlt hier."],
+       ["Mexiko", "Huevos rancheros stehen nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'leicht-suess', 'Süßes',
      'Was ist das?',
@@ -147,7 +163,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Marzipan", "Masse aus Mandeln", "Zu Figuren geformt."],
        ["Karamellbonbon", "Erhitzter Zucker", "Er wird braun und zäh."],
        ["Waffel mit Puderzucker", "Gebackener Teig", "Auf jedem Jahrmarkt."],
-       ["Zuckerwatte", "Gesponnener Zucker", "Fast nur Luft."]]'::jsonb),
+       ["Zuckerwatte", "Gesponnener Zucker", "Fast nur Luft."]]'::jsonb,
+     '[["Getrocknete Früchte", "Süß, aber keine Süßware auf diesem Brett."],
+       ["Gebrannte Mandeln", "Sie stehen nicht in dieser Liste."]]'::jsonb),
 
     ('essen-trinken', 'leicht-tisch-decken', 'Den Tisch decken',
      'Wofür braucht man das?',
@@ -161,7 +179,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schüssel", "Salat servieren", "Für alle in der Mitte."],
        ["Tischdecke", "Tisch schützen", "Bei Festen aus Stoff."],
        ["Untersetzer", "Hitze abhalten", "Damit die Platte nicht leidet."],
-       ["Kerze", "Stimmung machen", "Vorsicht bei langen Ärmeln."]]'::jsonb),
+       ["Kerze", "Stimmung machen", "Vorsicht bei langen Ärmeln."]]'::jsonb,
+     '[["Blumen in der Vase", "Schmuck für den Tisch, aber keine Aufgabe auf dem Brett."],
+       ["Salzstreuer", "Zum Nachwürzen, und danach wird hier nicht gefragt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-tiere-lebensmittel', 'Vom Tier zum Lebensmittel',
      'Von welchem Tier kommt das?',
@@ -177,7 +197,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gänsebraten", "Gans", "Klassisch an Weihnachten."],
        ["Garnelen im Salat", "Garnele", "Ein Krebstier aus dem Meer."],
        ["Kaviar", "Stör", "Der Rogen des Fisches."],
-       ["Entenbrust", "Ente", "Mit knuspriger Haut gebraten."]]'::jsonb),
+       ["Entenbrust", "Ente", "Mit knuspriger Haut gebraten."]]'::jsonb,
+     '[["Pute", "Der Putenbraten fehlt auf diesem Brett."],
+       ["Karpfen", "Ein Speisefisch, der hier nicht vorkommt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-lagern', 'Wie hält es sich?',
      'Wo lagert man das am besten?',
@@ -192,7 +214,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Angebrochene Konserve", "Umfüllen und kühlen", "Nicht in der Dose aufbewahren."],
        ["Frische Kräuter", "Im Wasserglas", "Wie ein kleiner Blumenstrauß."],
        ["Eier", "Kühl und gleichmäßig", "Einmal gekühlt, immer gekühlt."],
-       ["Brot", "Im Brotkasten", "Nicht im Kühlschrank, dort wird es altbacken."]]'::jsonb),
+       ["Brot", "Im Brotkasten", "Nicht im Kühlschrank, dort wird es altbacken."]]'::jsonb,
+     '[["Im Backofen", "Für nichts auf diesem Brett ein Lagerort."],
+       ["Luftdicht im Vakuum", "Eine Methode, die zu keiner Zeile hier gehört."]]'::jsonb),
 
     ('essen-trinken', 'leicht-gewuerze', 'Gewürze & Kräuter',
      'Wozu passt das besonders gut?',
@@ -208,7 +232,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Muskat", "Kartoffelpüree", "Nur eine Prise, sonst wird es bitter."],
        ["Oregano", "Pizza", "Getrocknet kräftiger als frisch."],
        ["Ingwer", "Tee und asiatische Gerichte", "Scharf und frisch zugleich."],
-       ["Schnittlauch", "Quark und Rührei", "Mit der Schere geschnitten."]]'::jsonb),
+       ["Schnittlauch", "Quark und Rührei", "Mit der Schere geschnitten."]]'::jsonb,
+     '[["Rotkohl im Winter", "Nelken gehören dazu, und die stehen nicht auf dem Brett."],
+       ["Sauerbraten", "Wacholder passt dazu, er fehlt in dieser Liste."]]'::jsonb),
 
     ('essen-trinken', 'leicht-brot-baecker', 'Beim Bäcker',
      'Was ist das?',
@@ -222,7 +248,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Blätterteig in Hörnchenform", "Croissant", "Sehr viel Butter im Teig."],
        ["Brot aus Roggen und Sauerteig", "Roggenbrot", "Kräftig und lange haltbar."],
        ["Flaches Brot aus dem heißen Ofen", "Fladenbrot", "In vielen Küchen der Welt."],
-       ["Süßes Teilchen mit Rosinen", "Rosinenschnecke", "Aus aufgerolltem Hefeteig."]]'::jsonb),
+       ["Süßes Teilchen mit Rosinen", "Rosinenschnecke", "Aus aufgerolltem Hefeteig."]]'::jsonb,
+     '[["Kuchen mit Streuseln", "Der Streuselkuchen steht nicht auf dem Brett."],
+       ["Toastbrot in Scheiben", "Es fehlt in dieser Liste."]]'::jsonb),
 
     ('essen-trinken', 'leicht-essen-feste', 'Essen zu Festen',
      'Wann isst man das?',
@@ -236,7 +264,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Neujahrsbrezel", "An Silvester", "Sie soll Glück bringen."],
        ["Hochzeitstorte", "Bei einer Hochzeit", "Das Paar schneidet gemeinsam an."],
        ["Kuchen mit Kerzen", "Am Geburtstag", "Einmal kräftig pusten."],
-       ["Zuckertüte voller Naschwerk", "Zur Einschulung", "Am ersten Schultag."]]'::jsonb),
+       ["Zuckertüte voller Naschwerk", "Zur Einschulung", "Am ersten Schultag."]]'::jsonb,
+     '[["Zum Erntedankfest", "Ein Fest, zu dem hier nichts steht."],
+       ["Beim Einzug ins neue Haus", "Ein Anlass, der auf dem Brett nicht vorkommt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-milchprodukte', 'Aus Milch gemacht',
      'Was ist das?',
@@ -251,7 +281,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gefrorene Süßspeise aus Milch", "Speiseeis", "Ständig gerührt beim Gefrieren."],
        ["Käse aus Schafmilch in Salzlake", "Feta", "Er bröckelt beim Schneiden."],
        ["Magerer Quark", "Speisequark", "Beliebt mit Leinöl und Kartoffeln."],
-       ["Getrocknete Milch als Pulver", "Milchpulver", "Lange haltbar ohne Kühlung."]]'::jsonb),
+       ["Getrocknete Milch als Pulver", "Milchpulver", "Lange haltbar ohne Kühlung."]]'::jsonb,
+     '[["Mandelmilch", "Sie wird gar nicht aus Milch gemacht."],
+       ["Sojajoghurt", "Auch er kommt ohne Milch aus."]]'::jsonb),
 
     ('essen-trinken', 'leicht-restaurant', 'Im Restaurant',
      'Wer oder was ist das?',
@@ -265,7 +297,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zettel mit dem Betrag", "Rechnung", "Man bittet darum am Ende."],
        ["Etwas mehr als der Betrag", "Trinkgeld", "In Deutschland üblich, aber freiwillig."],
        ["Vorher einen Tisch sichern", "Reservierung", "Besonders am Wochenende ratsam."],
-       ["Essen zum Mitnehmen", "Außer Haus", "In der Box statt auf dem Teller."]]'::jsonb),
+       ["Essen zum Mitnehmen", "Außer Haus", "In der Box statt auf dem Teller."]]'::jsonb,
+     '[["Garderobe", "Für die Mäntel, aber keine Zeile auf diesem Brett."],
+       ["Weinkarte", "Eine eigene Liste nur für Getränke, hier nicht gefragt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-gesunde-ernaehrung', 'Gesund essen',
      'Was gilt hier?',
@@ -279,7 +313,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Langsam essen", "Sättigung kommt später", "Das Gefühl braucht Minuten."],
        ["Frühstück", "Guter Start", "Auch wenn nicht jeder es braucht."],
        ["Selbst kochen", "Zutaten selbst bestimmen", "Meist auch günstiger."],
-       ["Bewegung nach dem Essen", "Hilft der Verdauung", "Ein Spaziergang genügt."]]'::jsonb),
+       ["Bewegung nach dem Essen", "Hilft der Verdauung", "Ein Spaziergang genügt."]]'::jsonb,
+     '[["Acht Stunden Schlaf", "Gesund, aber auf diesem Brett keine Frage des Essens."],
+       ["Täglich ein Glas Saft", "Als Empfehlung steht das hier nicht."]]'::jsonb),
 
     ('essen-trinken', 'leicht-kochbegriffe', 'Wörter aus dem Kochbuch',
      'Was soll man tun?',
@@ -293,7 +329,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Panieren", "Mehl, Ei, Brösel", "In dieser Reihenfolge."],
        ["Abschöpfen", "Schaum entfernen", "Damit die Brühe klar wird."],
        ["Ruhen lassen", "Nach dem Braten warten", "Der Saft verteilt sich."],
-       ["Vorheizen", "Ofen vorher aufheizen", "Sonst stimmt die Backzeit nicht."]]'::jsonb),
+       ["Vorheizen", "Ofen vorher aufheizen", "Sonst stimmt die Backzeit nicht."]]'::jsonb,
+     '[["Mit Alkohol abbrennen", "Das ist Flambieren, es steht nicht auf dem Brett."],
+       ["Im Wasserbad schmelzen", "Eine Anweisung, die hier fehlt."]]'::jsonb),
 
     ('essen-trinken', 'leicht-eis-sorten', 'Eis & Kaltes',
      'Was steckt drin?',
@@ -307,7 +345,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bananensplit", "Banane mit Eis", "Dazu Sahne und Sauce."],
        ["Spaghettieis", "Vanilleeis durch die Presse", "Erdbeersauce als Tomatensauce."],
        ["Frozen Yogurt", "Gefrorener Joghurt", "Etwas säuerlicher als Eis."],
-       ["Wassereis am Stiel", "Gefrorener Saft", "Ohne Milch und ohne Sahne."]]'::jsonb)
+       ["Wassereis am Stiel", "Gefrorener Saft", "Ohne Milch und ohne Sahne."]]'::jsonb,
+     '[["Kaffee", "Kaffee-Eis gibt es, auf diesem Brett steht es nicht."],
+       ["Malaga mit Rosinen", "Diese Sorte fehlt in der Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -332,15 +372,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

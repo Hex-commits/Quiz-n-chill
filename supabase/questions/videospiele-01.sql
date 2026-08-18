@@ -5,7 +5,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('videospiele', 'studios-hauptwerke', 'Studios & ihre Hauptwerke',
@@ -23,7 +23,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Naughty Dog", "The Last of Us", "Später auch als Serie verfilmt."],
        ["Bungie", "Halo", "Der Startschuss für die erste Xbox."],
        ["Epic Games", "Fortnite", "Groß wurde erst der Battle-Royale-Modus."],
-       ["Rare", "GoldenEye 007", "Der Mehrspielermodus wurde spät eingebaut."]]'::jsonb),
+       ["Rare", "GoldenEye 007", "Der Mehrspielermodus wurde spät eingebaut."]]'::jsonb,
+     '[["Half-Life 2", "Auch von Valve, doch auf dem Brett steht der erste Teil."],
+       ["Portal 2", "Ebenfalls aus dem Hause Valve, hier aber keine Antwort."]]'::jsonb),
 
     ('videospiele', 'spiele-erscheinungsjahre', 'Wann kam das Spiel heraus?',
      'In welchem Jahr erschien es?',
@@ -40,7 +42,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["World of Warcraft", "2004", "Millionen Abonnenten in der Blütezeit."],
        ["Wii Sports", "2006", "Es lag der Konsole bei."],
        ["Minecraft", "2011", "Die Vollversion nach zwei Jahren Testphase."],
-       ["Fortnite", "2017", "Der kostenlose Modus kam kurz nach dem Start."]]'::jsonb),
+       ["Fortnite", "2017", "Der kostenlose Modus kam kurz nach dem Start."]]'::jsonb,
+     '[["1996", "Tomb Raider kam damals, das Spiel fehlt auf diesem Brett."],
+       ["2007", "Portal erschien in dem Jahr, das hier nicht steht."]]'::jsonb),
 
     ('videospiele', 'reihen-publisher', 'Reihen & Publisher',
      'Wer bringt die Reihe heraus?',
@@ -55,7 +59,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["The Elder Scrolls", "Bethesda", "Seit 2021 unter Microsofts Dach."],
        ["Mario Kart", "Nintendo", "Seit 1992 auf jeder eigenen Konsole."],
        ["Total War", "Sega", "Der japanische Konzern kaufte den Entwickler."],
-       ["Civilization", "2K Games", "Teil des Take-Two-Konzerns."]]'::jsonb),
+       ["Civilization", "2K Games", "Teil des Take-Two-Konzerns."]]'::jsonb,
+     '[["Activision", "Call of Duty käme von dort, und die Reihe fehlt auf dem Brett."],
+       ["Bandai Namco", "Tekken erscheint dort, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'genres-musterbeispiele', 'Genres & Musterbeispiele',
      'Welches Spiel steht für das Genre?',
@@ -72,7 +78,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Survival", "Rust", "Andere Spieler sind die größte Gefahr."],
        ["Point-and-Click", "Monkey Island", "Gelöst wird mit Wortwitz."],
        ["Roguelike", "Hades", "Jeder Tod beginnt einen neuen Versuch."],
-       ["Autobattler", "Teamfight Tactics", "Aufstellen, dann zusehen."]]'::jsonb),
+       ["Autobattler", "Teamfight Tactics", "Aufstellen, dann zusehen."]]'::jsonb,
+     '[["Tetris", "Ein Puzzlespiel, aber kein Genre auf diesem Brett."],
+       ["Gran Turismo", "Die Rennsimulation fehlt in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'engines-firmen', 'Spiel-Engines',
      'Von wem stammt die Engine?',
@@ -87,7 +95,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["id Tech", "id Software", "Frühe Versionen wurden quelloffen."],
        ["Godot", "Quelloffenes Projekt", "Von einer Gemeinschaft entwickelt."],
        ["Decima", "Guerrilla Games", "Auch von Hideo Kojima genutzt."],
-       ["Anvil", "Ubisoft", "Trägt seit Assassin’s Creed die Reihe."]]'::jsonb),
+       ["Anvil", "Ubisoft", "Trägt seit Assassin’s Creed die Reihe."]]'::jsonb,
+     '[["Electronic Arts", "Die Frostbite gehört zu DICE, das zum Konzern zählt."],
+       ["Rockstar Games", "Die RAGE-Engine steht nicht auf diesem Brett."]]'::jsonb),
 
     ('videospiele', 'schoepfer-werke', 'Schöpfer & ihre Werke',
      'Wofür steht diese Person?',
@@ -103,7 +113,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Toru Iwatani", "Pac-Man", "Er wollte ein Spiel auch für Frauen."],
        ["Gunpei Yokoi", "Game Boy", "Sein Prinzip: bewährte Technik neu genutzt."],
        ["Yuji Naka", "Sonic", "Er programmierte den ersten Teil."],
-       ["Eric Barone", "Stardew Valley", "Vier Jahre lang allein entwickelt."]]'::jsonb),
+       ["Eric Barone", "Stardew Valley", "Vier Jahre lang allein entwickelt."]]'::jsonb,
+     '[["Yuji Horii", "Dragon Quest stammt von ihm, und das fehlt auf diesem Brett."],
+       ["Fumito Ueda", "Shadow of the Colossus steht nicht in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'schauplaetze', 'Schauplätze',
      'Wo spielt das Spiel?',
@@ -118,7 +130,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Resident Evil 2", "Raccoon City", "Eine Stadt voller Untoter."],
        ["The Witcher 3", "Novigrad", "Größte Stadt des Nordens."],
        ["Dishonored", "Dunwall", "Eine Hafenstadt in der Rattenplage."],
-       ["Hollow Knight", "Hallownest", "Ein verfallenes Insektenreich."]]'::jsonb),
+       ["Hollow Knight", "Hallownest", "Ein verfallenes Insektenreich."]]'::jsonb,
+     '[["City 17", "Auch aus Half-Life, doch auf dem Brett steht Black Mesa."],
+       ["Hyrule", "Zelda fehlt in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'spielemusik-komponisten', 'Musik im Spiel',
      'Welche Reihe hat diese Person vertont?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jesper Kyd", "Assassin’s Creed", "Auch für Hitman verantwortlich."],
        ["C418", "Minecraft", "Ein deutscher Musiker."],
        ["Austin Wintory", "Journey", "Erste Spielmusik mit Grammy-Nominierung."],
-       ["Michiru Yamane", "Castlevania", "Barock trifft auf Rock."]]'::jsonb),
+       ["Michiru Yamane", "Castlevania", "Barock trifft auf Rock."]]'::jsonb,
+     '[["Grant Kirkhope", "Banjo-Kazooie stammt von ihm, und das fehlt auf diesem Brett."],
+       ["Darren Korb", "Hades hat er vertont, das steht nicht in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'esport-turniere', 'E-Sport-Turniere',
      'Wie heißt der große Wettbewerb des Spiels?',
@@ -147,7 +163,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Valorant", "Champions", "Der Saisonabschluss."],
        ["StarCraft II", "GSL", "Die südkoreanische Liga."],
        ["Call of Duty", "Call of Duty League", "Mit festen Stadtteams."],
-       ["Street Fighter", "EVO", "Das größte Turnier für Prügelspiele."]]'::jsonb),
+       ["Street Fighter", "EVO", "Das größte Turnier für Prügelspiele."]]'::jsonb,
+     '[["Six Invitational", "Das Turnier von Rainbow Six, und das Spiel fehlt hier."],
+       ["Apex Legends Global Series", "Sie steht nicht auf diesem Brett."]]'::jsonb),
 
     ('videospiele', 'abkuerzungen', 'Abkürzungen',
      'Wofür steht das Kürzel?',
@@ -164,7 +182,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["QTE", "Taste im richtigen Moment", "Sonst scheitert die Szene."],
        ["DPS", "Schaden pro Sekunde", "Maß für die Kampfkraft."],
        ["XP", "Erfahrungspunkte", "Sie führen zum Stufenaufstieg."],
-       ["GOTY", "Spiel des Jahres", "Ein Titel, viele Verleiher."]]'::jsonb),
+       ["GOTY", "Spiel des Jahres", "Ein Titel, viele Verleiher."]]'::jsonb,
+     '[["Spielstand zum Weiterspielen", "Der Speicherpunkt hat kein Kürzel auf diesem Brett."],
+       ["Zwei Spieler an einem Gerät", "Der Splitscreen fehlt in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'speichermedien', 'Was steckt in der Konsole?',
      'Auf welchem Medium kamen die Spiele?',
@@ -178,7 +198,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Amiga", "Diskette", "Oft mehrere pro Spiel."],
        ["Nintendo Switch", "Spielkarte", "Winzig und bitter beschichtet."],
        ["Xbox Series S", "Nur Download", "Kein Laufwerk verbaut."],
-       ["Dreamcast", "GD-ROM", "Ein eigenes Format gegen Raubkopien."]]'::jsonb),
+       ["Dreamcast", "GD-ROM", "Ein eigenes Format gegen Raubkopien."]]'::jsonb,
+     '[["Magnetband auf Spulen", "So kam kein Spiel auf diesem Brett heraus."],
+       ["Laserdisc", "Ein Format, das in dieser Liste nicht vorkommt."]]'::jsonb),
 
     ('videospiele', 'handhelds', 'Handhelds im Vergleich',
      'Was war das Besondere am Gerät?',
@@ -194,7 +216,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["PlayStation Portable", "Filme auf UMD", "Auch als Medienspieler gedacht."],
        ["PlayStation Vita", "Feld auf der Rückseite", "Berührung von hinten."],
        ["Game Gear", "Kurze Batterielaufzeit", "Farbe kostete sechs Batterien."],
-       ["Switch Lite", "Nur für unterwegs", "Kein Anschluss an den Fernseher."]]'::jsonb),
+       ["Switch Lite", "Nur für unterwegs", "Kein Anschluss an den Fernseher."]]'::jsonb,
+     '[["Erstes Gerät mit Farbdisplay überhaupt", "Der Game Gear hatte es zuerst, gefragt ist dort anderes."],
+       ["Handheld mit Auswechseln von Modulen im Betrieb", "Das kann kein Gerät in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'studios-laender', 'Woher kommt das Spiel?',
      'In welchem Land sitzt das Entwicklerstudio?',
@@ -209,7 +233,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hollow Knight", "Australien", "Ein Studio aus Adelaide."],
        ["Grand Theft Auto", "Schottland", "Rockstar North sitzt in Edinburgh."],
        ["Super Mario", "Japan", "Nintendo residiert in Kyoto."],
-       ["Halo", "USA", "Bungie kam aus Chicago."]]'::jsonb),
+       ["Halo", "USA", "Bungie kam aus Chicago."]]'::jsonb,
+     '[["Niederlande", "Guerrilla Games sitzt dort, und das Studio fehlt auf dem Brett."],
+       ["Südkorea", "Kein Spiel in dieser Liste stammt von dort."]]'::jsonb),
 
     ('videospiele', 'alterskennzeichen', 'Alterskennzeichen',
      'Was bedeutet die Angabe?',
@@ -224,7 +250,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["ESRB", "Kennzeichen in Nordamerika", "Von M bis E eingeteilt."],
        ["Indizierung", "Nicht öffentlich beworben", "Verkauf nur unter der Theke."],
        ["USK-Prüfung", "Vor dem Verkauf nötig", "Sonst gilt der Titel als ungeprüft."],
-       ["Gesetzliche Grundlage", "Jugendschutzgesetz", "Anders als in vielen Ländern verbindlich."]]'::jsonb),
+       ["Gesetzliche Grundlage", "Jugendschutzgesetz", "Anders als in vielen Ländern verbindlich."]]'::jsonb,
+     '[["Ab vierzehn Jahren", "Eine solche Stufe gibt es bei der USK nicht."],
+       ["CERO", "Das japanische Kennzeichen fehlt auf diesem Brett."]]'::jsonb),
 
     ('videospiele', 'technik-begriffe', 'Technik im Spiel',
      'Was steckt hinter dem Begriff?',
@@ -238,7 +266,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Eingabeverzögerung", "Zeit bis zur Reaktion", "Besonders in Prügelspielen wichtig."],
        ["Tearing", "Zerrissenes Bild", "Bild und Monitor laufen auseinander."],
        ["Upscaling", "Klein rechnen, groß zeigen", "Spart Leistung."],
-       ["HDR", "Größerer Kontrastumfang", "Hell und dunkel zugleich."]]'::jsonb),
+       ["HDR", "Größerer Kontrastumfang", "Hell und dunkel zugleich."]]'::jsonb,
+     '[["Zahl der Spieler im Netz", "Kein Begriff auf diesem Brett meint das."],
+       ["Speicherplatz auf der Festplatte", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('videospiele', 'geschaeftsmodelle', 'Womit verdienen Spiele Geld?',
      'Wie funktioniert das Modell?',
@@ -252,7 +282,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Early Access", "Kauf vor der Fertigstellung", "Der Preis steigt oft später."],
        ["Demo", "Kostenlose Probe", "Früher auf Heft-CDs."],
        ["Crowdfunding", "Fans zahlen vorab", "Ohne Garantie auf ein Ergebnis."],
-       ["Beutekiste", "Zufälliger Inhalt gegen Geld", "In einigen Ländern reguliert."]]'::jsonb),
+       ["Beutekiste", "Zufälliger Inhalt gegen Geld", "In einigen Ländern reguliert."]]'::jsonb,
+     '[["Werbung zwischen den Runden", "Sie finanziert manches Spiel, steht aber nicht auf dem Brett."],
+       ["Verleih auf Zeit im Laden", "Ein altes Modell, das hier fehlt."]]'::jsonb),
 
     ('videospiele', 'konsolen-jahre', 'Konsolen & ihre Jahrgänge',
      'Wann kam die Konsole heraus?',
@@ -268,7 +300,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wii", "2006", "Bewegungssteuerung als Verkaufsargument."],
        ["PlayStation 4", "2013", "Start mit deutlichem Vorsprung."],
        ["Nintendo Switch", "2017", "Handheld und Heimkonsole zugleich."],
-       ["Xbox Series X", "2020", "Zeitgleich mit der PlayStation 5."]]'::jsonb),
+       ["Xbox Series X", "2020", "Zeitgleich mit der PlayStation 5."]]'::jsonb,
+     '[["1977", "Das Atari VCS kam damals, es fehlt auf diesem Brett."],
+       ["2005", "Die Xbox 360 erschien in dem Jahr, das hier nicht steht."]]'::jsonb),
 
     ('videospiele', 'neunziger-klassiker', 'Klassiker der Neunziger',
      'Wofür wurde das Spiel bekannt?',
@@ -284,7 +318,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Quake", "Vollständig dreidimensional", "Auch die Gegner waren Modelle."],
        ["Pokémon Rot", "Tausch per Kabel", "Manche Entwicklungen gehen nur so."],
        ["Final Fantasy VII", "Drei CDs Handlung", "Der Durchbruch in Europa."],
-       ["Age of Empires", "Völker durch Zeitalter", "Vom Faustkeil zur Belagerung."]]'::jsonb),
+       ["Age of Empires", "Völker durch Zeitalter", "Vom Faustkeil zur Belagerung."]]'::jsonb,
+     '[["Erste offene Welt in 3D", "Kein Spiel auf diesem Brett steht dafür."],
+       ["Kämpfe mit sehr blutigen Finishern", "Mortal Kombat wäre das, und es fehlt hier."]]'::jsonb),
 
     ('videospiele', 'spielkultur', 'Rund ums Spielen',
      'Was ist damit gemeint?',
@@ -298,7 +334,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cosplay", "Verkleidung als Figur", "Auf Messen sehr präsent."],
        ["Achievement", "Belohnung für Sonderleistung", "Sammelbar ohne Spielvorteil."],
        ["Fotomodus", "Bilder im Spiel schießen", "Kamera frei beweglich."],
-       ["Backseat-Gaming", "Ungefragte Ratschläge", "Der Zuschauer weiß es besser."]]'::jsonb),
+       ["Backseat-Gaming", "Ungefragte Ratschläge", "Der Zuschauer weiß es besser."]]'::jsonb,
+     '[["Turnier unter Freunden im Wohnzimmer", "Es hat keinen Begriff auf diesem Brett."],
+       ["Sammeln alter Konsolen im Regal", "Das fehlt in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'messen-preise', 'Messen & Preise',
      'Worum handelt es sich?',
@@ -313,7 +351,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Games Convention", "Vorgängerin in Leipzig", "Bis 2008, dann Umzug nach Köln."],
        ["IGF", "Preis für Independent-Spiele", "Sprungbrett für kleine Studios."],
        ["BAFTA Games Award", "Britische Auszeichnung", "Von derselben Akademie wie beim Film."],
-       ["Spiel des Jahres", "Preis für Brettspiele", "Trotz des Namens kein Videospielpreis."]]'::jsonb)
+       ["Spiel des Jahres", "Preis für Brettspiele", "Trotz des Namens kein Videospielpreis."]]'::jsonb,
+     '[["PAX", "Eine Publikumsmesse in den USA, die hier fehlt."],
+       ["DreamHack", "Ein Festival mit LAN-Party, das nicht auf dem Brett steht."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -338,15 +378,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

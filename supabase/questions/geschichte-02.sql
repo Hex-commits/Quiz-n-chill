@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geschichte', 'kalter-krieg-jahre', 'Kalter Krieg & Jahreszahlen',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ende des Vietnamkriegs", "1975", "Mit der Einnahme Saigons endete der Krieg."],
        ["Fall der Berliner Mauer", "1989", "Eine missverständliche Pressekonferenz öffnete abends die Grenze."],
        ["Auflösung der Sowjetunion", "1991", "Fünfzehn Republiken wurden eigene Staaten."],
-       ["Reaktorkatastrophe von Tschernobyl", "1986", "Die verspätete Information beschädigte das Vertrauen in Moskau."]]'::jsonb),
+       ["Reaktorkatastrophe von Tschernobyl", "1986", "Die verspätete Information beschädigte das Vertrauen in Moskau."]]'::jsonb,
+     '[["1953", "Der Aufstand in der DDR fällt in dieses Jahr, das hier fehlt."],
+       ["1979", "Der Einmarsch in Afghanistan begann damals, er steht nicht auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'paepste-ereignisse', 'Päpste & ihre Entscheidungen',
      'Wofür steht der Name dieses Papstes?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Johannes XXIII.", "Zweites Vatikanisches Konzil", "Öffnete die Kirche 1962 für Reformen."],
        ["Johannes Paul II.", "Erster Pole im Amt", "Sein Wirken gilt als Beitrag zum Ende des Ostblocks."],
        ["Benedikt XVI.", "Rücktritt vom Amt", "Trat 2013 als erster Papst seit 1415 zurück."],
-       ["Franziskus", "Erster Papst aus Amerika", "Nahm den Namen des Heiligen von Assisi an."]]'::jsonb),
+       ["Franziskus", "Erster Papst aus Amerika", "Nahm den Namen des Heiligen von Assisi an."]]'::jsonb,
+     '[["Ende des Kirchenstaats", "Das geschah gegen den Willen von Pius IX., nicht durch ihn."],
+       ["Verlegung nach Avignon", "Das war Clemens V., und der fehlt auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'industrielle-revolution-erfinder', 'Industrielle Revolution & Erfinder',
      'Wer steht hinter dieser Neuerung?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fotografie auf Silberplatte", "Louis Daguerre", "1839 vorgestellt, jedes Bild ein Unikat."],
        ["Starres Luftschiff", "Ferdinand von Zeppelin", "Erster Aufstieg 1900 über dem Bodensee."],
        ["Motorflugzeug", "Brüder Wright", "Erster gesteuerter Motorflug 1903 in Kitty Hawk."],
-       ["Ammoniak aus Luft", "Fritz Haber", "Machte Kunstdünger und damit Brot für Milliarden möglich."]]'::jsonb),
+       ["Ammoniak aus Luft", "Fritz Haber", "Machte Kunstdünger und damit Brot für Milliarden möglich."]]'::jsonb,
+     '[["Thomas Edison", "Die Glühlampe wäre die Neuerung dazu, sie fehlt auf dem Brett."],
+       ["Alexander Graham Bell", "Das Telefon steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'us-praesidenten-taten', 'US-Präsidenten & ihre Amtszeit',
      'Wofür steht der Name dieses Präsidenten?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Richard Nixon", "Watergate", "Trat 1974 als bisher einziger Präsident zurück."],
        ["Ronald Reagan", "Aufrüstung und Entspannung", "Erst Rüstungsschub, dann Abrüstungsverträge mit Gorbatschow."],
        ["Bill Clinton", "Abkommen von Dayton", "Vermittelte 1995 das Ende des Bosnienkriegs."],
-       ["Barack Obama", "Krankenversicherung für alle", "Sein Gesetz von 2010 versicherte Millionen zusätzlich."]]'::jsonb),
+       ["Barack Obama", "Krankenversicherung für alle", "Sein Gesetz von 2010 versicherte Millionen zusätzlich."]]'::jsonb,
+     '[["Andrew Jackson", "Die Vertreibung der Cherokee ginge auf ihn zurück, er fehlt hier."],
+       ["George Washington", "Der erste Präsident, und danach fragt keine Zeile auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'chinesische-dynastien', 'Chinesische Dynastien',
      'Wofür steht diese Dynastie?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Song", "Erstes Papiergeld", "Gedruckte Scheine ersetzten schwere Münzen."],
        ["Yuan", "Herrschaft der Mongolen", "Kublai Khan regierte als Kaiser von Peking aus."],
        ["Ming", "Verbotene Stadt", "Bauten den Kaiserpalast und schickten Flotten bis Afrika."],
-       ["Qing", "Letzte Kaiserdynastie", "Endete 1912 mit der Abdankung des Kindkaisers Puyi."]]'::jsonb),
+       ["Qing", "Letzte Kaiserdynastie", "Endete 1912 mit der Abdankung des Kindkaisers Puyi."]]'::jsonb,
+     '[["Bau der Großen Mauer in Stein", "Die Ming taten das, und dort steht eine andere Antwort."],
+       ["Erste Kaiserin auf dem Thron", "Wu Zetian regierte unter den Tang, gefragt ist dort die Dichtung."]]'::jsonb),
 
     ('geschichte', 'duelle-der-geschichte', 'Gegenspieler der Geschichte',
      'Wer war der große Gegenspieler?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Abraham Lincoln", "Jefferson Davis", "Präsident des Nordens gegen den Präsidenten der Konföderation."],
        ["Stalin", "Trotzki", "Der Rivale wurde verbannt und 1940 in Mexiko ermordet."],
        ["Cortés", "Moctezuma II.", "Der Aztekenherrscher starb während der Belagerung seiner Hauptstadt."],
-       ["Marcus Aurelius", "Markomannen", "Jahrzehntelange Kämpfe an der Donaugrenze."]]'::jsonb),
+       ["Marcus Aurelius", "Markomannen", "Jahrzehntelange Kämpfe an der Donaugrenze."]]'::jsonb,
+     '[["Attila", "Der Hunnenkönig, und sein Gegner steht nicht auf diesem Brett."],
+       ["Robespierre", "Sein Gegenspieler Danton fehlt in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'koeniginnen-laender', 'Königinnen & ihre Länder',
      'Über welches Land herrschte sie?',
@@ -117,7 +129,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wu Zetian", "China", "Einzige Frau, die als Kaiserin aus eigenem Recht regierte."],
        ["Nzinga", "Ndongo", "Widerstand über Jahrzehnte gegen die Portugiesen."],
        ["Ranavalona I.", "Madagaskar", "Hielt europäische Mächte 33 Jahre lang von der Insel fern."],
-       ["Hatschepsut", "Ägypten", "Ihre Nachfolger ließen ihren Namen von Denkmälern tilgen."]]'::jsonb),
+       ["Hatschepsut", "Ägypten", "Ihre Nachfolger ließen ihren Namen von Denkmälern tilgen."]]'::jsonb,
+     '[["Frankreich", "Über Frankreich herrschte keine der Königinnen auf diesem Brett."],
+       ["Aragon", "Isabella regierte Kastilien; Aragon war das Reich ihres Mannes."]]'::jsonb),
 
     ('geschichte', 'seuchen-zeiten', 'Seuchen & ihre Zeit',
      'Wann brach die Seuche aus?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ausrottung der Pocken", "1980", "Bis heute die einzige ausgerottete Menschenkrankheit."],
        ["Beginn der Aids-Epidemie", "1981", "Erste Berichte über eine unbekannte Immunschwäche."],
        ["SARS", "2003", "Eine Lungenkrankheit sprang von Südchina in die Welt."],
-       ["Covid-19", "2020", "Innerhalb von Wochen legte sie das öffentliche Leben lahm."]]'::jsonb),
+       ["Covid-19", "2020", "Innerhalb von Wochen legte sie das öffentliche Leben lahm."]]'::jsonb,
+     '[["1957", "Die Asiatische Grippe fällt in dieses Jahr, das hier fehlt."],
+       ["2014", "Der große Ebola-Ausbruch begann damals, er steht nicht auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'erste-male-personen', 'Die Ersten & ihre Namen',
      'Wer hat das als Erster oder Erste geschafft?',
@@ -149,7 +165,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erste Fernsehübertragung", "John Logie Baird", "Zeigte 1926 in London bewegte Bilder."],
        ["Erste Regierungschefin der Welt", "Sirimavo Bandaranaike", "Wurde 1960 in Ceylon Premierministerin."],
        ["Erster Flug über den Ärmelkanal", "Louis Blériot", "Landete 1909 nach 37 Minuten in Dover."],
-       ["Erste Frau als Pilotin über den Atlantik", "Amelia Earhart", "Flog 1932 allein von Neufundland nach Irland."]]'::jsonb),
+       ["Erste Frau als Pilotin über den Atlantik", "Amelia Earhart", "Flog 1932 allein von Neufundland nach Irland."]]'::jsonb,
+     '[["Roald Amundsen", "Er erreichte als Erster den Südpol, danach fragt hier keine Zeile."],
+       ["Tenzing Norgay", "Er stand mit Hillary auf dem Gipfel, genannt ist auf dem Brett nur einer."]]'::jsonb),
 
     ('geschichte', 'handelsrouten-waren', 'Handelswege & ihre Waren',
      'Womit wurde auf diesem Weg vor allem gehandelt?',
@@ -165,7 +183,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Teestraße nach Russland", "Tee", "Kamelkarawanen brauchten von China ein halbes Jahr."],
        ["Hansehandel im Ostseeraum", "Getreide", "Aus dem Osten in die wachsenden Städte des Westens."],
        ["Amber Road der Neuzeit", "Kupfer", "Erz aus Schweden für die Gießereien des Kontinents."],
-       ["Kabelverbindung nach Indien", "Nachrichten", "Telegrafenkabel machten Handel über Kontinente hinweg schnell."]]'::jsonb),
+       ["Kabelverbindung nach Indien", "Nachrichten", "Telegrafenkabel machten Handel über Kontinente hinweg schnell."]]'::jsonb,
+     '[["Elfenbein", "Auf keinem Weg in dieser Liste war es die Hauptware."],
+       ["Kaffee", "Der Handel über Mokka wäre gemeint, und der fehlt auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'historische-waehrungen', 'Historische Währungen',
      'In welchem Land oder Reich wurde damit bezahlt?',
@@ -181,7 +201,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gulden", "Niederlande", "Kürzel fl, vom Florin aus Florenz."],
        ["Franc", "Frankreich", "Von 1360 bis zur Euro-Einführung in Gebrauch."],
        ["Lira", "Italien", "Vom lateinischen libra, dem Pfund."],
-       ["Rubel der Sowjetunion", "Sowjetunion", "Kurs wurde staatlich festgesetzt, nicht am Markt."]]'::jsonb),
+       ["Rubel der Sowjetunion", "Sowjetunion", "Kurs wurde staatlich festgesetzt, nicht am Markt."]]'::jsonb,
+     '[["Schweiz", "Der Franken gilt dort bis heute, hier steht der französische Franc."],
+       ["Finnland", "Die Mark wurde dort bezahlt, und das Land fehlt auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'frauen-der-geschichte', 'Frauen der Geschichte',
      'Wofür steht ihr Name?',
@@ -198,7 +220,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Simone de Beauvoir", "Das andere Geschlecht", "Ihr Buch von 1949 wurde Grundlage der neuen Frauenbewegung."],
        ["Mutter Teresa", "Armenhilfe in Kalkutta", "Ihr Orden pflegte Sterbende, die niemand aufnahm."],
        ["Malala Yousafzai", "Recht auf Schulbildung", "Überlebte ein Attentat und erhielt den Friedensnobelpreis."],
-       ["Hildegard von Bingen", "Klostermedizin", "Äbtissin, Komponistin und Verfasserin von Heilkundeschriften."]]'::jsonb),
+       ["Hildegard von Bingen", "Klostermedizin", "Äbtissin, Komponistin und Verfasserin von Heilkundeschriften."]]'::jsonb,
+     '[["Marie Curie", "Sie steht für den ersten Nobelpreis an eine Frau, hier aber nicht."],
+       ["Elisabeth I.", "Das elisabethanische Zeitalter, das auf diesem Brett fehlt."]]'::jsonb),
 
     ('geschichte', 'alte-universitaeten', 'Alte Universitäten & Länder',
      'In welchem Land steht die Universität?',
@@ -214,7 +238,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Heidelberg", "Deutschland", "1386 gegründet, älteste des heutigen Bundesgebiets."],
        ["Leuven", "Belgien", "1425 gegründet, Wirkungsort von Erasmus."],
        ["Uppsala", "Schweden", "1477 gegründet, älteste Skandinaviens."],
-       ["Harvard", "USA", "1636 gegründet, älteste Hochschule des Landes."]]'::jsonb),
+       ["Harvard", "USA", "1636 gegründet, älteste Hochschule des Landes."]]'::jsonb,
+     '[["Schottland", "St Andrews stünde dort, und die Universität fehlt auf dem Brett."],
+       ["Niederlande", "Leiden steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'kriege-gegner', 'Kriege & ihre Gegner',
      'Wer stand sich in diesem Krieg gegenüber?',
@@ -230,7 +256,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Koreakrieg", "Nord- und Südkorea", "Endete 1953 mit einem Waffenstillstand, nicht mit Frieden."],
        ["Falklandkrieg", "Argentinien und Großbritannien", "Zehn Wochen Kampf um Inseln im Südatlantik."],
        ["Sechstagekrieg", "Israel und arabische Nachbarn", "1967 änderte sich die Landkarte der Region in einer Woche."],
-       ["Dreißigjähriger Krieg", "Katholiken und Protestanten", "Aus Glaubensstreit wurde ein Krieg um Macht in Europa."]]'::jsonb),
+       ["Dreißigjähriger Krieg", "Katholiken und Protestanten", "Aus Glaubensstreit wurde ein Krieg um Macht in Europa."]]'::jsonb,
+     '[["Frankreich und Preußen", "Der Krieg von 1870 fehlt auf diesem Brett."],
+       ["Japan und Russland", "Der Krieg von 1904 steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'konferenzen-orte', 'Konferenzen & Abkommen',
      'Wo wurde verhandelt?',
@@ -246,7 +274,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Abkommen von Dayton", "Ohio", "1995 endete der Krieg in Bosnien."],
        ["Kyoto-Protokoll", "Japan", "1997 wurden erstmals Klimaziele völkerrechtlich vereinbart."],
        ["Pariser Klimaabkommen", "Frankreich", "2015 einigten sich fast alle Staaten auf das Zwei-Grad-Ziel."],
-       ["Konferenz von Wien", "Österreich", "1815 ordneten die Mächte Europa nach Napoleon neu."]]'::jsonb),
+       ["Konferenz von Wien", "Österreich", "1815 ordneten die Mächte Europa nach Napoleon neu."]]'::jsonb,
+     '[["Potsdam", "Die Konferenz von 1945 fand dort statt, sie fehlt auf dem Brett."],
+       ["Genf", "Die Indochina-Konferenz tagte dort, sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'entdecker-herkunft', 'Entdecker & ihre Herkunft',
      'Aus welchem Land stammte der Reisende?',
@@ -262,7 +292,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["David Livingstone", "Schottland", "Missionar und Forscher in Zentralafrika."],
        ["Alexander von Humboldt", "Deutschland", "Bereiste fünf Jahre lang Südamerika."],
        ["Henry Morton Stanley", "Wales", "Fand Livingstone 1871 am Tanganjikasee."],
-       ["Adolf Erik Nordenskiöld", "Schweden", "Durchfuhr als Erster die Nordostpassage."]]'::jsonb),
+       ["Adolf Erik Nordenskiöld", "Schweden", "Durchfuhr als Erster die Nordostpassage."]]'::jsonb,
+     '[["Irland", "Kein Reisender auf diesem Brett stammte von dort."],
+       ["Russland", "Bering fuhr für Russland, geboren wurde er in Dänemark."]]'::jsonb),
 
     ('geschichte', 'staatsmaenner-laender', 'Staatsmänner & ihre Staaten',
      'Für welchen Staat stand die Person?',
@@ -278,7 +310,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sun Yat-sen", "Republik China", "Gilt als Vater der Revolution von 1911."],
        ["Charles de Gaulle", "Frankreich", "Rief 1940 aus London zum Widerstand auf."],
        ["Willy Brandt", "Bundesrepublik", "Kniefall in Warschau und Ostpolitik."],
-       ["Michail Gorbatschow", "Sowjetunion", "Glasnost und Perestroika leiteten das Ende ein."]]'::jsonb),
+       ["Michail Gorbatschow", "Sowjetunion", "Glasnost und Perestroika leiteten das Ende ein."]]'::jsonb,
+     '[["Königreich Preußen", "Bismarck diente ihm zuerst, auf dem Brett steht das Kaiserreich."],
+       ["Osmanisches Reich", "Kein Name in dieser Liste stand dafür."]]'::jsonb),
 
     ('geschichte', 'bibliotheken-orte', 'Alte Bibliotheken & Wissensorte',
      'Wo stand oder steht die Sammlung?',
@@ -294,7 +328,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Höhlenbibliothek von Dunhuang", "China", "Zugemauerte Kammer voller Schriftrollen an der Seidenstraße."],
        ["Archiv von Ebla", "Syrien", "Tontafeln eines Palastes aus dem 3. Jahrtausend v. Chr."],
        ["Bibliothek des Assurbanipal", "Ninive", "Keilschrifttafeln, darunter das Gilgamesch-Epos."],
-       ["Bodleian Library", "Oxford", "Seit 1602 Pflichtexemplarbibliothek des Landes."]]'::jsonb),
+       ["Bodleian Library", "Oxford", "Seit 1602 Pflichtexemplarbibliothek des Landes."]]'::jsonb,
+     '[["Spanien", "Der Escorial beherbergt eine, und die fehlt auf dem Brett."],
+       ["Japan", "Keine Sammlung in dieser Liste steht dort."]]'::jsonb),
 
     ('geschichte', 'historische-berufe', 'Alte Handwerksberufe',
      'Womit hatte dieser Beruf zu tun?',
@@ -310,7 +346,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Färber", "Stofffarben", "Arbeitete mit Waid, Krapp und später Indigo."],
        ["Schuster", "Schuhe", "Nähte Sohlen mit Pech und Draht."],
        ["Pergamenter", "Beschreibstoff", "Bereitete Tierhaut für Handschriften auf."],
-       ["Salzsieder", "Salz", "Kochte Sole in flachen Pfannen ein."]]'::jsonb),
+       ["Salzsieder", "Salz", "Kochte Sole in flachen Pfannen ein."]]'::jsonb,
+     '[["Glas", "Der Glasbläser wäre der Beruf dazu, und der fehlt auf dem Brett."],
+       ["Kerzen", "Der Lichtzieher steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'historiker-werke', 'Geschichtsschreiber & ihre Werke',
      'Welches Werk stammt von dieser Person?',
@@ -327,7 +365,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ibn Chaldun", "Muqaddima", "Erklärte den Aufstieg und Verfall von Dynastien."],
        ["Edward Gibbon", "Verfall und Untergang Roms", "Sechs Bände über tausend Jahre Reichsgeschichte."],
        ["Leopold von Ranke", "Die römischen Päpste", "Wollte zeigen, wie es eigentlich gewesen ist."],
-       ["Fernand Braudel", "Das Mittelmeer", "Schrieb Geschichte über Jahrhunderte statt über Ereignisse."]]'::jsonb)
+       ["Fernand Braudel", "Das Mittelmeer", "Schrieb Geschichte über Jahrhunderte statt über Ereignisse."]]'::jsonb,
+     '[["Anabasis", "Das Werk stammt von Xenophon, der hier nicht steht."],
+       ["Der Untergang des Abendlandes", "Von Oswald Spengler, und der fehlt auf dem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -352,15 +392,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

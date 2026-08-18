@@ -1,0 +1,82 @@
+{
+  "kalter-krieg-jahre": [
+    ["1953", "Der Aufstand in der DDR fällt in dieses Jahr, das hier fehlt."],
+    ["1979", "Der Einmarsch in Afghanistan begann damals, er steht nicht auf dem Brett."]
+  ],
+  "paepste-ereignisse": [
+    ["Ende des Kirchenstaats", "Das geschah gegen den Willen von Pius IX., nicht durch ihn."],
+    ["Verlegung nach Avignon", "Das war Clemens V., und der fehlt auf diesem Brett."]
+  ],
+  "industrielle-revolution-erfinder": [
+    ["Thomas Edison", "Die Glühlampe wäre die Neuerung dazu, sie fehlt auf dem Brett."],
+    ["Alexander Graham Bell", "Das Telefon steht nicht in dieser Liste."]
+  ],
+  "us-praesidenten-taten": [
+    ["Andrew Jackson", "Die Vertreibung der Cherokee ginge auf ihn zurück, er fehlt hier."],
+    ["George Washington", "Der erste Präsident, und danach fragt keine Zeile auf dem Brett."]
+  ],
+  "chinesische-dynastien": [
+    ["Bau der Großen Mauer in Stein", "Die Ming taten das, und dort steht eine andere Antwort."],
+    ["Erste Kaiserin auf dem Thron", "Wu Zetian regierte unter den Tang, gefragt ist dort die Dichtung."]
+  ],
+  "duelle-der-geschichte": [
+    ["Attila", "Der Hunnenkönig, und sein Gegner steht nicht auf diesem Brett."],
+    ["Robespierre", "Sein Gegenspieler Danton fehlt in dieser Liste."]
+  ],
+  "koeniginnen-laender": [
+    ["Frankreich", "Über Frankreich herrschte keine der Königinnen auf diesem Brett."],
+    ["Aragon", "Isabella regierte Kastilien; Aragon war das Reich ihres Mannes."]
+  ],
+  "seuchen-zeiten": [
+    ["1957", "Die Asiatische Grippe fällt in dieses Jahr, das hier fehlt."],
+    ["2014", "Der große Ebola-Ausbruch begann damals, er steht nicht auf dem Brett."]
+  ],
+  "erste-male-personen": [
+    ["Roald Amundsen", "Er erreichte als Erster den Südpol, danach fragt hier keine Zeile."],
+    ["Tenzing Norgay", "Er stand mit Hillary auf dem Gipfel, genannt ist auf dem Brett nur einer."]
+  ],
+  "handelsrouten-waren": [
+    ["Elfenbein", "Auf keinem Weg in dieser Liste war es die Hauptware."],
+    ["Kaffee", "Der Handel über Mokka wäre gemeint, und der fehlt auf dem Brett."]
+  ],
+  "historische-waehrungen": [
+    ["Schweiz", "Der Franken gilt dort bis heute, hier steht der französische Franc."],
+    ["Finnland", "Die Mark wurde dort bezahlt, und das Land fehlt auf dem Brett."]
+  ],
+  "frauen-der-geschichte": [
+    ["Marie Curie", "Sie steht für den ersten Nobelpreis an eine Frau, hier aber nicht."],
+    ["Elisabeth I.", "Das elisabethanische Zeitalter, das auf diesem Brett fehlt."]
+  ],
+  "alte-universitaeten": [
+    ["Schottland", "St Andrews stünde dort, und die Universität fehlt auf dem Brett."],
+    ["Niederlande", "Leiden steht nicht in dieser Liste."]
+  ],
+  "kriege-gegner": [
+    ["Frankreich und Preußen", "Der Krieg von 1870 fehlt auf diesem Brett."],
+    ["Japan und Russland", "Der Krieg von 1904 steht nicht in dieser Liste."]
+  ],
+  "konferenzen-orte": [
+    ["Potsdam", "Die Konferenz von 1945 fand dort statt, sie fehlt auf dem Brett."],
+    ["Genf", "Die Indochina-Konferenz tagte dort, sie steht nicht in dieser Liste."]
+  ],
+  "entdecker-herkunft": [
+    ["Irland", "Kein Reisender auf diesem Brett stammte von dort."],
+    ["Russland", "Bering fuhr für Russland, geboren wurde er in Dänemark."]
+  ],
+  "staatsmaenner-laender": [
+    ["Königreich Preußen", "Bismarck diente ihm zuerst, auf dem Brett steht das Kaiserreich."],
+    ["Osmanisches Reich", "Kein Name in dieser Liste stand dafür."]
+  ],
+  "bibliotheken-orte": [
+    ["Spanien", "Der Escorial beherbergt eine, und die fehlt auf dem Brett."],
+    ["Japan", "Keine Sammlung in dieser Liste steht dort."]
+  ],
+  "historische-berufe": [
+    ["Glas", "Der Glasbläser wäre der Beruf dazu, und der fehlt auf dem Brett."],
+    ["Kerzen", "Der Lichtzieher steht nicht in dieser Liste."]
+  ],
+  "historiker-werke": [
+    ["Anabasis", "Das Werk stammt von Xenophon, der hier nicht steht."],
+    ["Der Untergang des Abendlandes", "Von Oswald Spengler, und der fehlt auf dem Brett."]
+  ]
+}

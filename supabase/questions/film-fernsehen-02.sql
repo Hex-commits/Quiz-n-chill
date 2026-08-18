@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('film-fernsehen', 'originaltitel', 'Deutsche Titel & Originaltitel',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Und täglich grüßt das Murmeltier", "Groundhog Day", "Der Feiertag heißt wörtlich Murmeltiertag."],
        ["Das Fenster zum Hof", "Rear Window", "Ein Fotograf beobachtet aus dem Rollstuhl."],
        ["Vertigo – Aus dem Reich der Toten", "Vertigo", "Der Titel bezeichnet den Höhenschwindel."],
-       ["Meine Lieder, meine Träume", "The Sound of Music", "In Österreich lange fast unbekannt."]]'::jsonb),
+       ["Meine Lieder, meine Träume", "The Sound of Music", "In Österreich lange fast unbekannt."]]'::jsonb,
+     '[["Sunset Boulevard", "Boulevard der Dämmerung wäre der deutsche Titel, der Film fehlt hier."],
+       ["North by Northwest", "Der unsichtbare Dritte steht nicht auf diesem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'serien-schoepfer', 'Serien & ihre Schöpfer',
      'Wer hat die Serie entwickelt?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Chernobyl", "Craig Mazin", "Zuvor bekannt für Komödien."],
        ["Dark", "Baran bo Odar", "Gemeinsam mit Jantje Friese entwickelt."],
        ["Stranger Things", "Duffer-Brüder", "Der Stoff wurde von vielen Sendern abgelehnt."],
-       ["The Office", "Ricky Gervais", "Das britische Original umfasst nur zwölf Folgen."]]'::jsonb),
+       ["The Office", "Ricky Gervais", "Das britische Original umfasst nur zwölf Folgen."]]'::jsonb,
+     '[["Aaron Sorkin", "The West Wing stammt von ihm, die Serie fehlt hier."],
+       ["Shonda Rhimes", "Grey''s Anatomy wäre ihre Serie, und die steht nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'requisiten', 'Figuren & ihre Requisiten',
      'Was gehört untrennbar zur Figur?',
@@ -52,7 +56,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Freddy Krueger", "Klingenhandschuh", "Das Geräusch kündigt ihn an."],
        ["Captain America", "Runder Schild", "Aus einem fiktiven Metall aus Wakanda."],
        ["Sherlock Holmes", "Lupe", "Die Deerstalker-Mütze stammt erst von Illustratoren."],
-       ["Zorro", "Degen", "Er hinterlässt ein Z als Unterschrift."]]'::jsonb),
+       ["Zorro", "Degen", "Er hinterlässt ein Z als Unterschrift."]]'::jsonb,
+     '[["Fedora aus Filz", "Ein Hut gehört zu mancher Figur, hier ist er keine Antwort."],
+       ["Dreizack", "Die Waffe des Poseidon, und der steht nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'oscar-rekorde', 'Oscar-Rekorde',
      'Wer oder was hält diesen Rekord?',
@@ -66,7 +72,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Meiste Oscars insgesamt", "Walt Disney", "22 Auszeichnungen zu Lebzeiten."],
        ["Erster nicht englischsprachiger Hauptpreisträger", "Parasite", "2020 für den besten Film."],
        ["Meiste Regie-Oscars", "John Ford", "Viermal ausgezeichnet."],
-       ["Erster Preis für einen Animationsfilm", "Shrek", "Die Kategorie wurde 2002 eingeführt."]]'::jsonb),
+       ["Erster Preis für einen Animationsfilm", "Shrek", "Die Kategorie wurde 2002 eingeführt."]]'::jsonb,
+     '[["Alfred Hitchcock", "Er gewann nie einen Regie-Oscar, hält also keinen Rekord hier."],
+       ["Titanic", "Der Film teilt sich den Rekord an Einzelpreisen, der steht aber nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'kinderserien-laender', 'Kinderserien & Herkunftsländer',
      'Aus welchem Land stammt die Serie?',
@@ -83,7 +91,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mascha und der Bär", "Russland", "Weltweit eine der meistgesehenen Kinderserien."],
        ["Bluey", "Australien", "Eine Hundefamilie mit sehr geduldigen Eltern."],
        ["Caillou", "Kanada", "Aus einer Bilderbuchreihe aus Québec."],
-       ["Pocoyó", "Spanien", "Weißer Hintergrund statt gezeichneter Kulisse."]]'::jsonb),
+       ["Pocoyó", "Spanien", "Weißer Hintergrund statt gezeichneter Kulisse."]]'::jsonb,
+     '[["Dänemark", "Die Olsenbande für Kinder käme von dort, hier fehlt sie."],
+       ["Belgien", "Die Schlümpfe stammen von dort, sie stehen nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'studio-logos', 'Filmstudios & ihre Logos',
      'Welches Studio erkennt man daran?',
@@ -97,7 +107,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Springende Schreibtischlampe", "Pixar", "Aus einem frühen Kurzfilm des Studios."],
        ["Junge auf der Mondsichel", "DreamWorks", "Ursprünglich als Gemälde entworfen."],
        ["Waldgeist mit Regenschirm", "Studio Ghibli", "Die Figur stammt aus einem eigenen Film."],
-       ["Ineinandergreifende Zahnräder", "Lionsgate", "Aus Kanada, heute in Kalifornien."]]'::jsonb),
+       ["Ineinandergreifende Zahnräder", "Lionsgate", "Aus Kanada, heute in Kalifornien."]]'::jsonb,
+     '[["Schloss mit Feuerwerk", "Das ist die Walt-Disney-Vorspannmarke, sie fehlt auf dem Brett."],
+       ["Freiheitsstatue im Kreis", "Kein Studio in dieser Liste führt so ein Zeichen."]]'::jsonb),
 
     ('film-fernsehen', 'spin-offs', 'Ableger & Ursprungsserien',
      'Aus welcher Serie ging der Ableger hervor?',
@@ -111,7 +123,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["House of the Dragon", "Game of Thrones", "Spielt fast zwei Jahrhunderte früher."],
        ["Fear the Walking Dead", "The Walking Dead", "Zeigt den Beginn der Seuche."],
        ["Young Sheldon", "The Big Bang Theory", "Kindheit einer Nebenfigur in Texas."],
-       ["Laverne & Shirley", "Happy Days", "Zwei Nebenfiguren bekommen eine eigene Serie."]]'::jsonb),
+       ["Laverne & Shirley", "Happy Days", "Zwei Nebenfiguren bekommen eine eigene Serie."]]'::jsonb,
+     '[["Star Trek", "Deep Space Nine wäre der Ableger dazu, er steht nicht auf dem Brett."],
+       ["Grey''s Anatomy", "Private Practice ging daraus hervor, hier fehlt beides."]]'::jsonb),
 
     ('film-fernsehen', 'gegenspieler', 'Helden & ihre Gegenspieler',
      'Wer ist der Widersacher?',
@@ -127,7 +141,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ellen Ripley", "Alien-Königin", "Mutter gegen Mutter im Frachtraum."],
        ["Road Runner", "Wile E. Coyote", "Der Verfolger scheitert an eigenen Erfindungen."],
        ["Simba", "Scar", "Der Onkel will den Thron."],
-       ["John McClane", "Hans Gruber", "Ein sehr höflicher Geiselnehmer."]]'::jsonb),
+       ["John McClane", "Hans Gruber", "Ein sehr höflicher Geiselnehmer."]]'::jsonb,
+     '[["Professor Snape", "Er ist keiner der Widersacher, die hier zugeordnet werden."],
+       ["Nurse Ratched", "Aus Einer flog über das Kuckucksnest, das nicht auf dem Brett steht."]]'::jsonb),
 
     ('film-fernsehen', 'kinotechnik', 'Technik des Kinos',
      'Was steckt hinter dem Verfahren?',
@@ -142,7 +158,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Computergenerierte Bilder", "Objekte aus dem Rechner", "Erstmals umfassend in Jurassic Park."],
        ["Motion Capture", "Bewegung wird abgenommen", "Punkte am Körper werden von Kameras verfolgt."],
        ["Bullet Time", "Eingefrorene Bewegung im Raum", "Viele Kameras lösen nacheinander aus."],
-       ["Digitale Projektion", "Kino ohne Filmrolle", "Der Film kommt als Datei ins Haus."]]'::jsonb),
+       ["Digitale Projektion", "Kino ohne Filmrolle", "Der Film kommt als Datei ins Haus."]]'::jsonb,
+     '[["Duft im Kinosaal", "Smell-O-Vision blieb ein Versuch und steht nicht auf dem Brett."],
+       ["Bewegliche Sitze im Saal", "Das 4D-Kino kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('film-fernsehen', 'sender-laender', 'Fernsehsender & Länder',
      'Aus welchem Land sendet die Anstalt?',
@@ -159,7 +177,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["CBC", "Kanada", "Sendet auf Englisch und Französisch."],
        ["PBS", "USA", "Wird über Spenden mitfinanziert."],
        ["ABC", "Australien", "Nicht zu verwechseln mit dem gleichnamigen US-Sender."],
-       ["TVP", "Polen", "Öffentlicher Rundfunk mit mehreren Kanälen."]]'::jsonb),
+       ["TVP", "Polen", "Öffentlicher Rundfunk mit mehreren Kanälen."]]'::jsonb,
+     '[["Niederlande", "Die NOS sendet von dort, sie fehlt auf diesem Brett."],
+       ["Schweden", "SVT wäre die Anstalt dazu, und die steht hier nicht."]]'::jsonb),
 
     ('film-fernsehen', 'filmszenen', 'Legendäre Szenen',
      'Aus welchem Film stammt die Szene?',
@@ -176,7 +196,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schlittenverbrennung am Ende", "Citizen Kane", "Ein Wort erklärt ein ganzes Leben."],
        ["Ausbreiten der Arme am Bug", "Titanic", "Der König der Welt, für wenige Minuten."],
        ["Duell mit drei Blicken", "Zwei glorreiche Halunken", "Immer engere Einstellungen, immer lautere Musik."],
-       ["Wiederholter Weckerklang am Morgen", "Groundhog Day", "Derselbe Tag beginnt immer wieder von vorn."]]'::jsonb),
+       ["Wiederholter Weckerklang am Morgen", "Groundhog Day", "Derselbe Tag beginnt immer wieder von vorn."]]'::jsonb,
+     '[["Duschvorhang und Messer", "Das ist Psycho, und der Film fehlt auf dem Brett."],
+       ["Der Kopf in der Kiste am Ende", "Das ist Sieben, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'serien-sender', 'Serien & ihre Sender',
      'Wo lief die Serie zuerst?',
@@ -191,7 +213,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Doctor Who", "BBC", "Läuft mit Unterbrechungen seit 1963."],
        ["Tatort", "ARD", "Sonntagabend, seit 1970."],
        ["Twin Peaks", "ABC", "Ungewöhnlich für das Hauptabendprogramm."],
-       ["Akte X", "Fox", "Machte Mystery zum Serienformat."]]'::jsonb),
+       ["Akte X", "Fox", "Machte Mystery zum Serienformat."]]'::jsonb,
+     '[["Showtime", "Dexter lief dort zuerst, die Serie fehlt auf dem Brett."],
+       ["ZDF", "Der Alte lief dort, und der steht hier nicht."]]'::jsonb),
 
     ('film-fernsehen', 'filmtiere', 'Berühmte Filmtiere',
      'Welches Tier steckt hinter dem Namen?',
@@ -207,7 +231,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bambi", "Reh", "Im Buch ist es ein Reh, im Film ein Weißwedelhirsch."],
        ["Dumbo", "Elefant", "Große Ohren als Flügel."],
        ["Balu", "Lippenbär", "Sein Lied über Gemütlichkeit wurde berühmt."],
-       ["Shere Khan", "Tiger", "Der Gegenspieler im Dschungelbuch."]]'::jsonb),
+       ["Shere Khan", "Tiger", "Der Gegenspieler im Dschungelbuch."]]'::jsonb,
+     '[["Papagei", "Kein Filmtier auf diesem Brett ist ein Vogel."],
+       ["Rentier", "Sven aus Die Eiskönigin wäre das, er fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'regisseurinnen', 'Regisseurinnen & ihre Filme',
      'Welcher Film stammt von ihr?',
@@ -222,7 +248,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Lina Wertmüller", "Sieben Schönheiten", "Erste Frau mit einer Regie-Nominierung."],
        ["Julia Ducournau", "Titane", "Goldene Palme für einen Körperhorrorfilm."],
        ["Justine Triet", "Anatomie eines Falls", "Ein Prozess ohne eindeutige Wahrheit."],
-       ["Leni Riefenstahl", "Das blaue Licht", "Ihr Spielfilmdebüt, vor den Propagandafilmen."]]'::jsonb),
+       ["Leni Riefenstahl", "Das blaue Licht", "Ihr Spielfilmdebüt, vor den Propagandafilmen."]]'::jsonb,
+     '[["Lost in Translation", "Der Film von Sofia Coppola, die nicht auf dem Brett steht."],
+       ["Der Pferdeflüsterer", "Von Robert Redford, und der gehört ohnehin nicht hierher."]]'::jsonb),
 
     ('film-fernsehen', 'synchronstimmen', 'Deutsche Synchronstimmen',
      'Wen spricht die Stimme im Deutschen?',
@@ -237,7 +265,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Thomas Danneberg", "Arnold Schwarzenegger", "Sprach ebenso Sylvester Stallone."],
        ["Randolf Kronberg", "Eddie Murphy", "Prägte den Ton der Komödien der 1980er."],
        ["Klaus Sonnenschein", "Morgan Freeman", "Auch als Erzähler im Fernsehen zu hören."],
-       ["Marion von Stengel", "Sandra Bullock", "Langjährige Stammstimme."]]'::jsonb),
+       ["Marion von Stengel", "Sandra Bullock", "Langjährige Stammstimme."]]'::jsonb,
+     '[["Al Pacino", "Auch er hat feste deutsche Stimmen, hier steht keine davon."],
+       ["Meryl Streep", "Ihre Stimme fehlt auf diesem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'wahre-begebenheiten', 'Filme & ihre wahren Vorbilder',
      'Wessen Geschichte erzählt der Film?',
@@ -254,7 +284,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Pianist", "Władysław Szpilman", "Überleben im Warschauer Ghetto."],
        ["Selma", "Martin Luther King", "Der Marsch nach Montgomery."],
        ["Oppenheimer", "Robert Oppenheimer", "Der Bau der Bombe und die Folgen."],
-       ["Die Eiserne Lady", "Margaret Thatcher", "Erzählt aus der Erinnerung im Alter."]]'::jsonb),
+       ["Die Eiserne Lady", "Margaret Thatcher", "Erzählt aus der Erinnerung im Alter."]]'::jsonb,
+     '[["Alan Turing", "The Imitation Game erzählt seine Geschichte, der Film fehlt hier."],
+       ["Erin Brockovich", "Auch ein wahres Vorbild, aber keines auf diesem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'verwandlungen', 'Rollen mit Verwandlung',
      'Wer verwandelte sich für welche Rolle?',
@@ -268,7 +300,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Renée Zellweger", "Judy", "Sang die Lieder selbst."],
        ["Tilda Swinton", "Suspiria", "Spielte gleich mehrere Rollen unter Maske."],
        ["Brendan Fraser", "The Whale", "Tägliche Stunden im Ganzkörperkostüm."],
-       ["Jamie Lee Curtis", "Everything Everywhere", "Bewusst ohne kaschierendes Make-up gespielt."]]'::jsonb),
+       ["Jamie Lee Curtis", "Everything Everywhere", "Bewusst ohne kaschierendes Make-up gespielt."]]'::jsonb,
+     '[["Joaquin Phoenix", "Für Joker nahm er stark ab, der Film steht nicht auf dem Brett."],
+       ["Daniel Day-Lewis", "Für Mein linker Fuß, und der fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'fernsehpreise', 'Fernsehpreise & Länder',
      'In welchem Land wird der Preis vergeben?',
@@ -283,7 +317,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gemini Award", "Kanada", "Heute Teil der Canadian Screen Awards."],
        ["Logie Award", "Australien", "Publikumsabstimmung als Kern der Verleihung."],
        ["Seoul International Drama Award", "Südkorea", "Zeichnet Serien aus aller Welt aus."],
-       ["Nymphe von Monte Carlo", "Monaco", "Trophäe des dortigen Fernsehfestivals."]]'::jsonb),
+       ["Nymphe von Monte Carlo", "Monaco", "Trophäe des dortigen Fernsehfestivals."]]'::jsonb,
+     '[["Frankreich", "Der Sept d''or wurde dort vergeben, er steht nicht auf dem Brett."],
+       ["Japan", "Kein Preis in dieser Liste wird dort verliehen."]]'::jsonb),
 
     ('film-fernsehen', 'erzaehlformen', 'Erzählformen im Film',
      'Was bezeichnet die Technik?',
@@ -299,7 +335,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cliffhanger", "Abbruch im Spannungsmoment", "Erfunden für Fortsetzungsromane."],
        ["Deus ex machina", "Rettung aus dem Nichts", "Der Begriff stammt aus dem antiken Theater."],
        ["Chekhovs Gewehr", "Eingeführtes muss zünden", "Sonst gehört es nicht in die Geschichte."],
-       ["Twist Ending", "Wendung am Schluss", "Sie zwingt zum zweiten Ansehen."]]'::jsonb),
+       ["Twist Ending", "Wendung am Schluss", "Sie zwingt zum zweiten Ansehen."]]'::jsonb,
+     '[["Der Erzähler spricht das Publikum an", "Das ist der Bruch der vierten Wand, er fehlt hier."],
+       ["Vorgriff auf das spätere Ende", "Die Vorausblende steht nicht auf diesem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'filmwirtschaft', 'Begriffe der Filmwirtschaft',
      'Was bedeutet der Begriff?',
@@ -316,7 +354,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Director''s Cut", "Fassung der Regie", "Weicht von der Kinoversion ab."],
        ["Product Placement", "Bezahlte Markenauftritte", "Die Kaffeetasse steht nicht zufällig da."],
        ["Merchandising", "Verkauf von Begleitprodukten", "Bei manchen Reihen einträglicher als der Film."],
-       ["Streaming-Auswertung", "Veröffentlichung im Abo", "Verdrängt zunehmend das Kinofenster."]]'::jsonb)
+       ["Streaming-Auswertung", "Veröffentlichung im Abo", "Verdrängt zunehmend das Kinofenster."]]'::jsonb,
+     '[["Aufwendige Vorabwerbung vor dem Start", "Die Marketingkampagne kommt hier nicht vor."],
+       ["Auswertung direkt auf Datenträger", "Das Direct-to-Video steht nicht auf dem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -341,15 +381,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

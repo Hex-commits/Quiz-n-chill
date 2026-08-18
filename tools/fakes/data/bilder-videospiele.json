@@ -1,0 +1,30 @@
+{
+  "bild-konsolen-hersteller": [
+    ["Atari", "Kein Gerät auf diesem Brett stammt von dieser Firma."],
+    ["Amstrad", "Auch von dieser Firma ist hier nichts abgebildet."]
+  ],
+  "bild-konsolen-jahrgaenge": [
+    ["1994 in Europa", "Die Saturn kam in Japan 1994, in Europa erst 1995."],
+    ["2017", "Die Switch erschien damals, und die fehlt auf diesem Brett."]
+  ],
+  "bild-handhelds": [
+    ["Vier Grüntöne auf dem Schirm", "Das wäre der erste Game Boy, und der fehlt hier."],
+    ["Spiele über Funk empfangen", "Kein Gerät auf diesem Brett konnte das."]
+  ],
+  "bild-heimcomputer": [
+    ["Erster Rechner mit Maus im Bündel", "Das war der Macintosh, und der fehlt auf dem Brett."],
+    ["Nur mit Kassettenlaufwerk erhältlich", "Auf kein Gerät in dieser Liste trifft das zu."]
+  ],
+  "bild-menschen": [
+    ["Tetris", "Alexei Paschitnow steht dafür, und der ist hier nicht abgebildet."],
+    ["Minecraft", "Markus Persson fehlt auf diesem Brett."]
+  ],
+  "bild-zubehoer": [
+    ["Sega Mega Drive", "Kein Gerät auf diesem Brett gehört dazu."],
+    ["Nintendo 64", "Auch das Rumble Pak fehlt in dieser Liste."]
+  ],
+  "bild-arcade": [
+    ["Fässern auf Gerüsten ausweichen", "Das wäre Donkey Kong, und der fehlt auf dem Brett."],
+    ["Auf einem Motorrad durch Kurven", "Kein Automat in dieser Liste ist das."]
+  ]
+}

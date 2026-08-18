@@ -1,0 +1,82 @@
+{
+  "leicht-konsolen-hersteller": [
+    ["GameCube", "Auch von Nintendo, doch auf dem Brett steht die Switch."],
+    ["Ouya", "Sie kam von einer Firma, die hier nicht steht."]
+  ],
+  "leicht-spiele-figuren": [
+    ["Sonic", "Er gehört zu Sega, und die Reihe fehlt auf diesem Brett."],
+    ["Ezio Auditore", "Aus Assassin's Creed, das hier nicht steht."]
+  ],
+  "leicht-spielgenres": [
+    ["Karten sammeln und ausspielen", "Das Kartenspiel fehlt auf diesem Brett."],
+    ["Gruselig durch dunkle Gänge", "Das Horrorspiel steht nicht in dieser Liste."]
+  ],
+  "leicht-mario-welt": [
+    ["Blauer Igel mit roten Schuhen", "Das ist Sonic, und der gehört nicht zu Mario."],
+    ["Sternenmütze zum Werfen", "Sie stammt aus Mario Odyssey und fehlt auf diesem Brett."]
+  ],
+  "leicht-pokemon-typen": [
+    ["Eis", "Kein Pokémon auf diesem Brett hat diesen Typ."],
+    ["Stahl", "Auch dieser Typ kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-zelda": [
+    ["Blauer Igel als Begleiter", "Er gehört nicht in diese Reihe."],
+    ["Segelboot mit sprechendem Kopf", "Aus Wind Waker, und das fehlt auf diesem Brett."]
+  ],
+  "leicht-minecraft": [
+    ["Amboss zum Reparieren", "Es gibt ihn, er steht aber nicht auf diesem Brett."],
+    ["Ein Auto zum Fahren", "So etwas gibt es im Spiel gar nicht."]
+  ],
+  "leicht-spielhalle": [
+    ["Bälle mit dem Schläger zurückschlagen", "Arkanoid wäre das, und es fehlt auf dem Brett."],
+    ["Auf einem Motorrad durch die Kurven", "Kein Automat in dieser Liste ist das."]
+  ],
+  "leicht-tiere": [
+    ["Waschbär", "Kein Held auf diesem Brett ist einer."],
+    ["Katze", "Auch sie kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-sportspiele": [
+    ["Tennis", "Ein Tennisspiel fehlt auf diesem Brett."],
+    ["Boxen", "Kein Titel in dieser Liste steht dafür."]
+  ],
+  "leicht-handyspiele": [
+    ["Steine in Reihen schieben", "Das wäre Tetris, und es steht nicht auf diesem Brett."],
+    ["Ein Restaurant führen", "So ein Spiel fehlt in dieser Liste."]
+  ],
+  "leicht-begriffe": [
+    ["Zusätzlicher Inhalt zum Kaufen", "Der DLC fehlt auf diesem Brett."],
+    ["Bild pro Sekunde", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-konsolen-merkmale": [
+    ["Legt CDs zum Abspielen ein", "Kein Gerät auf diesem Brett ist so beschrieben."],
+    ["Zwei Controller fest verbaut", "Das trifft auf keines in dieser Liste zu."]
+  ],
+  "leicht-steuerung": [
+    ["Kamera erkennt Bewegungen", "Die Kinect fehlt auf diesem Brett."],
+    ["Sitz, der sich mitbewegt", "Er steht nicht in dieser Liste."]
+  ],
+  "leicht-mario-kart": [
+    ["Grüner Panzer", "Er fliegt geradeaus und fehlt auf diesem Brett."],
+    ["Sprungfeder auf der Strecke", "So etwas kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-reihen-thema": [
+    ["Zombies im Herrenhaus", "Resident Evil fehlt auf diesem Brett."],
+    ["Ein Zoo verwalten", "Keine Reihe in dieser Liste handelt davon."]
+  ],
+  "leicht-maskottchen": [
+    ["Lara Croft", "Sie steht für ein Studio, das hier nicht aufgeführt ist."],
+    ["Crash Bandicoot", "Er gehört zu Naughty Dog, und das fehlt auf dem Brett."]
+  ],
+  "leicht-zusammen-spielen": [
+    ["Allein gegen den Computer", "Das ist kein gemeinsames Spielen auf diesem Brett."],
+    ["Der Spielstand für zwei Personen", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-wo-spielt-man": [
+    ["Im Kino auf großer Leinwand", "Dort wird nicht gespielt."],
+    ["Auf der Armbanduhr", "Kein Ort auf diesem Brett meint das."]
+  ],
+  "leicht-bosewichte": [
+    ["Bowser Jr.", "Der Sohn kommt in dieser Liste nicht vor, nur der Vater."],
+    ["Handsome Jack", "Aus Borderlands, das auf diesem Brett fehlt."]
+  ]
+}

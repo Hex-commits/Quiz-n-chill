@@ -1,0 +1,82 @@
+{
+  "sportler-laender": [
+    ["Spanien", "Rafael Nadal träte dafür an, und der fehlt auf diesem Brett."],
+    ["Äthiopien", "Haile Gebrselassie käme von dort, er steht nicht in dieser Liste."]
+  ],
+  "motorsport-serien": [
+    ["Rennen nur bergauf", "Das Bergrennen fehlt auf diesem Brett."],
+    ["Rundenrennen mit Karts", "Der Kartsport steht nicht in dieser Liste."]
+  ],
+  "fussball-regeln": [
+    ["Wechsel eines Spielers", "Die Auswechslung fehlt auf diesem Brett."],
+    ["Anstoß nach einem Tor", "Er steht nicht in dieser Liste."]
+  ],
+  "derbys": [
+    ["Bayern und Nürnberg", "Das bayerische Derby fehlt auf diesem Brett."],
+    ["Ajax und Feyenoord", "De Klassieker steht nicht in dieser Liste."]
+  ],
+  "extremsport": [
+    ["Sprung aus dem Flugzeug am Schirm", "Das Fallschirmspringen fehlt auf diesem Brett."],
+    ["Radfahren über steile Felsen", "Das Downhill steht nicht in dieser Liste."]
+  ],
+  "laufveranstaltungen-laender": [
+    ["Niederlande", "Der Rotterdam-Marathon fehlt auf diesem Brett."],
+    ["Kenia", "Kein Lauf in dieser Liste findet dort statt."]
+  ],
+  "spielzeiten-punkte": [
+    ["45 Minuten", "So lang ist eine Fußballhalbzeit, gefragt ist hier das ganze Spiel."],
+    ["6 Punkte", "Keine Zählweise auf diesem Brett endet dort."]
+  ],
+  "segeln-wassersport": [
+    ["Rudern zu acht mit Steuermann", "Der Achter fehlt auf diesem Brett."],
+    ["Wasserski hinter dem Boot", "Es steht nicht in dieser Liste."]
+  ],
+  "sportler-spitznamen": [
+    ["Der fliegende Holländer", "So hieß Johan Cruyff, und der fehlt auf diesem Brett."],
+    ["Air Jordan", "Michael Jordan steht nicht in dieser Liste."]
+  ],
+  "nationalstadien-laender": [
+    ["Argentinien", "Das Monumental stünde dort, und es fehlt auf dem Brett."],
+    ["Südafrika", "Das Soccer City steht nicht in dieser Liste."]
+  ],
+  "golf-begriffe": [
+    ["Sieger eines Major-Turniers", "Danach fragt keine Zeile auf diesem Brett."],
+    ["Schlag über das Wasser hinweg", "Kein Begriff in dieser Liste meint das."]
+  ],
+  "radklassiker-laender": [
+    ["Österreich", "Die Österreich-Rundfahrt fehlt auf diesem Brett."],
+    ["Norwegen", "Kein Rennen in dieser Liste wird dort gefahren."]
+  ],
+  "sportgeschichte-erste-male": [
+    ["1972", "Kein Ereignis auf diesem Brett fand zum ersten Mal in diesem Jahr statt."],
+    ["1904", "Die zweiten Spiele der Neuzeit, aber keine Premiere in dieser Liste."]
+  ],
+  "turngeraete": [
+    ["Kletterstange an der Wand", "Sie ist kein Turngerät auf diesem Brett."],
+    ["Sprungseil", "Es steht nicht in dieser Liste."]
+  ],
+  "boxgewichtsklassen": [
+    ["Bis 100 Kilogramm", "Keine Klasse auf diesem Brett hat diese Grenze."],
+    ["Bis 48 Kilogramm", "Das Strohgewicht fehlt in dieser Liste."]
+  ],
+  "eishockey-begriffe": [
+    ["Wechsel bei laufendem Spiel", "Der fliegende Wechsel fehlt auf diesem Brett."],
+    ["Verlängerung nach Unentschieden", "Sie steht nicht in dieser Liste."]
+  ],
+  "baelle-sportarten": [
+    ["Sehr harter Ball mit Löchern zum Greifen", "Die Bowlingkugel fehlt auf diesem Brett."],
+    ["Kleiner Ball mit Federkranz", "Der Federball steht nicht in dieser Liste."]
+  ],
+  "sportverletzungen": [
+    ["Nasenbeinbruch", "Er trifft die Nase, und die fehlt auf diesem Brett."],
+    ["Rippenprellung", "Sie steht nicht in dieser Liste."]
+  ],
+  "skisprungschanzen": [
+    ["Klingenthal", "Die Vogtlandschanze steht dort, und sie fehlt auf dem Brett."],
+    ["Lahti", "Die finnische Schanze kommt in dieser Liste nicht vor."]
+  ],
+  "sportpionierinnen": [
+    ["Erste Frau im Formel-1-Rennen", "Das war Maria Teresa de Filippis, die hier fehlt."],
+    ["Steffi Graf", "Der Golden Slam von 1988 steht nicht auf diesem Brett."]
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "leicht-instrumentengruppen": [
+    ["Mit dem Fuß treten", "Kein Instrument auf diesem Brett wird so gespielt."],
+    ["Über die Saiten hauchen", "So klingt kein Instrument in dieser Liste."]
+  ],
+  "leicht-kinderlieder": [
+    ["Wer will fleißige Handwerker sehn", "Ein Kinderlied, das auf diesem Brett fehlt."],
+    ["Grün, grün, grün sind alle meine Kleider", "Es steht nicht in dieser Liste."]
+  ],
+  "leicht-lautstaerke-tempo": [
+    ["Immer leiser", "Das wäre Decrescendo, und es fehlt auf diesem Brett."],
+    ["Gebunden spielen", "Legato steht nicht in dieser Liste."]
+  ],
+  "leicht-bands-erkennen": [
+    ["Niederlande", "Golden Earring käme von dort, und die Band fehlt hier."],
+    ["Norwegen", "A-ha steht nicht auf diesem Brett."]
+  ],
+  "leicht-stimmen": [
+    ["Mittlere Frauenstimme", "Der Mezzosopran fehlt auf diesem Brett."],
+    ["Pfeifen statt singen", "Das ist keine Singstimme in dieser Liste."]
+  ],
+  "leicht-noten": [
+    ["Hebt ein Vorzeichen auf", "Das Auflösungszeichen fehlt auf diesem Brett."],
+    ["Zeigt an, wie laut gespielt wird", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-musikrichtungen": [
+    ["Punk", "Kurz, schnell und roh, aber auf diesem Brett steht er nicht."],
+    ["Soul", "Auch eine Richtung, die hier fehlt."]
+  ],
+  "leicht-instrumente-material": [
+    ["Glas", "Kein Instrument auf diesem Brett besteht daraus."],
+    ["Ton gebrannt", "Die Okarina wäre das, und die fehlt in dieser Liste."]
+  ],
+  "leicht-wo-musik": [
+    ["Bibliothek", "Dort ist es still, und Musik erklingt nicht."],
+    ["Museum", "Auch dort spielt niemand, es steht nicht auf dem Brett."]
+  ],
+  "leicht-lieder-anlaesse": [
+    ["Beim Erntedankfest", "Ein Anlass, der auf diesem Brett fehlt."],
+    ["Zum Schulanfang", "Er steht nicht in dieser Liste."]
+  ],
+  "leicht-beruehmte-musiker": [
+    ["Erfinder des Klaviers", "Bartolomeo Cristofori war das, und der fehlt hier."],
+    ["Sängerin von ABBA", "Agnetha Fältskog steht nicht auf diesem Brett."]
+  ],
+  "leicht-taktarten": [
+    ["Ganz ohne Takt", "Kein Eintrag auf diesem Brett meint das."],
+    ["Fünf Schläge im Takt", "Der Fünfvierteltakt fehlt in dieser Liste."]
+  ],
+  "leicht-musik-technik": [
+    ["Notenständer", "Er hält die Noten, aber Musik hört man damit nicht."],
+    ["Stimmgerät", "Es hilft beim Stimmen, steht hier aber nicht."]
+  ],
+  "leicht-orchester": [
+    ["Verkauft die Karten am Eingang", "Das gehört nicht ins Orchester."],
+    ["Der Notenwart im Hintergrund", "Er kommt auf diesem Brett nicht vor."]
+  ],
+  "leicht-musik-laender": [
+    ["Kuba", "Die Salsa käme von dort, und sie fehlt auf diesem Brett."],
+    ["Irland", "Die Fiddle-Musik steht nicht in dieser Liste."]
+  ],
+  "leicht-tanzen-musik": [
+    ["Walzer aus Wien im Zweivierteltakt", "Der Wiener Walzer geht im Dreivierteltakt."],
+    ["Techno im Club", "Dazu tanzt man, auf diesem Brett steht es aber nicht."]
+  ],
+  "leicht-lied-teile": [
+    ["Die Person, die das Lied singt", "Der Sänger ist kein Teil des Liedes."],
+    ["Die Lautstärke im Refrain", "Danach fragt keine Zeile auf diesem Brett."]
+  ],
+  "leicht-schlager-charts": [
+    ["Platin für sehr viele Verkäufe", "Es gibt sie, auf diesem Brett steht aber nur Gold."],
+    ["Das Konzert in der Heimatstadt", "Es fehlt in dieser Liste."]
+  ],
+  "leicht-musik-schule": [
+    ["Ein Instrument selbst bauen", "Das kommt auf diesem Brett nicht vor."],
+    ["Ein Konzert besuchen", "Es steht nicht in dieser Liste."]
+  ],
+  "leicht-instrumente-zahl": [
+    ["6", "Die Saiten einer Gitarre stehen schon auf dem Brett, doppelt gibt es sie nicht."],
+    ["24", "Keine Zahl auf diesem Brett meint das."]
+  ]
+}

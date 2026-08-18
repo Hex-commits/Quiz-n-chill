@@ -886,10 +886,19 @@ export function LobbyRoom({
                           className={cn(
                             "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-semibold whitespace-normal",
                             "ease-(--ease-soft) transition-all duration-200",
-                            "hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
+                            /* A lifted or picked chip reaches outside its own
+                               box, and `quiz-shine` positions every chip, so
+                               without a z-index the next chip along paints over
+                               the edge that says which one is picked. */
+                            "hover:z-10 hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
                             "active:translate-y-0 active:scale-[0.98] active:duration-75",
+                            /* An outline rather than a ring: the gap it leaves
+                               is transparent, so the dark card shows between
+                               the yellow fill and the yellow edge. A ring at
+                               the same offset would paint its own backdrop over
+                               the card and read as one thick smear. */
                             selectedItemId === item.id &&
-                              "ring-primary/50 scale-[1.03] shadow-lg ring-2",
+                              "outline-primary z-10 scale-[1.03] shadow-lg outline-solid outline-2 outline-offset-2",
                           )}
                           variant={selectedItemId === item.id ? "default" : "outline"}
                           disabled={!isMyTurn || busy}
@@ -916,14 +925,20 @@ export function LobbyRoom({
             </Card>
 
             {/*
-              The height left over, divided between the categories: equal rows
-              (`auto-rows-fr`) that are allowed to be shorter than their contents
-              (`minmax(0,…)`, which is what Tailwind's `fr` row means here), so
-              the pictures give way rather than the board growing past the
-              screen. `overflow-y-auto` is the last resort and nothing more —
-              ten categories on a laptop in landscape will still find the floor.
+              Wrapping flex rather than a grid, because a grid leaves a short
+              last row hanging off the left edge under the row above it — ten
+              categories seven to a row put three of them there. Wrapped lines
+              can be centred, so the board stays a block whatever the count
+              divides into.
+
+              The height left over is divided between the lines: `content-stretch`
+              hands each an equal share of what is spare, and the cards may be
+              shorter than their contents (`min-h-0`), so the pictures give way
+              rather than the board growing past the screen. `overflow-y-auto` is
+              the last resort and nothing more — ten categories on a laptop in
+              landscape will still find the floor.
             */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:auto-rows-[minmax(min-content,1fr)] lg:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] lg:gap-2 lg:overflow-y-auto">
+            <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-wrap lg:content-stretch lg:justify-center lg:gap-2 lg:overflow-y-auto">
               {categories.map((category, index) => {
                 const solved = solvedIn(category.id);
                 const full = solved.length > 0;
@@ -1841,8 +1856,15 @@ function CategoryCard({
       className={cn(
         "animate-quiz-rise",
         "lg:min-h-0 lg:[--card-spacing:--spacing(2)]",
+        /* The card carries its own width now that the parent names no tracks.
+           A fixed basis rather than a growing one: a short last row would
+           otherwise end up with cards wider than the rows above it, which is a
+           worse look than the slack the centring leaves at the edges. */
+        "lg:min-w-0 lg:grow-0 lg:basis-48 xl:basis-56",
         armed &&
-          "ring-primary/60 hover:ring-primary cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl",
+          /* Lifted, it overlaps its neighbours, and the ones after it in the
+             board would otherwise paint over the lift. */
+          "ring-primary/60 hover:ring-primary relative cursor-pointer hover:z-10 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl",
         full && !reveal && "bg-muted/50 opacity-60",
         missed && "border-amber-500/50",
       )}

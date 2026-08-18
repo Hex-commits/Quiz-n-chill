@@ -1,0 +1,82 @@
+{
+  "archaeologische-raetsel": [
+    ["Ägypten", "Die Sphinx läge dort, und sie fehlt auf diesem Brett."],
+    ["Mexiko", "Teotihuacán steht nicht in dieser Liste."]
+  ],
+  "verschollenes": [
+    ["Bermudadreieck", "Kein Fall auf diesem Brett verliert sich dort."],
+    ["Anden", "Kein Vermisster in dieser Liste verschwand im Hochgebirge."]
+  ],
+  "geschichtsmythen": [
+    ["Es stimmt genau so", "Kein Satz auf diesem Brett ist wahr, das ist der Punkt."],
+    ["Von der Kirche verboten", "Auf keinen der Irrtümer hier trifft das zu."]
+  ],
+  "kuriose-steuern": [
+    ["Niederlande", "Die Steuer nach Hausbreite wurde dort erhoben, sie fehlt hier."],
+    ["Japan", "Keine Steuer auf diesem Brett wurde dort eingezogen."]
+  ],
+  "aufstaende-anfuehrer": [
+    ["Pugatschow", "Er führte den Aufstand in Russland an, der hier fehlt."],
+    ["Simón Bolívar", "Er führte Unabhängigkeitskriege, keinen Aufstand auf diesem Brett."]
+  ],
+  "beruehmte-prozesse": [
+    ["Nürnberg", "Die Kriegsverbrecherprozesse fanden dort statt, sie fehlen hier."],
+    ["Den Haag", "Kein Prozess in dieser Liste wurde dort geführt."]
+  ],
+  "kalendersysteme": [
+    ["Gründung Roms", "Die römische Zählung ab urbe condita fehlt auf diesem Brett."],
+    ["Beginn der Zeitrechnung mit dem Tod Caesars", "So hat nie jemand gezählt."]
+  ],
+  "nachrichtenwege": [
+    ["Schrift auf Tontafeln", "Ein Schriftträger, aber kein Übermittlungsweg auf dem Brett."],
+    ["Funkspruch über Antennen", "Das kam erst nach dem Telefon."]
+  ],
+  "zufallserfindungen": [
+    ["Vergessene Bakterienkultur", "So fand Fleming das Penicillin, das hier fehlt."],
+    ["Jahrelang gezielt entwickelt", "Auf keine Erfindung in dieser Liste trifft das zu."]
+  ],
+  "waehrungsreformen": [
+    ["1922", "Die Sowjetunion wertete damals ab, das steht nicht auf dem Brett."],
+    ["2015", "Die Schweiz gab den Euro-Mindestkurs auf, hier fehlt das Ereignis."]
+  ],
+  "abolition": [
+    ["Dänemark", "Es verbot den Handel schon 1803, das steht nicht auf dem Brett."],
+    ["Portugal", "Auch dort endete die Sklaverei, hier ist sie keine Antwort."]
+  ],
+  "antiker-alltag": [
+    ["Wohnturm für eine Familie", "So baute man in Italien erst im Mittelalter."],
+    ["Halle für Gerichtsverhandlungen", "Die Basilika fehlt auf diesem Brett."]
+  ],
+  "geschichte-des-geldes": [
+    ["Salzbarren in Äthiopien", "Auch eine Währung, aber keine auf diesem Brett."],
+    ["Erste Geldautomaten", "London bekam sie 1967, hier stehen sie nicht."]
+  ],
+  "ddr-alltag": [
+    ["Bausparvertrag", "Ein westdeutsches Wort, das in dieser Liste nichts bedeutet."],
+    ["Rennpappe", "Ein Spottname für den Trabant, gefragt ist hier der Wagen selbst."]
+  ],
+  "historische-verkehrsmittel": [
+    ["Von einem Segel über Land gezogen", "So fuhr nichts in dieser Liste."],
+    ["Mit Dampf über Schienen", "Die Dampflok fehlt auf diesem Brett."]
+  ],
+  "historische-buendnisse": [
+    ["Die Eidgenossenschaft der Urkantone", "Ein Bündnis, das hier nicht steht."],
+    ["Vereinte Nationen", "Sie sind kein Bündnis auf diesem Brett."]
+  ],
+  "historische-mode": [
+    ["Mittlere Bronzezeit", "Kein Kleidungsstück in dieser Liste gehört dorthin."],
+    ["Um 1900", "Die Wespentaille wäre das, und sie fehlt auf dem Brett."]
+  ],
+  "alte-masseinheiten": [
+    ["Gewicht eines Wassertropfens", "So ist kein Maß in dieser Liste entstanden."],
+    ["Abstand zweier Wagenräder", "Auf kein Maß auf diesem Brett trifft das zu."]
+  ],
+  "stadtgruendungen": [
+    ["1703 im Winter", "Sankt Petersburg wurde im Mai gegründet, nicht im Winter."],
+    ["1867", "Kein Ort auf diesem Brett wurde in dem Jahr gegründet."]
+  ],
+  "hofaemter": [
+    ["Bau und Erhalt der Schlösser", "Der Hofbaumeister fehlt auf diesem Brett."],
+    ["Erziehung der Kinder", "Der Hofmeister steht nicht in dieser Liste."]
+  ]
+}

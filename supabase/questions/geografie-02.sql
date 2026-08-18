@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geografie', 'wolkenkratzer-staedte', 'Wolkenkratzer & Städte',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Shanghai Tower", "Shanghai", "632 Meter, die gedrehte Fassade bricht den Wind."],
        ["Torre Agbar", "Barcelona", "Turm in Form eines Geysirs, von Jean Nouvel."],
        ["Marina Bay Sands", "Singapur", "Drei Türme mit einem Schiff als Dachgarten."],
-       ["Ostankino-Turm", "Moskau", "Fernsehturm von 1967, 540 Meter hoch."]]'::jsonb),
+       ["Ostankino-Turm", "Moskau", "Fernsehturm von 1967, 540 Meter hoch."]]'::jsonb,
+     '[["Hongkong", "Das International Commerce Centre stünde dort, es fehlt auf dem Brett."],
+       ["Toronto", "Der CN Tower steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'staedte-fluesse-weltweit', 'Städte & ihre Flüsse',
      'An welchem Fluss liegt die Stadt?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Delhi", "Yamuna", "Größter Nebenfluss des Ganges."],
        ["Hamburg", "Elbe", "Der Hafen liegt 100 Kilometer vor der Mündung."],
        ["Sankt Petersburg", "Newa", "Peter der Große ließ die Stadt 1703 im Delta anlegen."],
-       ["Lyon", "Rhone", "Die Stadt liegt am Zusammenfluss mit der Saône."]]'::jsonb),
+       ["Lyon", "Rhone", "Die Stadt liegt am Zusammenfluss mit der Saône."]]'::jsonb,
+     '[["Seine", "Paris läge daran, und die Stadt fehlt auf dem Brett."],
+       ["Donau", "Keine Stadt in dieser Liste liegt an ihr."]]'::jsonb),
 
     ('geografie', 'einziges-nachbarland', 'Länder mit nur einem Nachbarn',
      'Welches ist das einzige Nachbarland?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Lesotho", "Südafrika", "Bergkönigreich, vollständig vom Nachbarn umgeben."],
        ["Osttimor", "Indonesien", "Teilt sich eine Insel mit dem Nachbarn."],
        ["Katar", "Saudi-Arabien", "Halbinsel im Persischen Golf mit nur einer Landgrenze."],
-       ["Haiti", "Dominikanische Republik", "Teilt sich die Insel Hispaniola."]]'::jsonb),
+       ["Haiti", "Dominikanische Republik", "Teilt sich die Insel Hispaniola."]]'::jsonb,
+     '[["Vereinigte Arabische Emirate", "Für kein Land auf diesem Brett sind sie der einzige Nachbar."],
+       ["Papua-Neuguinea", "Für kein Land in dieser Liste ist es der einzige Nachbar."]]'::jsonb),
 
     ('geografie', 'staedte-frueherer-name', 'Städte & ihre früheren Namen',
      'Wie hieß die Stadt früher?',
@@ -69,7 +75,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Harare", "Salisbury", "Bis 1982 nach einem britischen Premierminister benannt."],
        ["Kinshasa", "Léopoldville", "Bis 1966 nach dem belgischen König benannt."],
        ["Wolgograd", "Stalingrad", "So genannt zwischen 1925 und 1961."],
-       ["Tokio", "Edo", "Sitz der Shogune, bis der Kaiser 1868 dorthin zog."]]'::jsonb),
+       ["Tokio", "Edo", "Sitz der Shogune, bis der Kaiser 1868 dorthin zog."]]'::jsonb,
+     '[["Danzig", "Der frühere Name von Gdansk, und die Stadt fehlt auf dem Brett."],
+       ["Karl-Marx-Stadt", "So hieß Chemnitz, das hier nicht steht."]]'::jsonb),
 
     ('geografie', 'wasserfaelle-laender', 'Wasserfälle & Länder',
      'In welchem Land stürzt der Wasserfall?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kaieteur", "Guyana", "Einer der größten einstufigen Wasserfälle der Erde."],
        ["Montmorency", "Kanada", "Höher als die Niagarafälle, bei Québec."],
        ["Vettisfossen", "Norwegen", "275 Meter freier Fall im Jotunheimen."],
-       ["Cachoeira da Fumaça", "Brasilien", "Rauchfall genannt, weil der Wind das Wasser zerstäubt."]]'::jsonb),
+       ["Cachoeira da Fumaça", "Brasilien", "Rauchfall genannt, weil der Wind das Wasser zerstäubt."]]'::jsonb,
+     '[["Simbabwe", "Die Victoriafälle lägen dort, sie fehlen auf dem Brett."],
+       ["Argentinien", "Die Iguazú-Fälle stehen nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'inselstaaten-ozeanien', 'Inselstaaten Ozeaniens',
      'Welche Stadt ist die Hauptstadt des Inselstaats?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kiribati", "Tarawa", "Atoll, Schauplatz einer schweren Schlacht 1943."],
        ["Nauru", "Yaren", "Der Inselstaat hat offiziell gar keine Hauptstadt."],
        ["Mikronesien", "Palikir", "Liegt auf der Insel Pohnpei."],
-       ["Tuvalu", "Funafuti", "Atoll, dessen Landebahn zugleich Sportplatz ist."]]'::jsonb),
+       ["Tuvalu", "Funafuti", "Atoll, dessen Landebahn zugleich Sportplatz ist."]]'::jsonb,
+     '[["Honolulu", "Die Hauptstadt Hawaiis, und das ist kein eigener Staat."],
+       ["Avarua", "Der Hauptort der Cookinseln, die hier nicht stehen."]]'::jsonb),
 
     ('geografie', 'karibik-hauptstaedte', 'Hauptstädte der Karibik',
      'Welche Stadt ist die Hauptstadt?',
@@ -117,7 +129,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Grenada", "St. George''s", "Hafenstadt in einem alten Vulkankrater."],
        ["Saint Lucia", "Castries", "Liegt unterhalb der beiden Pitons."],
        ["Antigua und Barbuda", "St. John''s", "Mit dem historischen Marinehafen Nelsons."],
-       ["Dominica", "Roseau", "Am Fuß eines Regenwaldgebirges."]]'::jsonb),
+       ["Dominica", "Roseau", "Am Fuß eines Regenwaldgebirges."]]'::jsonb,
+     '[["Willemstad", "Die Hauptstadt Curaçaos, das auf dem Brett fehlt."],
+       ["Basseterre", "Die Hauptstadt von St. Kitts und Nevis, hier nicht aufgeführt."]]'::jsonb),
 
     ('geografie', 'osteuropa-hauptstaedte', 'Hauptstädte Osteuropas',
      'Welche Stadt ist die Hauptstadt des Landes?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Albanien", "Tirana", "Die grauen Fassaden wurden ab 2000 bunt gestrichen."],
        ["Ukraine", "Kiew", "Mit der Sophienkathedrale aus dem 11. Jahrhundert."],
        ["Nordmazedonien", "Skopje", "Geburtsstadt von Mutter Teresa."],
-       ["Bosnien und Herzegowina", "Sarajevo", "1984 Austragungsort der Olympischen Winterspiele."]]'::jsonb),
+       ["Bosnien und Herzegowina", "Sarajevo", "1984 Austragungsort der Olympischen Winterspiele."]]'::jsonb,
+     '[["Warschau", "Die Hauptstadt Polens, und das Land fehlt auf dem Brett."],
+       ["Podgorica", "Die Hauptstadt Montenegros, das hier nicht steht."]]'::jsonb),
 
     ('geografie', 'zentralasien-hauptstaedte', 'Hauptstädte zwischen Kaukasus und Himalaya',
      'Welche Stadt ist die Hauptstadt des Landes?',
@@ -149,7 +165,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Armenien", "Jerewan", "Blickt auf den Ararat, der heute in der Türkei liegt."],
        ["Nepal", "Kathmandu", "Liegt in einem Talkessel im Himalaya."],
        ["Bhutan", "Thimphu", "Hauptstadt ohne eine einzige Ampel."],
-       ["Bangladesch", "Dhaka", "Eine der am dichtesten besiedelten Städte der Welt."]]'::jsonb),
+       ["Bangladesch", "Dhaka", "Eine der am dichtesten besiedelten Städte der Welt."]]'::jsonb,
+     '[["Islamabad", "Die Hauptstadt Pakistans, und das Land fehlt auf dem Brett."],
+       ["Ulaanbaatar", "Die Hauptstadt der Mongolei, die hier nicht steht."]]'::jsonb),
 
     ('geografie', 'stadtteile-staedte', 'Stadtviertel & Städte',
      'In welcher Stadt liegt das Viertel?',
@@ -165,7 +183,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jordaan", "Amsterdam", "Grachtenviertel, früher Wohnort der Arbeiter."],
        ["Sankt Pauli", "Hamburg", "Viertel rund um die Reeperbahn."],
        ["Vesterbro", "Kopenhagen", "Ehemaliges Schlachthofviertel, heute Ausgehviertel."],
-       ["Shoreditch", "London", "Viertel im Osten, bekannt für seine Streetart."]]'::jsonb),
+       ["Shoreditch", "London", "Viertel im Osten, bekannt für seine Streetart."]]'::jsonb,
+     '[["Wien", "Der Prater läge dort, und das Viertel fehlt auf dem Brett."],
+       ["Istanbul", "Beyoğlu wäre eines, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'amtssprachen-laender', 'Länder & Amtssprachen',
      'Welche Sprache ist im Land Amtssprache?',
@@ -181,7 +201,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Marokko", "Arabisch", "Amtssprache neben Tamazight seit 2011."],
        ["Tansania", "Swahili", "Verkehrssprache in weiten Teilen Ostafrikas."],
        ["Philippinen", "Filipino", "Beruht auf dem Tagalog, amtlich neben Englisch."],
-       ["Kasachstan", "Kasachisch", "Wird von kyrillischer auf lateinische Schrift umgestellt."]]'::jsonb),
+       ["Kasachstan", "Kasachisch", "Wird von kyrillischer auf lateinische Schrift umgestellt."]]'::jsonb,
+     '[["Griechisch", "Kein Land auf diesem Brett führt es als Amtssprache."],
+       ["Türkisch", "Es fehlt in dieser Liste ebenso wie das Land dazu."]]'::jsonb),
 
     ('geografie', 'zeitzonen-staedte', 'Städte & Zeitzonen',
      'In welcher Zonenzeit liegt die Stadt im Winter?',
@@ -197,7 +219,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Peking", "UTC+8", "Ganz China nutzt trotz seiner Breite eine Zeit."],
        ["Tokio", "UTC+9", "Japan kennt keine Sommerzeit."],
        ["Sydney", "UTC+10", "Ostaustralische Zeit, im Südsommer eine Stunde mehr."],
-       ["Auckland", "UTC+12", "Eines der ersten Länder im neuen Tag."]]'::jsonb),
+       ["Auckland", "UTC+12", "Eines der ersten Länder im neuen Tag."]]'::jsonb,
+     '[["UTC-3", "Buenos Aires läge darin, und die Stadt fehlt auf dem Brett."],
+       ["UTC-5", "New York liegt im Winter darin, steht hier aber nicht."]]'::jsonb),
 
     ('geografie', 'grenzfluesse', 'Grenzflüsse',
      'Welche Länder trennt der Fluss?',
@@ -213,7 +237,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Detroit River", "USA und Kanada", "Verbindet den Eriesee mit dem Huronsee."],
        ["Mosel", "Deutschland und Luxemburg", "Auf einem Abschnitt Grenze, mündet bei Koblenz."],
        ["Save", "Kroatien und Bosnien", "Fließt an Zagreb vorbei und mündet bei Belgrad."],
-       ["Saluen", "Myanmar und Thailand", "Bildet abschnittsweise die Grenze im Bergland."]]'::jsonb),
+       ["Saluen", "Myanmar und Thailand", "Bildet abschnittsweise die Grenze im Bergland."]]'::jsonb,
+     '[["Frankreich und Deutschland", "Der Rhein trennt sie, und er fehlt auf dem Brett."],
+       ["Argentinien und Uruguay", "Der Uruguay-Fluss steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'bahnstrecken-laender', 'Bahnstrecken & Länder',
      'In welchem Land fährt der Zug?',
@@ -230,7 +256,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Flåmbahn", "Norwegen", "Eine der steilsten Bahnen ohne Zahnrad."],
        ["Ferrocarril Central Andino", "Peru", "Eine der höchstgelegenen Bahnstrecken der Welt."],
        ["Semmeringbahn", "Österreich", "Erste Gebirgsbahn Europas, seit 1854 in Betrieb."],
-       ["Jacobite", "Schottland", "Dampfzug über das Glenfinnan-Viadukt."]]'::jsonb),
+       ["Jacobite", "Schottland", "Dampfzug über das Glenfinnan-Viadukt."]]'::jsonb,
+     '[["China", "Die Bahn nach Lhasa führte dorthin, sie fehlt auf dem Brett."],
+       ["Italien", "Die Bernina-Strecke endet dort, steht hier aber nicht."]]'::jsonb),
 
     ('geografie', 'inselgruppen-laender', 'Inselgruppen & Länder',
      'Zu welchem Land gehört die Inselgruppe?',
@@ -246,7 +274,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hebriden", "Schottland", "Inseln vor der Westküste, mit Skye."],
        ["Aleuten", "USA", "Inselkette zwischen Alaska und Kamtschatka."],
        ["Ryūkyū-Inseln", "Japan", "Kette bis fast nach Taiwan, mit Okinawa."],
-       ["Juan-Fernández-Inseln", "Chile", "Schauplatz der Vorlage zu Robinson Crusoe."]]'::jsonb),
+       ["Juan-Fernández-Inseln", "Chile", "Schauplatz der Vorlage zu Robinson Crusoe."]]'::jsonb,
+     '[["Vereinigtes Königreich", "Die Scilly-Inseln gehörten dazu, sie fehlen auf dem Brett."],
+       ["Ecuador", "Die Galápagos-Inseln stehen nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'talsperren-fluesse', 'Talsperren & Flüsse',
      'Welchen Fluss staut die Talsperre?',
@@ -262,7 +292,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bratsk", "Angara", "Stausee in Sibirien, so groß wie ein Binnenmeer."],
        ["Akosombo", "Volta", "Staut den nach Fläche größten künstlichen See der Erde."],
        ["Tarbela", "Indus", "Größte Talsperre Pakistans."],
-       ["Guri", "Caroní", "Liefert einen Großteil des Stroms in Venezuela."]]'::jsonb),
+       ["Guri", "Caroní", "Liefert einen Großteil des Stroms in Venezuela."]]'::jsonb,
+     '[["Wolga", "Kein Damm auf diesem Brett staut sie."],
+       ["Donau", "Das Eiserne Tor läge dort, es fehlt in dieser Liste."]]'::jsonb),
 
     ('geografie', 'welterbe-laender', 'Welterbestätten & Länder',
      'In welchem Land liegt die Welterbestätte?',
@@ -279,7 +311,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bagan", "Myanmar", "Ebene mit Tausenden Pagoden am Irrawaddy."],
        ["Mesa Verde", "USA", "Felsensiedlungen der Pueblo-Kultur in Colorado."],
        ["Meteora", "Griechenland", "Klöster auf Felsnadeln in Thessalien."],
-       ["Mont-Saint-Michel", "Frankreich", "Klosterberg, den die Flut zur Insel macht."]]'::jsonb),
+       ["Mont-Saint-Michel", "Frankreich", "Klosterberg, den die Flut zur Insel macht."]]'::jsonb,
+     '[["Jordanien", "Petra läge dort, und die Stätte fehlt auf dem Brett."],
+       ["Italien", "Pompeji steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'hauptstaedte-nordwesteuropa', 'Hauptstädte Nord- und Westeuropas',
      'Welche Stadt ist die Hauptstadt des Landes?',
@@ -295,7 +329,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Irland", "Dublin", "An der Mündung des Liffey, gegründet von Wikingern."],
        ["Vereinigtes Königreich", "London", "Sitz von Krone und Parlament an der Themse."],
        ["Niederlande", "Amsterdam", "Hauptstadt, während die Regierung in Den Haag sitzt."],
-       ["Belgien", "Brüssel", "Sitz der EU-Kommission und der NATO."]]'::jsonb),
+       ["Belgien", "Brüssel", "Sitz der EU-Kommission und der NATO."]]'::jsonb,
+     '[["Bern", "Die Hauptstadt der Schweiz, und das Land fehlt auf dem Brett."],
+       ["Luxemburg", "Die Hauptstadt des gleichnamigen Landes, das hier nicht steht."]]'::jsonb),
 
     ('geografie', 'berge-laender', 'Berühmte Berge & Länder',
      'In welchem Land steht der Berg?',
@@ -311,7 +347,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Olymp", "Griechenland", "Sitz der Götter der antiken Mythologie."],
        ["Ararat", "Türkei", "Vulkan, an dem die Arche Noah gestrandet sein soll."],
        ["Mont Ventoux", "Frankreich", "Kahler Gipfel in der Provence, gefürchtet bei Radrennen."],
-       ["Ben Nevis", "Schottland", "Höchster Berg der Britischen Inseln."]]'::jsonb),
+       ["Ben Nevis", "Schottland", "Höchster Berg der Britischen Inseln."]]'::jsonb,
+     '[["Nepal", "Der Everest stünde dort, er fehlt auf dem Brett."],
+       ["Japan", "Der Fudschi steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'haefen-laender', 'Große Häfen & Länder',
      'In welchem Land liegt der Hafen?',
@@ -327,7 +365,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Valencia", "Spanien", "Wichtigster Mittelmeerhafen des Landes."],
        ["Felixstowe", "Vereinigtes Königreich", "Größter Containerhafen des Landes, in Suffolk."],
        ["Le Havre", "Frankreich", "An der Seinemündung, nach 1945 neu aufgebaut."],
-       ["Vancouver", "Kanada", "Größter Hafen des Landes, am Pazifik."]]'::jsonb)
+       ["Vancouver", "Kanada", "Größter Hafen des Landes, am Pazifik."]]'::jsonb,
+     '[["Singapur", "Der zweitgrößte Containerhafen der Welt, und er fehlt hier."],
+       ["Italien", "Genua wäre der Hafen dazu, er steht nicht auf dem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -352,15 +392,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('musik', 'leicht-instrumentengruppen', 'Instrumente & Gruppen',
@@ -24,7 +24,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Xylophon", "Auf Holzstäbe schlagen", "Die Länge bestimmt den Ton."],
        ["Rassel", "Schütteln", "Eines der ersten Instrumente für Kinder."],
        ["Orgel", "Tasten und Pedale bedienen", "Auch die Füße spielen mit."],
-       ["Kontrabass", "Im Stehen gespielt", "Das größte Streichinstrument."]]'::jsonb),
+       ["Kontrabass", "Im Stehen gespielt", "Das größte Streichinstrument."]]'::jsonb,
+     '[["Mit dem Fuß treten", "Kein Instrument auf diesem Brett wird so gespielt."],
+       ["Über die Saiten hauchen", "So klingt kein Instrument in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-kinderlieder', 'Kinderlieder',
      'Wie geht das Lied weiter?',
@@ -40,7 +42,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Häschen in der Grube", "Saß und schlief", "Ein Bewegungslied."],
        ["Kuckuck, Kuckuck", "Ruft''s aus dem Wald", "Ein Frühlingslied."],
        ["Auf der Mauer, auf der Lauer", "Sitzt ''ne kleine Wanze", "Jede Strophe fehlt ein Buchstabe."],
-       ["Summ, summ, summ", "Bienchen summ herum", "Ein Lied über die Biene."]]'::jsonb),
+       ["Summ, summ, summ", "Bienchen summ herum", "Ein Lied über die Biene."]]'::jsonb,
+     '[["Wer will fleißige Handwerker sehn", "Ein Kinderlied, das auf diesem Brett fehlt."],
+       ["Grün, grün, grün sind alle meine Kleider", "Es steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-lautstaerke-tempo', 'Laut, leise, schnell, langsam',
      'Was bedeutet das in der Musik?',
@@ -54,7 +58,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fermate", "Länger aushalten", "Ein Punkt unter einem Bogen."],
        ["Wiederholungszeichen", "Noch einmal von vorn", "Zwei Punkte am Doppelstrich."],
        ["Takt", "Gleichmäßige Zählzeit", "Der erste Schlag wird betont."],
-       ["Solo", "Eine Person allein", "Alle anderen schweigen."]]'::jsonb),
+       ["Solo", "Eine Person allein", "Alle anderen schweigen."]]'::jsonb,
+     '[["Immer leiser", "Das wäre Decrescendo, und es fehlt auf diesem Brett."],
+       ["Gebunden spielen", "Legato steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-bands-erkennen', 'Bekannte Bands',
      'Woher kommt die Band?',
@@ -69,7 +75,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Måneskin", "Italien", "Der Name ist dänisch für Mondschein."],
        ["Daft Punk", "Frankreich", "Zwei Musiker mit Helmen."],
        ["BTS", "Südkorea", "Eine der bekanntesten K-Pop-Gruppen."],
-       ["Rush", "Kanada", "Gegründet in Toronto."]]'::jsonb),
+       ["Rush", "Kanada", "Gegründet in Toronto."]]'::jsonb,
+     '[["Niederlande", "Golden Earring käme von dort, und die Band fehlt hier."],
+       ["Norwegen", "A-ha steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'leicht-stimmen', 'Singstimmen',
      'Wie nennt man diese Stimme?',
@@ -83,7 +91,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Singen ohne Instrumente", "A cappella", "Nur mit Stimmen."],
        ["Leises Singen zwischen den Zähnen", "Summen", "Der Mund bleibt geschlossen."],
        ["Singen in sehr hoher Kopfstimme", "Falsett", "Männer erreichen so Frauenlagen."],
-       ["Sprechgesang im Hip-Hop", "Rap", "Der Rhythmus steht über der Melodie."]]'::jsonb),
+       ["Sprechgesang im Hip-Hop", "Rap", "Der Rhythmus steht über der Melodie."]]'::jsonb,
+     '[["Mittlere Frauenstimme", "Der Mezzosopran fehlt auf diesem Brett."],
+       ["Pfeifen statt singen", "Das ist keine Singstimme in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-noten', 'Noten lesen',
      'Was bedeutet das Zeichen?',
@@ -98,7 +108,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["B-Vorzeichen", "Einen Halbton tiefer", "Aus h wird b."],
        ["Taktstrich", "Trennt zwei Takte", "Am Ende steht ein doppelter."],
        ["Fünf waagerechte Linien", "Notenlinien", "Auf und zwischen ihnen stehen die Noten."],
-       ["Punkt hinter der Note", "Hälfte länger", "Aus zwei Schlägen werden drei."]]'::jsonb),
+       ["Punkt hinter der Note", "Hälfte länger", "Aus zwei Schlägen werden drei."]]'::jsonb,
+     '[["Hebt ein Vorzeichen auf", "Das Auflösungszeichen fehlt auf diesem Brett."],
+       ["Zeigt an, wie laut gespielt wird", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('musik', 'leicht-musikrichtungen', 'Musikrichtungen',
      'Was ist typisch für die Musik?',
@@ -114,7 +126,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Blues", "Melancholische Tonfolgen", "Aus dem Süden der USA."],
        ["Metal", "Sehr laut und schnell", "Doppelte Basstrommel gehört dazu."],
        ["Country", "Gitarre und Fiedel", "Nashville ist das Zentrum."],
-       ["Pop", "Eingängige Melodien", "Auf Radiotauglichkeit hin gemacht."]]'::jsonb),
+       ["Pop", "Eingängige Melodien", "Auf Radiotauglichkeit hin gemacht."]]'::jsonb,
+     '[["Punk", "Kurz, schnell und roh, aber auf diesem Brett steht er nicht."],
+       ["Soul", "Auch eine Richtung, die hier fehlt."]]'::jsonb),
 
     ('musik', 'leicht-instrumente-material', 'Woraus Instrumente sind',
      'Woraus besteht das Instrument vor allem?',
@@ -129,7 +143,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Klaviertasten früher", "Elfenbein", "Heute längst verboten."],
        ["Djembe", "Ausgehöhlter Baumstamm", "Darüber eine Ziegenhaut."],
        ["Panflöte", "Bambusrohre", "Unterschiedlich lang gebunden."],
-       ["Becken im Schlagzeug", "Bronze", "Die Legierung bestimmt den Klang."]]'::jsonb),
+       ["Becken im Schlagzeug", "Bronze", "Die Legierung bestimmt den Klang."]]'::jsonb,
+     '[["Glas", "Kein Instrument auf diesem Brett besteht daraus."],
+       ["Ton gebrannt", "Die Okarina wäre das, und die fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-wo-musik', 'Wo Musik erklingt',
      'Was passiert an diesem Ort?',
@@ -143,7 +159,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Festivalgelände", "Viele Bands nacheinander", "Oft über mehrere Tage."],
        ["Straßenecke", "Straßenmusik", "Der Hut liegt offen davor."],
        ["Probenraum", "Eine Band übt", "Meist im Keller."],
-       ["Blaskapelle im Festzelt", "Marsch und Polka", "Zum Volksfest gehört sie dazu."]]'::jsonb),
+       ["Blaskapelle im Festzelt", "Marsch und Polka", "Zum Volksfest gehört sie dazu."]]'::jsonb,
+     '[["Bibliothek", "Dort ist es still, und Musik erklingt nicht."],
+       ["Museum", "Auch dort spielt niemand, es steht nicht auf dem Brett."]]'::jsonb),
 
     ('musik', 'leicht-lieder-anlaesse', 'Lieder zu Anlässen',
      'Wann singt man das?',
@@ -157,7 +175,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fußballgesang", "Im Stadion", "Die ganze Kurve singt mit."],
        ["Trauermusik", "Bei einer Beerdigung", "Meist langsam und leise."],
        ["Wanderlied", "Beim Wandern", "Es hält den Schritt im Takt."],
-       ["Abendlied", "Zum Tagesabschluss", "Oft mit den Kindern gesungen."]]'::jsonb),
+       ["Abendlied", "Zum Tagesabschluss", "Oft mit den Kindern gesungen."]]'::jsonb,
+     '[["Beim Erntedankfest", "Ein Anlass, der auf diesem Brett fehlt."],
+       ["Zum Schulanfang", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-beruehmte-musiker', 'Bekannte Musiker',
      'Wofür ist die Person bekannt?',
@@ -173,7 +193,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bob Marley", "Reggae aus Jamaika", "Seine Lieder gelten als Friedenshymnen."],
        ["Luciano Pavarotti", "Berühmter Operntenor", "Er sang auch in Stadien."],
        ["Nena", "Sängerin von 99 Luftballons", "Der Titel lief weltweit."],
-       ["Taylor Swift", "Weltweite Stadiontourneen", "Sie schreibt ihre Lieder selbst."]]'::jsonb),
+       ["Taylor Swift", "Weltweite Stadiontourneen", "Sie schreibt ihre Lieder selbst."]]'::jsonb,
+     '[["Erfinder des Klaviers", "Bartolomeo Cristofori war das, und der fehlt hier."],
+       ["Sängerin von ABBA", "Agnetha Fältskog steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'leicht-taktarten', 'Rhythmus & Takt',
      'Was gehört dazu?',
@@ -187,7 +209,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pause im Takt", "Stille an fester Stelle", "Sie wird mitgezählt."],
        ["Trommelwirbel", "Sehr schnelle Schläge", "Kündigt oft etwas an."],
        ["Off-Beat", "Betonung dazwischen", "Typisch für Reggae."],
-       ["Taktwechsel", "Der Takt ändert sich", "Man muss neu zählen."]]'::jsonb),
+       ["Taktwechsel", "Der Takt ändert sich", "Man muss neu zählen."]]'::jsonb,
+     '[["Ganz ohne Takt", "Kein Eintrag auf diesem Brett meint das."],
+       ["Fünf Schläge im Takt", "Der Fünfvierteltakt fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-musik-technik', 'Musik hören & aufnehmen',
      'Wozu dient das?',
@@ -201,7 +225,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Verstärker", "Signal lauter machen", "Ohne ihn bewegt sich keine Membran."],
        ["Plattenspieler", "Schallplatten abspielen", "Die Drehzahl muss stimmen."],
        ["Radio", "Musik über Funk empfangen", "Der Sender hat eine Frequenz."],
-       ["Playlist", "Eigene Liederliste", "Man stellt sie selbst zusammen."]]'::jsonb),
+       ["Playlist", "Eigene Liederliste", "Man stellt sie selbst zusammen."]]'::jsonb,
+     '[["Notenständer", "Er hält die Noten, aber Musik hört man damit nicht."],
+       ["Stimmgerät", "Es hilft beim Stimmen, steht hier aber nicht."]]'::jsonb),
 
     ('musik', 'leicht-orchester', 'Im Orchester',
      'Wo sitzt oder was tut man?',
@@ -215,7 +241,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Oboe", "Gibt den Stimmton an", "Alle stimmen darauf ein."],
        ["Harfe", "Steht seitlich", "Sie braucht viel Platz."],
        ["Partitur", "Enthält alle Stimmen", "Nur der Dirigent liest sie."],
-       ["Applaus", "Kommt am Ende", "Zwischen den Sätzen wird nicht geklatscht."]]'::jsonb),
+       ["Applaus", "Kommt am Ende", "Zwischen den Sätzen wird nicht geklatscht."]]'::jsonb,
+     '[["Verkauft die Karten am Eingang", "Das gehört nicht ins Orchester."],
+       ["Der Notenwart im Hintergrund", "Er kommt auf diesem Brett nicht vor."]]'::jsonb),
 
     ('musik', 'leicht-musik-laender', 'Musik aus aller Welt',
      'Woher stammt diese Musik?',
@@ -231,7 +259,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gamelan", "Indonesien", "Orchester aus Gongs."],
        ["Fado", "Portugal", "Melancholischer Gesang aus Lissabon."],
        ["Mariachi", "Mexiko", "Trompeten und Geigen in Uniform."],
-       ["Bollywoodmusik", "Indien", "Aus Filmen mit großen Tanzszenen."]]'::jsonb),
+       ["Bollywoodmusik", "Indien", "Aus Filmen mit großen Tanzszenen."]]'::jsonb,
+     '[["Kuba", "Die Salsa käme von dort, und sie fehlt auf diesem Brett."],
+       ["Irland", "Die Fiddle-Musik steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-tanzen-musik', 'Musik zum Tanzen',
      'Wozu tanzt man das?',
@@ -245,7 +275,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Salsa", "Kubanische Rhythmen", "Als Paar mit vielen Drehungen."],
        ["Line Dance", "Countrymusik", "In Reihen, ohne Partner."],
        ["Rock n Roll", "Musik der 1950er", "Mit Sprüngen und Hebefiguren."],
-       ["Sirtaki im Kreis", "Griechische Melodie", "Alle fassen sich an den Schultern."]]'::jsonb),
+       ["Sirtaki im Kreis", "Griechische Melodie", "Alle fassen sich an den Schultern."]]'::jsonb,
+     '[["Walzer aus Wien im Zweivierteltakt", "Der Wiener Walzer geht im Dreivierteltakt."],
+       ["Techno im Club", "Dazu tanzt man, auf diesem Brett steht es aber nicht."]]'::jsonb),
 
     ('musik', 'leicht-lied-teile', 'Aufbau eines Liedes',
      'Wie heißt dieser Teil?',
@@ -259,7 +291,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Die Worte des Liedes", "Text", "Sie stehen im Booklet."],
        ["Die Tonfolge, die man mitsummt", "Melodie", "Sie bleibt am ehesten hängen."],
        ["Die Begleitung im Hintergrund", "Instrumentierung", "Sie trägt die Melodie."],
-       ["Der Titel über allem", "Liedname", "Danach sucht man im Netz."]]'::jsonb),
+       ["Der Titel über allem", "Liedname", "Danach sucht man im Netz."]]'::jsonb,
+     '[["Die Person, die das Lied singt", "Der Sänger ist kein Teil des Liedes."],
+       ["Die Lautstärke im Refrain", "Danach fragt keine Zeile auf diesem Brett."]]'::jsonb),
 
     ('musik', 'leicht-schlager-charts', 'Charts & Erfolg',
      'Was bedeutet das?',
@@ -273,7 +307,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zugabe", "Zusätzliches Lied am Ende", "Erst nach anhaltendem Applaus."],
        ["Fanclub", "Zusammenschluss von Anhängern", "Oft mit eigener Mitgliedskarte."],
        ["Autogramm", "Unterschrift des Künstlers", "Nach dem Konzert erbeten."],
-       ["Coverversion", "Neuaufnahme eines fremden Liedes", "Der Urheber bekommt weiter Geld."]]'::jsonb),
+       ["Coverversion", "Neuaufnahme eines fremden Liedes", "Der Urheber bekommt weiter Geld."]]'::jsonb,
+     '[["Platin für sehr viele Verkäufe", "Es gibt sie, auf diesem Brett steht aber nur Gold."],
+       ["Das Konzert in der Heimatstadt", "Es fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-musik-schule', 'Musik in der Schule',
      'Was macht man dabei?',
@@ -288,7 +324,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Instrumente kennenlernen", "Klänge zuordnen", "Wer spielt hier gerade?"],
        ["Selbst eine Melodie erfinden", "Komponieren", "Auch mit wenigen Tönen möglich."],
        ["Vor der Klasse vorspielen", "Auftreten üben", "Lampenfieber gehört dazu."],
-       ["Trommeln im Kreis", "Gemeinsam den Puls halten", "Alle hören aufeinander."]]'::jsonb),
+       ["Trommeln im Kreis", "Gemeinsam den Puls halten", "Alle hören aufeinander."]]'::jsonb,
+     '[["Ein Instrument selbst bauen", "Das kommt auf diesem Brett nicht vor."],
+       ["Ein Konzert besuchen", "Es steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'leicht-instrumente-zahl', 'Instrumente in Zahlen',
      'Wie viele sind es?',
@@ -304,7 +342,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Finger beim Klavierspielen", "10", "Beide Hände zusammen."],
        ["Halbtöne in einer Oktave", "12", "Weiße und schwarze Tasten zusammen."],
        ["Saiten einer Konzertharfe", "47", "Dazu sieben Pedale."],
-       ["Tasten eines Konzertflügels", "88", "Weiße und schwarze zusammen."]]'::jsonb)
+       ["Tasten eines Konzertflügels", "88", "Weiße und schwarze zusammen."]]'::jsonb,
+     '[["9", "Keine Zahl auf diesem Brett meint das."],
+       ["61", "So viele Tasten hat ein kleines Keyboard, und das fehlt hier."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -329,15 +369,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

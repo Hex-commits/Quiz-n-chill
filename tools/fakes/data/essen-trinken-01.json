@@ -1,0 +1,82 @@
+{
+  "gewuerze-pflanzenteile": [
+    ["Harz des Stammes", "So gewinnt man Weihrauch und Myrrhe, die hier fehlen."],
+    ["Zwiebel der Pflanze", "Das wären Knoblauch und Schalotte, beide stehen nicht auf dem Brett."]
+  ],
+  "pastaformen": [
+    ["Heizkörper", "So heißen Radiatori, die hier nicht stehen."],
+    ["Fingerhüte", "Das wären Ditalini, und die fehlen auf dem Brett."]
+  ],
+  "nationalgetraenke": [
+    ["Mexiko", "Tequila wäre das Getränk dazu, es steht nicht auf dem Brett."],
+    ["Japan", "Sake fehlt in dieser Liste."]
+  ],
+  "kochtechniken": [
+    ["Bei niedriger Hitze trocknen", "Das ist Dörren, keine Technik auf diesem Brett."],
+    ["Über offener Flamme rösten", "Grillen kommt in dieser Liste nicht vor."]
+  ],
+  "brotsorten": [
+    ["Türkei", "Simit und Pide wären dort zu Hause, hier fehlen sie."],
+    ["Irland", "Das Sodabrot steht nicht auf dem Brett."]
+  ],
+  "weinregionen": [
+    ["Chile", "Das Colchagua-Tal fehlt auf diesem Brett."],
+    ["Griechenland", "Nemea und Santorin stehen hier nicht."]
+  ],
+  "eierspeisen": [
+    ["In Tee und Gewürzen eingelegt", "Das wäre das chinesische Teeei, es fehlt hier."],
+    ["In Essig und Salzlake eingelegt", "Das Soleier steht nicht auf dem Brett."]
+  ],
+  "suessspeisen-laender": [
+    ["Griechenland", "Galaktoboureko wäre die Süßspeise dazu, hier fehlt sie."],
+    ["Schweden", "Die Prinzessinnentorte steht nicht auf dem Brett."]
+  ],
+  "kueche-koeche": [
+    ["The French Laundry", "Das Haus von Thomas Keller, der hier nicht steht."],
+    ["Mugaritz", "Geführt von Andoni Luis Aduriz, und der fehlt auf dem Brett."]
+  ],
+  "kuechengeraete": [
+    ["Teig gleichmäßig ausrollen", "Dafür gibt es das Nudelholz, es steht nicht auf dem Brett."],
+    ["Kaffee unter Druck brühen", "Das leistet die Espressomaschine, hier fehlt sie."]
+  ],
+  "gerichte-namensgeber": [
+    ["Fürst Pückler", "Nach ihm ist das Eis benannt, das auf diesem Brett fehlt."],
+    ["Giuseppe Garibaldi", "Der Garibaldi-Keks trägt seinen Namen, er steht hier nicht."]
+  ],
+  "fleischstuecke": [
+    ["Zunge", "Ein Stück für sich, aber keines auf diesem Brett."],
+    ["Backe", "Die Rinderbacke fehlt in dieser Liste."]
+  ],
+  "fermentiertes": [
+    ["Georgien", "Auch dort wird viel fermentiert, hier steht nichts davon."],
+    ["Frankreich", "Der Rohmilchkäse gehörte dazu, auf dem Brett fehlt er."]
+  ],
+  "nutzpflanzen-herkunft": [
+    ["Neuguinea", "Von dort stammt das Zuckerrohr, das hier nicht steht."],
+    ["Australien", "Die Macadamia wäre die Pflanze dazu, sie fehlt auf dem Brett."]
+  ],
+  "cocktails-zutaten": [
+    ["Whiskey und Zitrone", "Das wäre ein Whiskey Sour, er fehlt auf dem Brett."],
+    ["Wodka und Ginger Beer", "So entsteht ein Moscow Mule, der hier nicht steht."]
+  ],
+  "tischsitten": [
+    ["Nach dem Essen wird laut aufgestoßen", "Das sagt man Ägypten nach, und das Land fehlt hier."],
+    ["Erst wenn alle sitzen, wird angestoßen", "Eine deutsche Regel, und Deutschland steht nicht auf dem Brett."]
+  ],
+  "gastronomie-begriffe": [
+    ["Küchenchef des ganzen Hauses", "Das wäre der Chef de Cuisine, der hier nicht steht."],
+    ["Feste Speisenfolge zum festen Preis", "Das Menü prix fixe fehlt auf dem Brett."]
+  ],
+  "herkunftsbezeichnungen": [
+    ["Griechenland", "Feta wäre das geschützte Produkt dazu, hier fehlt es."],
+    ["Polen", "Der Oscypek trägt den Schutz, steht aber nicht auf diesem Brett."]
+  ],
+  "backzutaten": [
+    ["Färbt den Teig gelb", "Das täte Safran, und der steht nicht auf dem Brett."],
+    ["Verhindert das Anhaften am Blech", "Das leistet Backpapier, keine Zutat im Teig."]
+  ],
+  "streetfood": [
+    ["Indien", "Pani Puri wäre das Gericht dazu, hier fehlt es."],
+    ["Griechenland", "Gyros im Pitabrot steht nicht auf dem Brett."]
+  ]
+}

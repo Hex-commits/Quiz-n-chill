@@ -23,7 +23,7 @@
 --     -v ON_ERROR_STOP=1 < supabase/questions/batch-01.sql
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     -- === Geografie =========================================================
@@ -41,7 +41,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pakistan", "Islamabad", "In den 1960er Jahren gebaut und löste Karatschi ab."],
        ["Philippinen", "Manila", "Liegt an der Manilabucht auf der Insel Luzon."],
        ["Malaysia", "Kuala Lumpur", "Der Name bedeutet schlammige Flussmündung."],
-       ["Mongolei", "Ulaanbaatar", "Der Name bedeutet roter Held, vergeben 1924."]]'::jsonb),
+       ["Mongolei", "Ulaanbaatar", "Der Name bedeutet roter Held, vergeben 1924."]]'::jsonb,
+     '[["Kathmandu", "Die Hauptstadt Nepals, und das Land steht nicht auf dem Brett."],
+       ["Mumbai", "Die größte Stadt Indiens, dessen Hauptstadt aber Neu-Delhi ist."]]'::jsonb),
 
     ('geografie', 'gebirge-hoechste-gipfel', 'Gebirge & höchste Gipfel',
      'Welcher Gipfel ist der höchste des Gebirges?',
@@ -57,7 +59,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ural", "Narodnaja", "1895 Meter, im nördlichen Teil des Gebirges."],
        ["Apennin", "Corno Grande", "2912 Meter im Gran-Sasso-Massiv."],
        ["Skandinavisches Gebirge", "Galdhøpiggen", "2469 Meter, höchster Berg Nordeuropas."],
-       ["Harz", "Brocken", "1141 Meter, höchster Berg Norddeutschlands."]]'::jsonb),
+       ["Harz", "Brocken", "1141 Meter, höchster Berg Norddeutschlands."]]'::jsonb,
+     '[["Kilimandscharo", "Ein freistehender Berg, kein Gipfel eines Gebirges auf diesem Brett."],
+       ["Zugspitze", "Der höchste Berg Deutschlands, aber nicht der der Alpen."]]'::jsonb),
 
     -- === Geschichte ========================================================
     ('geschichte', 'schlachten-jahreszahlen', 'Schlachten & Jahreszahlen',
@@ -75,7 +79,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schlacht von Gettysburg", "1863", "Wendepunkt des amerikanischen Bürgerkriegs in Pennsylvania."],
        ["Schlacht bei Königgrätz", "1866", "Preußen entschied den Deutschen Krieg gegen Österreich."],
        ["Schlacht um Verdun", "1916", "Zehn Monate Stellungskrieg um die französische Festungsstadt."],
-       ["Schlacht von Stalingrad", "1943", "Die eingeschlossene 6. Armee kapitulierte im Februar."]]'::jsonb),
+       ["Schlacht von Stalingrad", "1943", "Die eingeschlossene 6. Armee kapitulierte im Februar."]]'::jsonb,
+     '[["1815 im Winter", "Waterloo wurde im Juni geschlagen, nicht im Winter."],
+       ["1944", "Die Landung in der Normandie fällt in dieses Jahr, das hier fehlt."]]'::jsonb),
 
     -- === Naturwissenschaft =================================================
     ('naturwissenschaft', 'groessen-einheiten', 'Größen & Einheiten',
@@ -93,7 +99,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Elektrische Ladung", "Coulomb", "Ein Coulomb ist eine Amperesekunde."],
        ["Temperatur", "Kelvin", "Beginnt beim absoluten Nullpunkt und kennt keine Minusgrade."],
        ["Stoffmenge", "Mol", "Enthält rund 6,022 mal 10 hoch 23 Teilchen."],
-       ["Lichtstärke", "Candela", "Misst das Licht, das eine Quelle in eine Richtung abgibt."]]'::jsonb),
+       ["Lichtstärke", "Candela", "Misst das Licht, das eine Quelle in eine Richtung abgibt."]]'::jsonb,
+     '[["Sekunde", "Die Einheit der Zeit, nach der auf diesem Brett niemand fragt."],
+       ["Tesla", "Sie misst die magnetische Flussdichte, und die fehlt hier."]]'::jsonb),
 
     -- === Kunst & Kultur ====================================================
     ('kunst-kultur', 'museen-staedte', 'Museen & Städte',
@@ -110,7 +118,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kunsthistorisches Museum", "Wien", "Steht an der Ringstraße, gegenüber dem Naturhistorischen Museum."],
        ["Alte Pinakothek", "München", "Zeigt die Sammlung alter Meister der Wittelsbacher."],
        ["Zwinger", "Dresden", "Barockbau von Pöppelmann mit der Gemäldegalerie Alte Meister."],
-       ["Mauritshuis", "Den Haag", "Zeigt Vermeers Mädchen mit dem Perlenohrgehänge."]]'::jsonb),
+       ["Mauritshuis", "Den Haag", "Zeigt Vermeers Mädchen mit dem Perlenohrgehänge."]]'::jsonb,
+     '[["Vatikanstadt", "Die Vatikanischen Museen lägen dort, und die fehlen auf dem Brett."],
+       ["Brüssel", "Kein Museum in dieser Liste steht dort."]]'::jsonb),
 
     -- === Sport =============================================================
     ('sport', 'wettbewerbe-sportarten', 'Wettbewerbe & Sportarten',
@@ -127,7 +137,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Six Nations", "Rugby", "Turnier der sechs europäischen Nationalmannschaften."],
        ["Hahnenkammrennen", "Ski Alpin", "Abfahrt auf der Streif in Kitzbühel."],
        ["Boston-Marathon", "Leichtathletik", "Ältester jährlich ausgetragener Marathon der Welt."],
-       ["24 Stunden von Le Mans", "Motorsport", "Langstreckenrennen an der Sarthe, seit 1923."]]'::jsonb),
+       ["24 Stunden von Le Mans", "Motorsport", "Langstreckenrennen an der Sarthe, seit 1923."]]'::jsonb,
+     '[["Schwimmen", "Kein Wettbewerb auf diesem Brett gehört dazu."],
+       ["Turnen", "Auch dafür steht in dieser Liste kein Wettbewerb."]]'::jsonb),
 
     -- === Technik ===========================================================
     ('technik', 'unternehmen-gruender', 'Unternehmen & Gründer',
@@ -144,7 +156,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bosch", "Robert Bosch", "1886 als Werkstätte für Feinmechanik in Stuttgart."],
        ["Nvidia", "Jensen Huang", "1993 gegründet, prägte den Begriff Grafikprozessor."],
        ["SpaceX", "Elon Musk", "2002 gegründet, um Raketen wiederverwendbar zu machen."],
-       ["IKEA", "Ingvar Kamprad", "1943 in Schweden gegründet, im Alter von 17 Jahren."]]'::jsonb),
+       ["IKEA", "Ingvar Kamprad", "1943 in Schweden gegründet, im Alter von 17 Jahren."]]'::jsonb,
+     '[["Larry Page", "Er gründete Google, und das fehlt auf diesem Brett."],
+       ["Gottlieb Daimler", "Sein Unternehmen steht nicht in dieser Liste."]]'::jsonb),
 
     -- === Musik =============================================================
     ('musik', 'opern-komponisten', 'Opern & Komponisten',
@@ -161,7 +175,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Boris Godunow", "Modest Mussorgski", "Nach Puschkins Drama über den russischen Zaren."],
        ["Wozzeck", "Alban Berg", "1925 uraufgeführt, nach dem Dramenfragment von Büchner."],
        ["Peter Grimes", "Benjamin Britten", "1945 in London uraufgeführt, über einen Fischer in Suffolk."],
-       ["Orpheus und Eurydike", "Christoph Willibald Gluck", "1762 uraufgeführt, der Beginn seiner Opernreform."]]'::jsonb),
+       ["Orpheus und Eurydike", "Christoph Willibald Gluck", "1762 uraufgeführt, der Beginn seiner Opernreform."]]'::jsonb,
+     '[["Johann Strauss", "Die Fledermaus wäre das Werk dazu, und die fehlt hier."],
+       ["Richard Strauss", "Der Rosenkavalier steht nicht auf diesem Brett."]]'::jsonb),
 
     -- === Film & Fernsehen ==================================================
     ('film-fernsehen', 'verfilmungen-autoren', 'Verfilmungen & Autoren',
@@ -179,7 +195,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Marsianer", "Andy Weir", "Zuerst im Selbstverlag erschienen, verfilmt von Ridley Scott."],
        ["Verblendung", "Stieg Larsson", "Erster Band der Millennium-Trilogie, posthum erschienen."],
        ["Schindlers Liste", "Thomas Keneally", "Nach dem Roman Schindlers Ark von 1982."],
-       ["Die unendliche Geschichte", "Michael Ende", "Kinderbuch von 1979; der Autor klagte gegen die Verfilmung."]]'::jsonb),
+       ["Die unendliche Geschichte", "Michael Ende", "Kinderbuch von 1979; der Autor klagte gegen die Verfilmung."]]'::jsonb,
+     '[["George R. R. Martin", "Game of Thrones wäre die Vorlage, und die fehlt auf dem Brett."],
+       ["Joanne K. Rowling", "Harry Potter steht nicht in dieser Liste."]]'::jsonb),
 
     -- === Essen & Trinken ===================================================
     ('essen-trinken', 'kaesesorten-herkunft', 'Käsesorten & Herkunft',
@@ -196,7 +214,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Danablu", "Dänemark", "Blauschimmelkäse aus Kuhmilch, in den 1920er Jahren entwickelt."],
        ["Oscypek", "Polen", "Geräucherter Schafskäse aus der Tatra."],
        ["Tiroler Bergkäse", "Österreich", "Rohmilchkäse mit geschützter Ursprungsbezeichnung."],
-       ["Harzer", "Deutschland", "Sauermilchkäse aus dem Harz, fast ohne Fett."]]'::jsonb)
+       ["Harzer", "Deutschland", "Sauermilchkäse aus dem Harz, fast ohne Fett."]]'::jsonb,
+     '[["Norwegen", "Der Jarlsberg käme von dort, und der fehlt auf diesem Brett."],
+       ["Portugal", "Der Queijo da Serra steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 -- A slug that is already in the database is skipped rather than colliding, so
@@ -227,15 +247,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

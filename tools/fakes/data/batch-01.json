@@ -1,0 +1,42 @@
+{
+  "hauptstaedte-asiens": [
+    ["Kathmandu", "Die Hauptstadt Nepals, und das Land steht nicht auf dem Brett."],
+    ["Mumbai", "Die größte Stadt Indiens, dessen Hauptstadt aber Neu-Delhi ist."]
+  ],
+  "gebirge-hoechste-gipfel": [
+    ["Kilimandscharo", "Ein freistehender Berg, kein Gipfel eines Gebirges auf diesem Brett."],
+    ["Zugspitze", "Der höchste Berg Deutschlands, aber nicht der der Alpen."]
+  ],
+  "schlachten-jahreszahlen": [
+    ["1815 im Winter", "Waterloo wurde im Juni geschlagen, nicht im Winter."],
+    ["1944", "Die Landung in der Normandie fällt in dieses Jahr, das hier fehlt."]
+  ],
+  "groessen-einheiten": [
+    ["Sekunde", "Die Einheit der Zeit, nach der auf diesem Brett niemand fragt."],
+    ["Tesla", "Sie misst die magnetische Flussdichte, und die fehlt hier."]
+  ],
+  "museen-staedte": [
+    ["Vatikanstadt", "Die Vatikanischen Museen lägen dort, und die fehlen auf dem Brett."],
+    ["Brüssel", "Kein Museum in dieser Liste steht dort."]
+  ],
+  "wettbewerbe-sportarten": [
+    ["Schwimmen", "Kein Wettbewerb auf diesem Brett gehört dazu."],
+    ["Turnen", "Auch dafür steht in dieser Liste kein Wettbewerb."]
+  ],
+  "unternehmen-gruender": [
+    ["Larry Page", "Er gründete Google, und das fehlt auf diesem Brett."],
+    ["Gottlieb Daimler", "Sein Unternehmen steht nicht in dieser Liste."]
+  ],
+  "opern-komponisten": [
+    ["Johann Strauss", "Die Fledermaus wäre das Werk dazu, und die fehlt hier."],
+    ["Richard Strauss", "Der Rosenkavalier steht nicht auf diesem Brett."]
+  ],
+  "verfilmungen-autoren": [
+    ["George R. R. Martin", "Game of Thrones wäre die Vorlage, und die fehlt auf dem Brett."],
+    ["Joanne K. Rowling", "Harry Potter steht nicht in dieser Liste."]
+  ],
+  "kaesesorten-herkunft": [
+    ["Norwegen", "Der Jarlsberg käme von dort, und der fehlt auf diesem Brett."],
+    ["Portugal", "Der Queijo da Serra steht nicht in dieser Liste."]
+  ]
+}

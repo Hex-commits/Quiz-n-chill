@@ -1,0 +1,82 @@
+{
+  "instrumente-herkunft": [
+    ["Irland", "Die keltische Harfe käme von dort, und sie fehlt auf dem Brett."],
+    ["Türkei", "Die Saz steht nicht in dieser Liste."]
+  ],
+  "musiktheorie-grundbegriffe": [
+    ["Anzahl der Musiker im Stück", "Die Besetzung ist kein Begriff auf diesem Brett."],
+    ["Zusammenklang zweier Stücke", "So etwas gibt es in der Musiktheorie nicht."]
+  ],
+  "vortragsbezeichnungen": [
+    ["Sehr langsam und feierlich", "Grave wäre die Anweisung dazu, und die fehlt hier."],
+    ["Mit Nachdruck betont", "Marcato steht nicht auf diesem Brett."]
+  ],
+  "genres-ursprung": [
+    ["Wien", "Der Walzer entstand dort, und der fehlt auf diesem Brett."],
+    ["Trinidad", "Der Calypso steht nicht in dieser Liste."]
+  ],
+  "alben-interpreten": [
+    ["David Bowie", "Ziggy Stardust wäre das Album dazu, und es fehlt hier."],
+    ["Led Zeppelin", "Ihr viertes Album steht nicht auf diesem Brett."]
+  ],
+  "musiker-instrumente": [
+    ["Kontrabass", "Charles Mingus spielte ihn, und der fehlt auf diesem Brett."],
+    ["Orgel", "Kein Musiker in dieser Liste ist dafür bekannt."]
+  ],
+  "musicals-komponisten": [
+    ["Richard Rodgers", "The Sound of Music stammt von ihm, und das Musical fehlt hier."],
+    ["Jule Styne", "Gypsy wäre sein Stück, und es steht nicht auf dem Brett."]
+  ],
+  "klassische-werke": [
+    ["Johann Sebastian Bach", "Die Brandenburgischen Konzerte fehlen auf diesem Brett."],
+    ["Joseph Haydn", "Die Schöpfung steht nicht in dieser Liste."]
+  ],
+  "tonerzeugung": [
+    ["Zungen schwingen im Mundstück", "Die Mundharmonika fehlt auf diesem Brett."],
+    ["Kristall schwingt im Stromkreis", "So arbeitet kein Instrument in dieser Liste."]
+  ],
+  "musikpreise-laender": [
+    ["Japan", "Der Japan Record Award wird dort vergeben, er fehlt auf dem Brett."],
+    ["Norwegen", "Der Spellemannprisen steht nicht in dieser Liste."]
+  ],
+  "stimmlagen": [
+    ["Sehr hohe Männerstimme in voller Bruststimme", "Auf keine Lage in dieser Liste trifft das zu."],
+    ["Stimme ohne feste Tonhöhe", "Der Sprechgesang steht nicht auf diesem Brett."]
+  ],
+  "notenwerte": [
+    ["Acht Schläge lang", "Die Doppelganze wäre das, und die fehlt auf dem Brett."],
+    ["Zwei Töne gleichzeitig", "Das ist ein Zusammenklang, kein Notenwert."]
+  ],
+  "bands-frontmaenner": [
+    ["Steven Tyler", "Er sang bei Aerosmith, und die Band fehlt auf dem Brett."],
+    ["Ozzy Osbourne", "Black Sabbath steht nicht in dieser Liste."]
+  ],
+  "musikepochen-merkmale": [
+    ["Erste Aufnahmen auf Tonträger", "Eine technische Neuerung, keine Epoche auf dem Brett."],
+    ["Improvisation über feste Akkordfolgen", "Das kennzeichnet den Jazz, der hier nicht steht."]
+  ],
+  "weltmusik-traditionen": [
+    ["Irland", "Die Sessions in den Pubs fehlen auf diesem Brett."],
+    ["Peru", "Die Huayno-Musik steht nicht in dieser Liste."]
+  ],
+  "filmkomponisten": [
+    ["Der weiße Hai", "Auch von John Williams, doch auf dem Brett steht Star Wars."],
+    ["Der Pianist", "Wojciech Kilar schrieb die Musik, und der fehlt hier."]
+  ],
+  "tontraeger": [
+    ["Löcher in einer Papierrolle", "So arbeitet das Pianola, das hier nicht steht."],
+    ["Ton auf dem Filmstreifen", "Die Lichttonspur fehlt auf diesem Brett."]
+  ],
+  "jazzstile": [
+    ["Mit indischen Ragas verbunden", "Der Indo-Jazz steht nicht auf diesem Brett."],
+    ["Ganz ohne Improvisation", "Auf keinen Stil in dieser Liste trifft das zu."]
+  ],
+  "festivals-laender": [
+    ["Frankreich", "Die Vieilles Charrues fänden dort statt, sie fehlen auf dem Brett."],
+    ["Niederlande", "Das Lowlands steht nicht in dieser Liste."]
+  ],
+  "notation-zeichen": [
+    ["Legt das c fest", "Das täte der C-Schlüssel, und der fehlt auf diesem Brett."],
+    ["Zeigt die Anzahl der Musiker", "So ein Zeichen gibt es in der Notenschrift nicht."]
+  ]
+}

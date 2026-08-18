@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geografie', 'extreme-der-erde', 'Extreme der Erde',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Größter Wasserfall nach Menge", "Inga-Fälle", "Am Kongo, mit gewaltiger Durchflussmenge."],
        ["Regenreichster bewohnter Ort", "Mawsynram", "Über elf Meter Niederschlag im Jahr."],
        ["Windigster Kontinent", "Antarktika", "Fallwinde erreichen Orkanstärke."],
-       ["Längster Fluss", "Nil", "Der Vergleich mit dem Amazonas wird bis heute geführt."]]'::jsonb),
+       ["Längster Fluss", "Nil", "Der Vergleich mit dem Amazonas wird bis heute geführt."]]'::jsonb,
+     '[["Atacama", "Der trockenste Ort der Erde, aber kein Rekord auf diesem Brett."],
+       ["Mount Everest", "Der höchste Berg, und danach fragt hier keine Zeile."]]'::jsonb),
 
     ('geografie', 'laenderrekorde', 'Länderrekorde',
      'Welches Land ist gemeint?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Am dünnsten besiedelt", "Mongolei", "Weniger als zwei Menschen je Quadratkilometer."],
        ["Staat auf zwei Kontinenten", "Türkei", "Die Grenze verläuft durch Istanbul."],
        ["Höchstgelegene Hauptstadt", "Bolivien", "Der Regierungssitz liegt auf 3600 Metern."],
-       ["Land mit den meisten Nachbarn", "China", "Vierzehn Länder grenzen an."]]'::jsonb),
+       ["Land mit den meisten Nachbarn", "China", "Vierzehn Länder grenzen an."]]'::jsonb,
+     '[["Nauru", "Der kleinste Inselstaat, aber kein Rekord in dieser Liste."],
+       ["Indien", "Das bevölkerungsreichste Land, und danach wird hier nicht gefragt."]]'::jsonb),
 
     ('geografie', 'flaggen-merkmale', 'Flaggen & ihre Besonderheiten',
      'Zu welchem Land gehört die Flagge?',
@@ -52,7 +56,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sternenhimmel mit Schriftband", "Brasilien", "Der Himmel über Rio am Tag der Republik."],
        ["Quadratische Nationalflagge", "Schweiz", "Nur zur See wird sie rechteckig geführt."],
        ["Löwe mit Schwert", "Sri Lanka", "Dazu Streifen für die Minderheiten."],
-       ["Zwei Sterne und ein Kreuz", "Neuseeland", "Das Kreuz des Südens am Nachthimmel."]]'::jsonb),
+       ["Zwei Sterne und ein Kreuz", "Neuseeland", "Das Kreuz des Südens am Nachthimmel."]]'::jsonb,
+     '[["Südkorea", "Das Yin-Yang-Zeichen wäre das Merkmal, es fehlt auf dem Brett."],
+       ["Bhutan und Wales", "Beide führen Drachen, gefragt ist hier aber nur einer."]]'::jsonb),
 
     ('geografie', 'enklaven', 'Enklaven & Exklaven',
      'Zu welchem Land gehört das Gebiet?',
@@ -67,7 +73,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cabinda", "Angola", "Durch einen Streifen der Nachbarn abgetrennt."],
        ["Musandam", "Oman", "An der Meerenge von Hormus."],
        ["Gibraltar", "Vereinigtes Königreich", "Seit 1713 britisch."],
-       ["Kleinwalsertal", "Österreich", "Nur über Deutschland auf der Straße erreichbar."]]'::jsonb),
+       ["Kleinwalsertal", "Österreich", "Nur über Deutschland auf der Straße erreichbar."]]'::jsonb,
+     '[["Frankreich", "Kein Gebiet auf diesem Brett gehört dazu."],
+       ["Indien", "Die Enklaven in Bangladesch waren indisch, sie stehen hier nicht."]]'::jsonb),
 
     ('geografie', 'gebirgspaesse', 'Gebirgspässe & Straßen',
      'In welchem Land liegt der Pass?',
@@ -83,7 +91,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sani Pass", "Lesotho", "Nur mit Geländewagen zu befahren."],
        ["Los Caracoles", "Chile", "Serpentinen hinunter aus den Anden."],
        ["Milford Road", "Neuseeland", "Führt durch einen Tunnel im Fels zum Fjord."],
-       ["Wakhan-Korridor", "Afghanistan", "Ein schmaler Streifen zwischen zwei Großmächten."]]'::jsonb),
+       ["Wakhan-Korridor", "Afghanistan", "Ein schmaler Streifen zwischen zwei Großmächten."]]'::jsonb,
+     '[["Peru", "Der Ticlio läge dort, und der Pass fehlt auf dem Brett."],
+       ["Georgien", "Die Heerstraße über den Kaukasus steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'meere-besonderheiten', 'Meere & ihre Besonderheiten',
      'Was zeichnet das Gewässer aus?',
@@ -99,7 +109,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mittelmeer", "Fast vom Ozean abgeschnitten", "Verdunstet mehr, als ihm zufließt."],
        ["Marmarameer", "Zwischen zwei Meerengen", "Verbindet Ägäis und Schwarzes Meer."],
        ["Beringmeer", "Reiche Fischgründe", "Im Winter zu großen Teilen vereist."],
-       ["Karibisches Meer", "Zweitgrößtes Korallenriff", "Nach dem Great Barrier Reef."]]'::jsonb),
+       ["Karibisches Meer", "Zweitgrößtes Korallenriff", "Nach dem Great Barrier Reef."]]'::jsonb,
+     '[["Ganz ohne Gezeiten", "Auf kein Gewässer in dieser Liste trifft das zu."],
+       ["Tiefste Stelle aller Ozeane", "Das wäre der Pazifik, der hier nicht steht."]]'::jsonb),
 
     ('geografie', 'fernstrassen', 'Berühmte Straßen & Länder',
      'Wo verläuft die Strecke?',
@@ -114,7 +126,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Amalfitana", "Italien", "Schmale Küstenstraße über dem Meer."],
        ["Ruta 40", "Argentinien", "Über 5000 Kilometer entlang der Anden."],
        ["Atlantikstraße", "Norwegen", "Springt über Brücken von Insel zu Insel."],
-       ["Panamericana", "Amerika", "Unterbrochen nur vom Darién-Dschungel."]]'::jsonb),
+       ["Panamericana", "Amerika", "Unterbrochen nur vom Darién-Dschungel."]]'::jsonb,
+     '[["Kanada", "Der Icefields Parkway führte dorthin, er fehlt auf dem Brett."],
+       ["Vietnam", "Der Hai-Van-Pass steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'vulkanausbrueche', 'Vulkanausbrüche & Jahre',
      'Wann brach der Vulkan aus?',
@@ -129,7 +143,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Nevado del Ruiz", "1985", "Schlammströme verschütteten eine ganze Stadt."],
        ["Pinatubo", "1991", "Kühlte weltweit die Temperaturen um ein halbes Grad."],
        ["Eyjafjallajökull", "2010", "Legte den europäischen Flugverkehr lahm."],
-       ["Hunga Tonga", "2022", "Die Druckwelle umrundete mehrfach die Erde."]]'::jsonb),
+       ["Hunga Tonga", "2022", "Die Druckwelle umrundete mehrfach die Erde."]]'::jsonb,
+     '[["1902", "Der Montagne Pelée brach damals aus, er fehlt auf dem Brett."],
+       ["1963", "Der Agung auf Bali, und der steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'erdbeben-orte', 'Schwere Erdbeben & Orte',
      'Wo ereignete sich das Beben?',
@@ -143,7 +159,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Beben von 2010", "Haiti", "Die Hauptstadt lag in Trümmern."],
        ["Tōhoku-Beben 2011", "Japan", "Der Tsunami führte zur Reaktorkatastrophe."],
        ["Beben von 1985", "Mexiko-Stadt", "Der weiche Seeboden verstärkte die Wellen."],
-       ["Beben von 2023", "Türkei", "Zwei schwere Stöße innerhalb weniger Stunden."]]'::jsonb),
+       ["Beben von 2023", "Türkei", "Zwei schwere Stöße innerhalb weniger Stunden."]]'::jsonb,
+     '[["Nepal", "Das Beben von 2015 traf Kathmandu, es fehlt auf dem Brett."],
+       ["Armenien", "Spitak wurde 1988 zerstört, das Beben steht hier nicht."]]'::jsonb),
 
     ('geografie', 'mehrsprachige-laender', 'Mehrsprachige Länder',
      'Wie steht es dort um die Sprachen?',
@@ -160,7 +178,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Finnland", "Finnisch und Schwedisch", "Beide mit gleichem Rang."],
        ["Luxemburg", "Drei Sprachen im Alltag", "Luxemburgisch, Französisch, Deutsch."],
        ["Malta", "Maltesisch und Englisch", "Maltesisch ist die einzige semitische EU-Amtssprache."],
-       ["Bolivien", "Über dreißig Amtssprachen", "Alle indigenen Sprachen sind anerkannt."]]'::jsonb),
+       ["Bolivien", "Über dreißig Amtssprachen", "Alle indigenen Sprachen sind anerkannt."]]'::jsonb,
+     '[["Elf Amtssprachen bis 2023", "Südafrika hatte so viele, gefragt ist hier der heutige Stand."],
+       ["Nur eine Amtssprache", "Kein Land auf diesem Brett steht dafür."]]'::jsonb),
 
     ('geografie', 'ortsnamen-bedeutung', 'Namen & ihre Bedeutung',
      'Was bedeutet der Name ursprünglich?',
@@ -176,7 +196,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Island", "Eisland", "Ein Siedler benannte es nach Treibeis im Fjord."],
        ["Sahara", "Wüste", "Der Name bedeutet schlicht das, was sie ist."],
        ["Kap Verde", "Grünes Kap", "Benannt nach der Küste Senegals, nicht nach den Inseln."],
-       ["Ecuador", "Äquator", "Die Linie verläuft mitten durch das Land."]]'::jsonb),
+       ["Ecuador", "Äquator", "Die Linie verläuft mitten durch das Land."]]'::jsonb,
+     '[["Wüstenland", "Auf keinen Namen in dieser Liste trifft das zu."],
+       ["Land des Feuers", "Aserbaidschan wäre gemeint, und das fehlt auf dem Brett."]]'::jsonb),
 
     ('geografie', 'stadt-beinamen', 'Städte & ihre Beinamen',
      'Welche Stadt trägt den Beinamen?',
@@ -192,7 +214,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Venedig des Nordens", "Stockholm", "Auf vierzehn Inseln erbaut."],
        ["Athen des Nordens", "Edinburgh", "Wegen der klassizistischen Bauten."],
        ["Stadt der Bruderliebe", "Philadelphia", "Der Name bedeutet genau das."],
-       ["Bierhauptstadt der Welt", "München", "Wegen des Oktoberfests und der Brauereien."]]'::jsonb),
+       ["Bierhauptstadt der Welt", "München", "Wegen des Oktoberfests und der Brauereien."]]'::jsonb,
+     '[["Paris", "Die Stadt der Liebe, und sie steht nicht auf dem Brett."],
+       ["Wien", "Die Stadt der Musik fehlt in dieser Liste."]]'::jsonb),
 
     ('geografie', 'kartenprojektionen', 'Kartenprojektionen',
      'Was leistet die Projektion?',
@@ -207,7 +231,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Winkel-Tripel", "Ausgleich dreier Verzerrungen", "Standard bei National Geographic."],
        ["Gnomonische Projektion", "Großkreise werden Geraden", "Für die Flugroutenplanung nützlich."],
        ["Sinusoidalprojektion", "Flächentreu mit gekrümmten Rändern", "Früh in Atlanten benutzt."],
-       ["Stereografische Projektion", "Winkeltreu vom Gegenpol", "Wird in der Kristallografie genutzt."]]'::jsonb),
+       ["Stereografische Projektion", "Winkeltreu vom Gegenpol", "Wird in der Kristallografie genutzt."]]'::jsonb,
+     '[["Zeigt die Erde als Scheibe", "Keine Projektion auf diesem Brett tut das."],
+       ["Längentreu in jede Richtung", "Eine solche Karte gibt es nicht."]]'::jsonb),
 
     ('geografie', 'monarchien-titel', 'Monarchien & Titel',
      'Wie heißt das Staatsoberhaupt dort?',
@@ -223,7 +249,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bhutan", "Drachenkönig", "Der Titel lautet Druk Gyalpo."],
        ["Eswatini", "Ngwenyama", "Der Titel bedeutet Löwe."],
        ["Vereinigtes Königreich", "König", "Zugleich Oberhaupt mehrerer Commonwealth-Staaten."],
-       ["Liechtenstein", "Regierender Fürst", "Mit ungewöhnlich weitreichenden Rechten."]]'::jsonb),
+       ["Liechtenstein", "Regierender Fürst", "Mit ungewöhnlich weitreichenden Rechten."]]'::jsonb,
+     '[["Schah", "Der Titel im Iran, der heute keine Monarchie mehr ist."],
+       ["Zar", "Ein Titel, den kein Staat auf diesem Brett führt."]]'::jsonb),
 
     ('geografie', 'naturwunder', 'Naturwunder & Länder',
      'In welchem Land liegt das Naturwunder?',
@@ -240,7 +268,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Giant''s Causeway", "Nordirland", "Vierzigtausend Basaltsäulen."],
        ["Salar de Uyuni", "Bolivien", "Größte Salzpfanne der Erde, spiegelglatt bei Regen."],
        ["Sokotra", "Jemen", "Ein Drittel der Pflanzen wächst nur dort."],
-       ["Pamukkale", "Türkei", "Weiße Kalkterrassen mit warmem Wasser."]]'::jsonb),
+       ["Pamukkale", "Türkei", "Weiße Kalkterrassen mit warmem Wasser."]]'::jsonb,
+     '[["Sambia", "Die Victoriafälle lägen dort, sie fehlen auf dem Brett."],
+       ["Neuseeland", "Der Milford Sound steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'plattentektonik', 'Plattentektonik',
      'Wo zeigt sich das?',
@@ -255,7 +285,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Grabenbruch in Mitteleuropa", "Oberrheingraben", "Mit vulkanischen Spuren am Kaiserstuhl."],
        ["Verwerfung im Nahen Osten", "Totes Meer", "Der tiefste Landpunkt liegt an dieser Naht."],
        ["Tiefseegraben vor der Küste", "Japan", "Hier entstand das Beben von 2011."],
-       ["Gebirge aus zwei Kontinenten", "Alpen", "Afrika drückt gegen Europa."]]'::jsonb),
+       ["Gebirge aus zwei Kontinenten", "Alpen", "Afrika drückt gegen Europa."]]'::jsonb,
+     '[["Kamtschatka", "Auch dort schiebt sich Kruste unter Kruste, hier steht es nicht."],
+       ["Mittelozeanischer Rücken unter Wasser", "Gefragt ist die Stelle, an der er herausragt."]]'::jsonb),
 
     ('geografie', 'deutsche-fluesse-staedte', 'Deutsche Flüsse & Städte',
      'An welchem Fluss liegt die Stadt?',
@@ -271,7 +303,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Marburg", "Lahn", "Universitätsstadt mit Schloss über dem Tal."],
        ["Halle", "Saale", "Die Salzgewinnung gab der Stadt den Namen."],
        ["Emden", "Ems", "Hafenstadt kurz vor der Mündung."],
-       ["Görlitz", "Neiße", "Die östlichste Stadt Deutschlands, geteilt mit Polen."]]'::jsonb),
+       ["Görlitz", "Neiße", "Die östlichste Stadt Deutschlands, geteilt mit Polen."]]'::jsonb,
+     '[["Havel", "Potsdam läge daran, und die Stadt fehlt auf dem Brett."],
+       ["Spree", "Berlin steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'inselstaaten-hauptstaedte', 'Inselstaaten & Hauptstädte',
      'Welche Stadt ist die Hauptstadt?',
@@ -287,7 +321,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kap Verde", "Praia", "Auf der Insel Santiago."],
        ["São Tomé und Príncipe", "São Tomé", "Kleinster afrikanischer Staat nach Fläche."],
        ["Bahrain", "Manama", "Durch einen Damm mit Saudi-Arabien verbunden."],
-       ["Osttimor", "Dili", "Erst 2002 unabhängig geworden."]]'::jsonb),
+       ["Osttimor", "Dili", "Erst 2002 unabhängig geworden."]]'::jsonb,
+     '[["Colombo", "Der Regierungssitz Sri Lankas, und der Staat fehlt auf dem Brett."],
+       ["Suva", "Die Hauptstadt Fidschis, das hier nicht steht."]]'::jsonb),
 
     ('geografie', 'gletscher-eis', 'Gletscher & Eis',
      'Wo liegt das Eis?',
@@ -301,7 +337,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Lambert-Gletscher", "Antarktika", "Größter Gletscher der Erde."],
        ["Baltoro", "Pakistan", "Führt zu den Achttausendern des Karakorum."],
        ["Columbia-Gletscher", "Alaska", "Hat sich in Jahrzehnten weit zurückgezogen."],
-       ["Khumbu-Eisbruch", "Nepal", "Gefährlichste Passage auf dem Weg zum Everest."]]'::jsonb),
+       ["Khumbu-Eisbruch", "Nepal", "Gefährlichste Passage auf dem Weg zum Everest."]]'::jsonb,
+     '[["Norwegen", "Der Jostedalsbreen läge dort, er fehlt auf dem Brett."],
+       ["Italien", "Der Marmolata-Gletscher steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'grenzkuriosa', 'Kuriose Grenzen',
      'Um welche Grenze geht es?',
@@ -315,7 +353,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Grenze in einem See", "Bodensee", "Sein Verlauf ist bis heute nicht festgelegt."],
        ["Grenze mit Wechselstaatlichkeit", "Fasaneninsel", "Halbjährlich zwischen Spanien und Frankreich."],
        ["Grenze mitten im Meer", "Hans-Insel", "Jahrzehntelang mit Flaschen Schnaps umkämpft."],
-       ["Grenze fast nur aus Geraden", "Ägypten und Sudan", "Auf dem Reißbrett gezogen."]]'::jsonb)
+       ["Grenze fast nur aus Geraden", "Ägypten und Sudan", "Auf dem Reißbrett gezogen."]]'::jsonb,
+     '[["Grenze mitten durch eine Insel", "Sankt Martin wäre das, und es fehlt auf dem Brett."],
+       ["Grenze, die einmal im Jahr wandert", "So etwas gibt es nirgends in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -340,15 +380,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

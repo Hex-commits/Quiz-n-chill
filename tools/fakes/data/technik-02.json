@@ -1,0 +1,82 @@
+{
+  "codes-standards": [
+    ["Zeitschriften und Zeitungen", "Dafür gibt es die ISSN, und die fehlt auf diesem Brett."],
+    ["Farben im Druck", "Der Pantone-Fächer steht nicht in dieser Liste."]
+  ],
+  "motorentypen": [
+    ["Verbrennung von Wasserstoff in der Zelle", "Die Brennstoffzelle fehlt auf diesem Brett."],
+    ["Antrieb durch ein aufgezogenes Federwerk", "Kein Motor in dieser Liste arbeitet so."]
+  ],
+  "werkstoffe": [
+    ["Rostet nicht und ist magnetisch", "Auf keinen Werkstoff auf diesem Brett trifft beides zu."],
+    ["Leitet Wärme fast gar nicht", "Der Aerogel-Dämmstoff fehlt in dieser Liste."]
+  ],
+  "zeitmessung": [
+    ["Brennende Kerze mit Markierungen", "Die Kerzenuhr fehlt auf diesem Brett."],
+    ["Zeitsignal über das Internet", "Der Netzwerkzeitdienst steht nicht in dieser Liste."]
+  ],
+  "drucktechnik": [
+    ["Bild wird eingebrannt", "Kein Verfahren auf diesem Brett arbeitet so."],
+    ["Farbe wird aufgesprüht", "Das Sprühen steht nicht in dieser Liste."]
+  ],
+  "verschluesselung": [
+    ["Rechnen mit elliptischen Kurven", "Die Kurvenkryptografie fehlt auf diesem Brett."],
+    ["Passwort im Klartext speichern", "Das ist keine Verschlüsselung, sondern ein Fehler."]
+  ],
+  "robotik": [
+    ["Mäht den Rasen ohne Aufsicht", "Der Mähroboter fehlt auf diesem Brett."],
+    ["Baut ein Haus in einem Stück", "Keine Maschine in dieser Liste tut das."]
+  ],
+  "satellitensysteme": [
+    ["OneWeb", "Ein eigener Betreiber, der auf diesem Brett fehlt."],
+    ["Südkorea", "Kein System in dieser Liste wird von dort betrieben."]
+  ],
+  "brueckentypen": [
+    ["Tunnel unter dem Fluss", "Ein Tunnel ist keine Brücke."],
+    ["Seilbahn über die Schlucht", "Sie trägt keine Fahrbahn und fehlt auf dem Brett."]
+  ],
+  "haushaltstechnik": [
+    ["Erhitzt mit Heißluft im Umlauf", "Die Fritteuse ohne Fett fehlt auf diesem Brett."],
+    ["Presst Kaffee unter Druck", "Die Espressomaschine steht nicht in dieser Liste."]
+  ],
+  "audiotechnik": [
+    ["Trennt die Frequenzen auf mehrere Chassis", "Die Frequenzweiche fehlt auf diesem Brett."],
+    ["Speichert die Aufnahme auf Band", "Das Tonbandgerät steht nicht in dieser Liste."]
+  ],
+  "datenbank-begriffe": [
+    ["Regel, die vor dem Schreiben prüft", "Der Constraint fehlt auf diesem Brett."],
+    ["Gespeicherte Abfrage als virtuelle Tabelle", "Die View steht nicht in dieser Liste."]
+  ],
+  "programmiersprachen-einsatz": [
+    ["Tabellen im Büro automatisieren", "Das täte VBA, und das fehlt auf diesem Brett."],
+    ["Auszeichnung von Webseiten", "HTML ist keine Programmiersprache und steht hier nicht."]
+  ],
+  "netzwerkgeraete": [
+    ["Übersetzt Namen in Adressen", "Das tut der DNS-Server, und der fehlt auf dem Brett."],
+    ["Verstärkt das WLAN-Signal", "Der Repeater steht nicht in dieser Liste."]
+  ],
+  "elektromobilitaet": [
+    ["Steckerstandard in Japan", "CHAdeMO wäre das, und es fehlt auf diesem Brett."],
+    ["Tankstelle für Wasserstoff", "Sie steht nicht in dieser Liste."]
+  ],
+  "heimcomputer-konsolen": [
+    ["Philips", "Der CD-i käme von dort, und der fehlt auf diesem Brett."],
+    ["Acorn", "Der BBC Micro steht nicht in dieser Liste."]
+  ],
+  "datentechnik-einheiten": [
+    ["Watt", "Ein Maß für die Leistung, aber keine Einheit der Datentechnik hier."],
+    ["Zoll", "Es misst die Bildschirmdiagonale und steht nicht auf diesem Brett."]
+  ],
+  "ingenieure-bauten": [
+    ["Otto Lilienthal", "Die ersten Gleitflüge fehlen auf diesem Brett."],
+    ["Rudolf Diesel", "Sein Motor steht nicht in dieser Liste."]
+  ],
+  "schiffstechnik": [
+    ["Backbord", "Die linke Seite, und danach fragt keine Zeile auf diesem Brett."],
+    ["Steuerbord", "Die rechte Seite, sie fehlt in dieser Liste ebenso."]
+  ],
+  "gebaeudetechnik": [
+    ["Erzeugt Strom aus Sonnenlicht", "Die Photovoltaikanlage fehlt auf diesem Brett."],
+    ["Schützt vor Einbrechern", "Die Alarmanlage steht nicht in dieser Liste."]
+  ]
+}

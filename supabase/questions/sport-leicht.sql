@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('sport', 'leicht-baelle', 'Bälle & Sportarten',
@@ -23,7 +23,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Federleichtes Ding mit Kranz", "Badminton", "Kein Ball, sondern ein Federball."],
        ["Harte Scheibe aus Gummi", "Eishockey", "Sie wird vor dem Spiel gekühlt."],
        ["Ball mit roter Naht", "Baseball", "Der Werfer nutzt die Naht für Effet."],
-       ["Ball, der im Wasser gespielt wird", "Wasserball", "Er muss auch nass greifbar sein."]]'::jsonb),
+       ["Ball, der im Wasser gespielt wird", "Wasserball", "Er muss auch nass greifbar sein."]]'::jsonb,
+     '[["Bowling", "Die Kugel dafür fehlt auf diesem Brett."],
+       ["Billard", "Die Kugeln stehen nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-sportarten-orte', 'Wo wird gespielt?',
      'Wo findet die Sportart statt?',
@@ -39,7 +41,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Radrennen", "Auf der Straße", "Oder auf der überhöhten Bahn."],
        ["Reiten", "Auf dem Reitplatz", "Dressur oder Springen."],
        ["Tennis", "Auf dem Court", "Sand, Rasen oder Hartplatz."],
-       ["Boxen", "Im Ring", "Zwischen den Seilen."]]'::jsonb),
+       ["Boxen", "Im Ring", "Zwischen den Seilen."]]'::jsonb,
+     '[["In der Wüste", "Keine Sportart auf diesem Brett findet dort statt."],
+       ["Auf dem Dach", "Auch dort spielt in dieser Liste niemand."]]'::jsonb),
 
     ('sport', 'leicht-ausruestung', 'Ausrüstung',
      'Wofür braucht man das?',
@@ -56,7 +60,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Stoppuhr", "Zeit messen", "Auf Hundertstel genau."],
        ["Sprungmatte", "Weiche Landung", "Beim Hochsprung und Turnen."],
        ["Schwimmflügel", "Auftrieb für Kinder", "Zum Üben im flachen Wasser."],
-       ["Trikot mit Nummer", "Spieler erkennen", "Jede Nummer nur einmal pro Team."]]'::jsonb),
+       ["Trikot mit Nummer", "Spieler erkennen", "Jede Nummer nur einmal pro Team."]]'::jsonb,
+     '[["Zum Schutz der Hände beim Klettern", "Das Magnesia fehlt auf diesem Brett."],
+       ["Damit der Ball besser rollt", "Kein Ausrüstungsstück in dieser Liste tut das."]]'::jsonb),
 
     ('sport', 'leicht-regeln', 'Einfache Regeln',
      'Was bedeutet das?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Aus", "Ball außerhalb des Feldes", "Er kommt von der Seitenlinie zurück."],
        ["Unentschieden", "Beide gleich viele Punkte", "Im Pokal folgt die Verlängerung."],
        ["Verlängerung", "Zusatzzeit bei Gleichstand", "Zweimal fünfzehn Minuten im Fußball."],
-       ["Elfmeterschießen", "Entscheidung vom Punkt", "Wenn auch die Verlängerung nichts bringt."]]'::jsonb),
+       ["Elfmeterschießen", "Entscheidung vom Punkt", "Wenn auch die Verlängerung nichts bringt."]]'::jsonb,
+     '[["Der Ball ist im Tor", "Das Tor ist keine Regel auf diesem Brett."],
+       ["Ein Spieler kommt neu ins Spiel", "Die Auswechslung steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-olympia', 'Olympische Spiele',
      'Was gehört zu Olympia?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Abstand zwischen zwei Spielen", "Vier Jahre", "Sommer und Winter versetzt."],
        ["Spiele im Schnee und auf Eis", "Winterspiele", "Seit 1924 ausgetragen."],
        ["Spiele für Menschen mit Behinderung", "Paralympics", "Kurz nach den Olympischen Spielen."],
-       ["Land, das immer zuerst einmarschiert", "Griechenland", "Als Ursprungsland der Spiele."]]'::jsonb),
+       ["Land, das immer zuerst einmarschiert", "Griechenland", "Als Ursprungsland der Spiele."]]'::jsonb,
+     '[["Das Maskottchen der Spiele", "Es gehört dazu, fehlt aber auf diesem Brett."],
+       ["Alle zwei Jahre", "Zwischen Sommer- und Winterspielen, gefragt ist hier ein anderer Abstand."]]'::jsonb),
 
     ('sport', 'leicht-fussball', 'Fußball',
      'Wer oder was ist das?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Drei Tore eines Spielers in einem Spiel", "Hattrick", "Klassisch sogar in einer Halbzeit."],
        ["Tor ins eigene Netz", "Eigentor", "Es zählt für den Gegner."],
        ["Elf Meter vor dem Tor", "Elfmeter", "Nur Torwart gegen Schütze."],
-       ["Runder Pokal für den Meister", "Meisterschale", "In Deutschland seit 1949."]]'::jsonb),
+       ["Runder Pokal für den Meister", "Meisterschale", "In Deutschland seit 1949."]]'::jsonb,
+     '[["Spieler, der im Mittelfeld verteilt", "Der Mittelfeldspieler fehlt auf diesem Brett."],
+       ["Der Platzwart, der den Rasen pflegt", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-schwimmen', 'Im Schwimmbad',
      'Wie heißt das?',
@@ -116,7 +128,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erstes Schwimmabzeichen für Kinder", "Seepferdchen", "Fünfundzwanzig Meter am Stück."],
        ["Person, die am Becken aufpasst", "Bademeister", "Er greift bei Gefahr sofort ein."],
        ["Turm zum Springen", "Sprungturm", "Ein, drei, fünf oder zehn Meter."],
-       ["Leine, die die Bahnen trennt", "Bahnleine", "Sie bricht auch die Wellen."]]'::jsonb),
+       ["Leine, die die Bahnen trennt", "Bahnleine", "Sie bricht auch die Wellen."]]'::jsonb,
+     '[["Schwimmen ohne Arme, nur mit Brett", "Das Beinschlagtraining fehlt auf diesem Brett."],
+       ["Der Sprung mit Anlauf vom Turm", "Der Turmsprung steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-wintersport', 'Wintersport',
      'Wie heißt die Sportart?',
@@ -130,7 +144,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sprünge und Pirouetten auf dem Eis", "Eiskunstlauf", "Zur Musik und mit Wertung."],
        ["Steine über das Eis schieben", "Curling", "Zwei Spieler wischen davor."],
        ["Mit dem Schlitten kopfüber ins Tal", "Skeleton", "Gesteuert nur mit dem Körper."],
-       ["Zu viert im Schlitten durch den Eiskanal", "Bobfahren", "Der Start entscheidet oft."]]'::jsonb),
+       ["Zu viert im Schlitten durch den Eiskanal", "Bobfahren", "Der Start entscheidet oft."]]'::jsonb,
+     '[["Zu zweit rücklings auf dem Schlitten", "Der Doppelsitzer-Rodler fehlt auf diesem Brett."],
+       ["Mit Schneeschuhen durch den Tiefschnee", "Das steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-sportarten-erkennen', 'Sportarten erkennen',
      'Welche Sportart ist gemeint?',
@@ -146,7 +162,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Möglichst schnell 100 Meter laufen", "Sprint", "Unter zehn Sekunden bei den Besten."],
        ["Auf einem Brett auf Wellen stehen", "Wellenreiten", "Aus Hawaii in die Welt gekommen."],
        ["Mit Pfeil und Bogen ins Ziel", "Bogenschießen", "Die Zehn liegt in der Mitte."],
-       ["Gegner auf die Matte bringen", "Ringen", "Beide Schultern müssen den Boden berühren."]]'::jsonb),
+       ["Gegner auf die Matte bringen", "Ringen", "Beide Schultern müssen den Boden berühren."]]'::jsonb,
+     '[["Einen Diskus möglichst weit werfen", "Der Diskuswurf fehlt auf diesem Brett."],
+       ["Auf dem Trampolin hoch springen", "Es steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-koerper-sport', 'Sport & Körper',
      'Was passiert dabei?',
@@ -160,7 +178,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Regelmäßiges Training", "Ausdauer wächst", "Das Herz wird kräftiger."],
        ["Beim Krafttraining", "Muskeln wachsen", "In den Pausen, nicht beim Heben."],
        ["Bei einem Sturz auf das Gelenk", "Verstauchung möglich", "Kühlen und hochlegen."],
-       ["Zu wenig Schlaf vor dem Wettkampf", "Reaktion wird langsamer", "Schlaf ist Teil des Trainings."]]'::jsonb),
+       ["Zu wenig Schlaf vor dem Wettkampf", "Reaktion wird langsamer", "Schlaf ist Teil des Trainings."]]'::jsonb,
+     '[["Beim Sitzen auf der Bank", "Dabei passiert nichts, wonach dieses Brett fragt."],
+       ["Wenn man vor dem Sport viel isst", "Das kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('sport', 'leicht-mannschaft-zahl', 'Wie viele spielen?',
      'Wie viele Spieler hat ein Team auf dem Feld?',
@@ -177,7 +197,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ruder-Achter", "8", "Dazu der Steuermann."],
        ["3x3-Basketball", "3", "Auf einem halben Feld gespielt."],
        ["Viererbob", "4", "Pilot, zwei Anschieber, ein Bremser."],
-       ["Rugby League", "13", "Zwei Spieler weniger als Rugby Union."]]'::jsonb),
+       ["Rugby League", "13", "Zwei Spieler weniger als Rugby Union."]]'::jsonb,
+     '[["10", "Keine Sportart auf diesem Brett spielt mit so vielen auf dem Feld."],
+       ["12", "Auch diese Zahl passt zu keiner Zeile hier."]]'::jsonb),
 
     ('sport', 'leicht-turnier', 'Beim Turnier',
      'Was bedeutet das?',
@@ -191,7 +213,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jeder spielt gegen jeden", "Gruppenphase", "Punkte entscheiden über das Weiterkommen."],
        ["Ehrenrunde nach dem Sieg", "Ehrenrunde", "Mit dem Pokal in der Hand."],
        ["Erhöhung für die ersten drei", "Siegerpodest", "Der Sieger steht in der Mitte."],
-       ["Wer als Erster ins Ziel kommt", "Sieger", "Manchmal entscheidet das Zielfoto."]]'::jsonb),
+       ["Wer als Erster ins Ziel kommt", "Sieger", "Manchmal entscheidet das Zielfoto."]]'::jsonb,
+     '[["Die Auslosung vor dem Turnier", "Sie gehört dazu, steht aber nicht auf diesem Brett."],
+       ["Das Spiel, das ausfällt", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('sport', 'leicht-tiere-sport', 'Sport mit Tieren',
      'Welches Tier gehört dazu?',
@@ -205,7 +229,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kamelrennen in der Wüste", "Kamel", "Vor allem auf der Arabischen Halbinsel."],
        ["Ochsengespann beim Ziehen", "Ochse", "Ein Kräftemessen auf dem Land."],
        ["Polo", "Poloponys", "Vier Reiter je Mannschaft."],
-       ["Voltigieren", "Longiertes Pferd", "Turnen auf dem galoppierenden Pferd."]]'::jsonb),
+       ["Voltigieren", "Longiertes Pferd", "Turnen auf dem galoppierenden Pferd."]]'::jsonb,
+     '[["Elefant", "Kein Sport auf diesem Brett wird mit ihm betrieben."],
+       ["Stier", "Der Stierkampf ist kein Sport in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-sport-woerter', 'Wörter aus dem Sport',
      'Was bedeutet das Wort?',
@@ -222,7 +248,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Profi", "Sport als Beruf", "Er lebt von seinem Sport."],
        ["Turnier", "Wettkampf mit mehreren Runden", "Am Ende steht ein Sieger."],
        ["Titelverteidiger", "Sieger des Vorjahres", "Er tritt erneut an."],
-       ["Aufstieg", "Sprung in die Oberliga", "Am Ende der Saison."]]'::jsonb),
+       ["Aufstieg", "Sprung in die Oberliga", "Am Ende der Saison."]]'::jsonb,
+     '[["Absteiger", "Der Weg nach unten fehlt auf diesem Brett, nur der Aufstieg steht da."],
+       ["Sponsor", "Der Geldgeber kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('sport', 'leicht-laufen', 'Laufen & Leichtathletik',
      'Was ist gemeint?',
@@ -237,7 +265,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Speer werfen", "Speerwurf", "Er muss mit der Spitze zuerst landen."],
        ["Zehn Disziplinen an zwei Tagen", "Zehnkampf", "Der Sieger gilt als Allrounder."],
        ["Gehen statt Laufen im Wettkampf", "Gehen", "Ein Fuß muss immer Bodenkontakt haben."],
-       ["Ziellinie überqueren", "Zieleinlauf", "Der Oberkörper zählt, nicht der Fuß."]]'::jsonb),
+       ["Ziellinie überqueren", "Zieleinlauf", "Der Oberkörper zählt, nicht der Fuß."]]'::jsonb,
+     '[["Über 800 Meter laufen", "Die Mittelstrecke fehlt auf diesem Brett."],
+       ["Eine Kugel möglichst weit stoßen", "Das Kugelstoßen steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-sport-zuhause', 'Sport ohne Verein',
      'Was braucht man dafür?',
@@ -252,7 +282,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tischtennis im Park", "Schläger und Ball", "Die Platte steht fest."],
        ["Klettern in der Halle", "Kletterschuhe und Gurt", "Gesichert wird zu zweit."],
        ["Skateboarden", "Board und Schoner", "Handgelenke brechen am häufigsten."],
-       ["Wintersport auf dem See", "Schlittschuhe", "Nur bei sicherer Eisdecke."]]'::jsonb),
+       ["Wintersport auf dem See", "Schlittschuhe", "Nur bei sicherer Eisdecke."]]'::jsonb,
+     '[["Ein Boot mit Motor", "Es braucht keine Sportart auf diesem Brett."],
+       ["Eine ganze Turnhalle", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('sport', 'leicht-sportler-laender', 'Sportler & Länder',
      'Aus welchem Land kommt die Person?',
@@ -267,7 +299,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Novak Djokovic", "Serbien", "Rekordhalter bei Grand Slams."],
        ["Yuzuru Hanyu", "Japan", "Zweimal Olympiasieger im Eiskunstlauf."],
        ["Ian Thorpe", "Australien", "Schwimmer mit vielen Goldmedaillen."],
-       ["Nadia Comăneci", "Rumänien", "Die erste perfekte Zehn."]]'::jsonb),
+       ["Nadia Comăneci", "Rumänien", "Die erste perfekte Zehn."]]'::jsonb,
+     '[["Brasilien", "Pelé käme von dort, und der fehlt auf diesem Brett."],
+       ["Norwegen", "Kein Name in dieser Liste stammt von dort."]]'::jsonb),
 
     ('sport', 'leicht-vereine', 'Bekannte Vereine',
      'In welcher Stadt spielt der Verein?',
@@ -284,7 +318,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["FC Schalke 04", "Gelsenkirchen", "Der Rivale aus dem Ruhrgebiet."],
        ["Benfica", "Lissabon", "Rekordmeister Portugals."],
        ["Celtic", "Glasgow", "Eine Hälfte des Old Firm."],
-       ["Werder Bremen", "Bremen", "Spielt im Weserstadion."]]'::jsonb),
+       ["Werder Bremen", "Bremen", "Spielt im Weserstadion."]]'::jsonb,
+     '[["Liverpool", "Der FC Liverpool spielt dort, und der fehlt auf diesem Brett."],
+       ["Mailand", "Weder Inter noch Milan stehen in dieser Liste."]]'::jsonb),
 
     ('sport', 'leicht-sport-jahreszeiten', 'Sport im Jahreslauf',
      'Wann macht man das vor allem?',
@@ -298,7 +334,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Skisprung-Vierschanzentournee", "Um den Jahreswechsel", "Zwischen Weihnachten und Dreikönig."],
        ["Wimbledon", "Anfang Juli", "Auf Rasen in London."],
        ["Berlin-Marathon", "Im September", "Bei kühlem Laufwetter."],
-       ["Eislaufen auf natürlichem Eis", "Bei Dauerfrost", "Nur wenn die Decke trägt."]]'::jsonb),
+       ["Eislaufen auf natürlichem Eis", "Bei Dauerfrost", "Nur wenn die Decke trägt."]]'::jsonb,
+     '[["Im Februar", "Kein Ereignis auf diesem Brett fällt allein in diesen Monat."],
+       ["Das ganze Jahr über", "Für keine Zeile in dieser Liste ist das die Antwort."]]'::jsonb),
 
     ('sport', 'leicht-fairness', 'Fair bleiben',
      'Was gehört zum fairen Sport?',
@@ -312,7 +350,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bei einem Sieg", "Nicht überheblich werden", "Nächste Woche kann es anders sein."],
        ["Gegenüber schwächeren Mitspielern", "Alle mitspielen lassen", "Niemand bleibt am Rand."],
        ["Mit dem eigenen Körper", "Kein Doping", "Auch nicht als Freizeitsportler."],
-       ["Mit der Ausrüstung", "Nichts manipulieren", "Auch das ist Betrug."]]'::jsonb)
+       ["Mit der Ausrüstung", "Nichts manipulieren", "Auch das ist Betrug."]]'::jsonb,
+     '[["Den Schiedsrichter anschreien", "Das ist das Gegenteil von fair."],
+       ["Absichtlich foulen, um Zeit zu gewinnen", "Auch das gehört nicht zum fairen Sport."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -337,15 +377,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

@@ -1,0 +1,82 @@
+{
+  "originaltitel": [
+    ["Sunset Boulevard", "Boulevard der Dämmerung wäre der deutsche Titel, der Film fehlt hier."],
+    ["North by Northwest", "Der unsichtbare Dritte steht nicht auf diesem Brett."]
+  ],
+  "serien-schoepfer": [
+    ["Aaron Sorkin", "The West Wing stammt von ihm, die Serie fehlt hier."],
+    ["Shonda Rhimes", "Grey's Anatomy wäre ihre Serie, und die steht nicht auf dem Brett."]
+  ],
+  "requisiten": [
+    ["Fedora aus Filz", "Ein Hut gehört zu mancher Figur, hier ist er keine Antwort."],
+    ["Dreizack", "Die Waffe des Poseidon, und der steht nicht auf dem Brett."]
+  ],
+  "oscar-rekorde": [
+    ["Alfred Hitchcock", "Er gewann nie einen Regie-Oscar, hält also keinen Rekord hier."],
+    ["Titanic", "Der Film teilt sich den Rekord an Einzelpreisen, der steht aber nicht auf dem Brett."]
+  ],
+  "kinderserien-laender": [
+    ["Dänemark", "Die Olsenbande für Kinder käme von dort, hier fehlt sie."],
+    ["Belgien", "Die Schlümpfe stammen von dort, sie stehen nicht auf dem Brett."]
+  ],
+  "studio-logos": [
+    ["Schloss mit Feuerwerk", "Das ist die Walt-Disney-Vorspannmarke, sie fehlt auf dem Brett."],
+    ["Freiheitsstatue im Kreis", "Kein Studio in dieser Liste führt so ein Zeichen."]
+  ],
+  "spin-offs": [
+    ["Star Trek", "Deep Space Nine wäre der Ableger dazu, er steht nicht auf dem Brett."],
+    ["Grey's Anatomy", "Private Practice ging daraus hervor, hier fehlt beides."]
+  ],
+  "gegenspieler": [
+    ["Professor Snape", "Er ist keiner der Widersacher, die hier zugeordnet werden."],
+    ["Nurse Ratched", "Aus Einer flog über das Kuckucksnest, das nicht auf dem Brett steht."]
+  ],
+  "kinotechnik": [
+    ["Duft im Kinosaal", "Smell-O-Vision blieb ein Versuch und steht nicht auf dem Brett."],
+    ["Bewegliche Sitze im Saal", "Das 4D-Kino kommt in dieser Liste nicht vor."]
+  ],
+  "sender-laender": [
+    ["Niederlande", "Die NOS sendet von dort, sie fehlt auf diesem Brett."],
+    ["Schweden", "SVT wäre die Anstalt dazu, und die steht hier nicht."]
+  ],
+  "filmszenen": [
+    ["Duschvorhang und Messer", "Das ist Psycho, und der Film fehlt auf dem Brett."],
+    ["Der Kopf in der Kiste am Ende", "Das ist Sieben, es steht nicht in dieser Liste."]
+  ],
+  "serien-sender": [
+    ["Showtime", "Dexter lief dort zuerst, die Serie fehlt auf dem Brett."],
+    ["ZDF", "Der Alte lief dort, und der steht hier nicht."]
+  ],
+  "filmtiere": [
+    ["Papagei", "Kein Filmtier auf diesem Brett ist ein Vogel."],
+    ["Rentier", "Sven aus Die Eiskönigin wäre das, er fehlt in dieser Liste."]
+  ],
+  "regisseurinnen": [
+    ["Lost in Translation", "Der Film von Sofia Coppola, die nicht auf dem Brett steht."],
+    ["Der Pferdeflüsterer", "Von Robert Redford, und der gehört ohnehin nicht hierher."]
+  ],
+  "synchronstimmen": [
+    ["Al Pacino", "Auch er hat feste deutsche Stimmen, hier steht keine davon."],
+    ["Meryl Streep", "Ihre Stimme fehlt auf diesem Brett."]
+  ],
+  "wahre-begebenheiten": [
+    ["Alan Turing", "The Imitation Game erzählt seine Geschichte, der Film fehlt hier."],
+    ["Erin Brockovich", "Auch ein wahres Vorbild, aber keines auf diesem Brett."]
+  ],
+  "verwandlungen": [
+    ["Joaquin Phoenix", "Für Joker nahm er stark ab, der Film steht nicht auf dem Brett."],
+    ["Daniel Day-Lewis", "Für Mein linker Fuß, und der fehlt in dieser Liste."]
+  ],
+  "fernsehpreise": [
+    ["Frankreich", "Der Sept d'or wurde dort vergeben, er steht nicht auf dem Brett."],
+    ["Japan", "Kein Preis in dieser Liste wird dort verliehen."]
+  ],
+  "erzaehlformen": [
+    ["Der Erzähler spricht das Publikum an", "Das ist der Bruch der vierten Wand, er fehlt hier."],
+    ["Vorgriff auf das spätere Ende", "Die Vorausblende steht nicht auf diesem Brett."]
+  ],
+  "filmwirtschaft": [
+    ["Aufwendige Vorabwerbung vor dem Start", "Die Marketingkampagne kommt hier nicht vor."],
+    ["Auswertung direkt auf Datenträger", "Das Direct-to-Video steht nicht auf dem Brett."]
+  ]
+}

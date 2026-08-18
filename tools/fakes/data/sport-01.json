@@ -1,0 +1,82 @@
+{
+  "olympiastaedte-sommer": [
+    ["Moskau", "Die Spiele von 1980 fanden dort statt, das Jahr fehlt auf dem Brett."],
+    ["Seoul", "Gastgeber 1988, und auch dieses Jahr steht nicht in der Liste."]
+  ],
+  "olympiastaedte-winter": [
+    ["Sarajevo", "Gastgeber 1984, und das Jahr fehlt auf diesem Brett."],
+    ["Grenoble", "Die Spiele von 1968 fanden dort statt, sie stehen hier nicht."]
+  ],
+  "fussball-wm-gastgeber": [
+    ["Mexiko", "Gastgeber 1970 und 1986, beide Jahre fehlen auf dem Brett."],
+    ["Spanien", "Die WM 1982 fand dort statt, das Jahr steht hier nicht."]
+  ],
+  "sportler-disziplinen": [
+    ["Skispringen", "Kein Name auf diesem Brett steht für diese Sportart."],
+    ["Marathon", "Eliud Kipchoge wäre der Name dazu, und der fehlt hier."]
+  ],
+  "sportbegriffe": [
+    ["Eisstockschießen", "Kein Begriff auf diesem Brett gehört dazu."],
+    ["Hattrick", "Er kommt in mehreren Sportarten vor und steht hier nicht."]
+  ],
+  "stadien-staedte": [
+    ["Buenos Aires", "La Bombonera stünde dort, und das Stadion fehlt auf dem Brett."],
+    ["Lissabon", "Das Estádio da Luz steht nicht in dieser Liste."]
+  ],
+  "formel1-strecken": [
+    ["Frankreich", "Paul Ricard läge dort, und die Strecke fehlt auf dem Brett."],
+    ["Spanien", "Der Circuit de Catalunya steht nicht in dieser Liste."]
+  ],
+  "tennisturniere-orte": [
+    ["Hamburg", "Das Sandplatzturnier dort fehlt auf diesem Brett."],
+    ["Peking", "Die China Open stehen nicht in dieser Liste."]
+  ],
+  "kampfsport-herkunft": [
+    ["Griechenland", "Das Pankration stammt von dort, und es fehlt auf dem Brett."],
+    ["Vereinigtes Königreich", "Das Boxen nach Queensberry-Regeln steht hier nicht."]
+  ],
+  "mannschaftsgroessen": [
+    ["12", "Keine Sportart auf diesem Brett spielt mit so vielen auf dem Feld."],
+    ["1", "Eine Einzelsportart passt zu keiner Zeile in dieser Liste."]
+  ],
+  "nationalteam-spitznamen": [
+    ["Die Wikinger", "So nennt man Island, und das fehlt auf diesem Brett."],
+    ["Socceroos", "Der Spitzname Australiens steht nicht in dieser Liste."]
+  ],
+  "radsport-trikots": [
+    ["Schwarzes Trikot", "Keine Wertung auf diesem Brett vergibt eines."],
+    ["Gelbes Trikot beim Giro", "Der Giro vergibt Rosa, nicht Gelb."]
+  ],
+  "sportmasse": [
+    ["9,15 Meter", "Der Abstand der Mauer beim Freistoß, und der fehlt auf dem Brett."],
+    ["100 Meter", "Die Sprintstrecke, nach der hier keine Zeile fragt."]
+  ],
+  "vereins-spitznamen": [
+    ["Die Reds", "So heißt der FC Liverpool, und der fehlt auf diesem Brett."],
+    ["Bayerns Stern des Südens", "Der FC Bayern steht nicht in dieser Liste."]
+  ],
+  "wintersport-disziplinen": [
+    ["Abfahrt durch Tore im Slalom", "Der Slalom fehlt auf diesem Brett."],
+    ["Rennen auf dem Eisschnelllaufoval allein gegen die Uhr", "Auf dem Brett steht der Lauf zu zweit."]
+  ],
+  "schach-weltmeister": [
+    ["Russland", "Wladimir Kramnik käme von dort, und der fehlt auf diesem Brett."],
+    ["Frankreich", "Kein Weltmeister in dieser Liste stammt von dort."]
+  ],
+  "sportverbaende": [
+    ["Handball", "Die IHF wäre der Verband dazu, und der fehlt auf dem Brett."],
+    ["Volleyball", "Die FIVB steht nicht in dieser Liste."]
+  ],
+  "nba-teams-staedte": [
+    ["Philadelphia", "Die 76ers spielen dort, und das Team fehlt auf diesem Brett."],
+    ["Detroit", "Die Pistons stehen nicht in dieser Liste."]
+  ],
+  "leichtathletik-geraete": [
+    ["Startblock", "Er gehört zum Sprint, und der fehlt auf diesem Brett."],
+    ["Gehstock", "Kein Gerät in dieser Liste, und im Sport auch keines."]
+  ],
+  "sportarten-herkunft": [
+    ["Frankreich", "Boule käme von dort, und die Sportart fehlt auf dem Brett."],
+    ["Australien", "Australian Football steht nicht in dieser Liste."]
+  ]
+}

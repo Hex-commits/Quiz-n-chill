@@ -62,6 +62,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'The Treasury, Petra, Jordan5.jpg', 'Diego Delso',
      'CC BY-SA 3.0', 'https://creativecommons.org/licenses/by-sa/3.0', 13)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Ägypten', 'Die Pyramiden von Gizeh stünden dort, und die fehlen auf dem Brett.', 14),
+    ('Griechenland', 'Die Akropolis steht nicht in dieser Liste.', 15)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -69,11 +74,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -126,6 +142,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      '程阳永济桥3 (cropped).jpg', '三猎',
      'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0', 12)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Dänemark', 'Die Öresundbrücke stünde dort, und die fehlt auf dem Brett.', 13),
+    ('Türkei', 'Die Bosporus-Brücke steht nicht in dieser Liste.', 14)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -133,11 +154,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -190,6 +222,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'La Liberté guidant le peuple - Eugène Delacroix - Musée du Louvre Peintures RF 129 - après restauration 2024.jpg', 'Eugène Delacroix',
      'Public domain', null, 12)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Salvador Dalí', 'Die zerfließenden Uhren wären das Bild dazu, und die fehlen hier.', 13),
+    ('Pablo Picasso', 'Guernica steht nicht auf diesem Brett.', 14)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -197,11 +234,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -251,6 +299,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'Argentine border collie.jpg', 'Horacio Cambeiro',
      'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0', 11)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Ungarn', 'Der Puli käme von dort, und die Rasse fehlt auf dem Brett.', 12),
+    ('Australien', 'Der Australian Shepherd steht nicht in dieser Liste.', 13)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -258,11 +311,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -318,6 +382,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'Vólcan Cotopaxi.jpg', 'camilogaleano.com',
      'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0', 13)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Italien', 'Der Gran Sasso stünde dort, und der fehlt auf dem Brett.', 14),
+    ('Chile', 'Der Ojos del Salado steht nicht in dieser Liste.', 15)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -325,11 +394,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -385,6 +465,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'Full cheese fondue set - in Switzerland.JPG', 'EquatorialSky at English Wikipedia',
      'Public domain', null, 13)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Thailand', 'Pad Thai käme von dort, und das Gericht fehlt auf dem Brett.', 14),
+    ('Indien', 'Das Curry steht nicht in dieser Liste.', 15)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -392,11 +477,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -452,6 +548,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'Castle of Chillon N.jpg', 'Zacharie Grossen',
      'CC BY-SA 3.0', 'https://creativecommons.org/licenses/by-sa/3.0', 13)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Ungarn', 'Die Budaer Burg stünde dort, und die fehlt auf dem Brett.', 14),
+    ('Schweden', 'Schloss Drottningholm steht nicht in dieser Liste.', 15)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -459,11 +560,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -516,6 +628,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'EI-RDB Embraer 175 Alitalia BCN.jpg', 'Bene Riobó',
      'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0', 12)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Tupolew', 'Die Tu-144 käme von dort, und die fehlt auf diesem Brett.', 13),
+    ('Bombardier', 'Der CRJ steht nicht in dieser Liste.', 14)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -523,11 +640,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -577,6 +705,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'Kamchatka Brown Bear near Dvuhyurtochnoe on 2015-07-23.jpg', 'Robert F. Tobler',
      'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0', 11)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Madagaskar', 'Die Lemuren lebten dort, und die fehlen auf diesem Brett.', 12),
+    ('Japan', 'Kein Tier in dieser Liste lebt dort in freier Wildbahn.', 13)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -584,11 +717,22 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;
 
 with new_quiz as (
     insert into quizzes (subject_id, slug, title, description, difficulty,
@@ -638,6 +782,11 @@ pairs (label, answer, explanation, image_file, image_credit,
      'Chichen Itza 3.jpg', 'Daniel Schwen',
      'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0', 11)
 ),
+fakes (label, explanation, position) as (
+    values
+    ('Bauhaus', 'Kein Bau auf diesem Brett steht in diesem Stil.', 12),
+    ('Romanik', 'Der Dom zu Speyer wäre das Beispiel, und der fehlt hier.', 13)
+),
 new_categories as (
     insert into categories (quiz_id, label, position, image_file,
                             image_credit, image_licence, image_licence_url)
@@ -645,8 +794,19 @@ new_categories as (
            p.image_credit, p.image_licence, p.image_licence_url
       from new_quiz q cross join pairs p
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select c.quiz_id, c.id, p.answer, p.position, p.explanation
+      from new_categories c
+      join pairs p on p.label = c.label
+    returning id
 )
+
+-- The answers that belong to no photograph. `new_quiz` is empty when the slug
+-- was already there, so the cross join yields nothing and the file stays
+-- re-runnable exactly as before.
 insert into items (quiz_id, category_id, label, position, explanation)
-select c.quiz_id, c.id, p.answer, p.position, p.explanation
-  from new_categories c
-  join pairs p on p.label = c.label;
+select q.id, null, f.label, f.position, f.explanation
+  from new_quiz q cross join fakes f;

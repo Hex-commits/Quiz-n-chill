@@ -219,11 +219,12 @@ export function startGame(
   });
 }
 
+/** `categoryId` of null is the move that says the answer belongs nowhere. */
 export function submitTurn(
   code: string,
   playerId: string,
   itemId: string,
-  categoryId: string,
+  categoryId: string | null,
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/turns`, {
     method: "POST",

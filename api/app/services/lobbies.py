@@ -47,6 +47,7 @@ from app.schemas import (
     LobbyStatus,
     LobbyView,
     PlayerPublic,
+    ResolvedFake,
     ResolvedPair,
     RoundView,
     SolvedItem,
@@ -79,6 +80,14 @@ QUIET_AFTER = timedelta(seconds=6)
 NEXT_ROUND_COUNTDOWN = timedelta(seconds=3)
 
 BOARD_PAIRS = 10
+
+BOARD_FAKES = 2
+"""How many fakes a dealt board carries, when the question has that many.
+
+Fixed rather than "whatever the question holds" so that trimming a thirty-pair
+question down to ten does not also make it the board with the highest share of
+fakes in the game. A question written without fakes deals none, and plays
+exactly as it did before they existed."""
 
 REPLAYABLE_PAIRS = BOARD_PAIRS * 3 // 2
 
@@ -430,11 +439,15 @@ def submit_turn(
     code: str,
     player_id: UUID,
     item_id: UUID,
-    category_id: UUID,
+    category_id: UUID | None,
 ) -> LobbyView:
     """Place one item, then pass the turn on -- right or wrong.
 
     A wrong placement also knocks the player out for the rest of the round.
+
+    `category_id` of None is a move, not an omission: the player is saying the
+    item belongs to no category at all. It is graded like any other -- right if
+    the item really is a fake, and out for the round if it was not.
     """
     with _mutate(code) as lobby:
         player = lobby.player(player_id)
@@ -458,7 +471,9 @@ def submit_turn(
         answer_key = current.answer_key()
         if item_id not in answer_key:
             raise ValidationError("That answer does not belong to this topic.")
-        if all(c.id != category_id for c in current.categories):
+        if category_id is not None and all(
+            c.id != category_id for c in current.categories
+        ):
             raise ValidationError("That category does not belong to this topic.")
 
         was_correct = grade_item(
@@ -504,16 +519,27 @@ def deal_board(round_: Round, rng: random.Random | None = None) -> Round:
     picture question is a different board every game. Categories keep their
     written order, because `position` is how the question was meant to read and
     sampling returns them shuffled.
-    """
-    if len(round_.categories) <= BOARD_PAIRS:
-        return round_
 
+    Fakes are dealt separately and to their own count: they have no category to
+    be sampled along with, and filtering items by the surviving categories --
+    which is how the pairs are cut -- would drop every one of them.
+    """
     rng = rng or random.Random()
+    fakes = round_.fakes()
+    kept_fakes = (
+        fakes if len(fakes) <= BOARD_FAKES else rng.sample(fakes, BOARD_FAKES)
+    )
+
+    if len(round_.categories) <= BOARD_PAIRS:
+        if len(kept_fakes) == len(fakes):
+            return round_
+        return replace(round_, items=round_.pairs() + kept_fakes)
+
     keep = {c.id for c in rng.sample(round_.categories, BOARD_PAIRS)}
     return replace(
         round_,
         categories=[c for c in round_.categories if c.id in keep],
-        items=[i for i in round_.items if i.category_id in keep],
+        items=[i for i in round_.pairs() if i.category_id in keep] + kept_fakes,
     )
 
 
@@ -688,7 +714,7 @@ def _solution_of(current: Round, solved: dict[UUID, UUID]) -> list[ResolvedPair]
     dropped as soon as the next one begins, and this is the only record of what
     the answers were.
     """
-    by_category = {item.category_id: item for item in current.items}
+    by_category = {item.category_id: item for item in current.pairs()}
 
     return [
         ResolvedPair(
@@ -700,6 +726,24 @@ def _solution_of(current: Round, solved: dict[UUID, UUID]) -> list[ResolvedPair]
         )
         for category in current.categories
         if (item := by_category.get(category.id)) is not None
+    ]
+
+
+def _fakes_of(current: Round, solved: dict[UUID, UUID]) -> list[ResolvedFake]:
+    """The rest of the finished round's answer key: what belonged nowhere.
+
+    Kept apart from `_solution_of` because it is a different claim. A pair says
+    "this went here"; a fake says "this went nowhere", and a review that hid
+    that would leave the two answers nobody could place looking like an
+    oversight rather than the point.
+    """
+    return [
+        ResolvedFake(
+            item_label=item.label,
+            explanation=item.explanation,
+            solved_by=solved.get(item.id),
+        )
+        for item in current.fakes()
     ]
 
 
@@ -771,6 +815,7 @@ def _maybe_finish_round(lobby: Lobby) -> None:
             difficulty=current.difficulty,
             source=current.source,
             solution=_solution_of(current, lobby.solved),
+            fakes=_fakes_of(current, lobby.solved),
         )
     )
 

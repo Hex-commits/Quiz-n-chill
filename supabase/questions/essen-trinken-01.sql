@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('essen-trinken', 'gewuerze-pflanzenteile', 'Gewürze & Pflanzenteile',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pfeffer", "Unreife Beeren", "Schwarz, grün und weiß stammen von derselben Pflanze."],
        ["Kümmel", "Früchte", "Oft mit Kreuzkümmel verwechselt, botanisch weit entfernt."],
        ["Wacholder", "Beerenzapfen", "Botanisch keine Beere, sondern ein Zapfen."],
-       ["Paprikapulver", "Getrocknete Fruchtschoten", "Ungarn unterscheidet acht Schärfegrade."]]'::jsonb),
+       ["Paprikapulver", "Getrocknete Fruchtschoten", "Ungarn unterscheidet acht Schärfegrade."]]'::jsonb,
+     '[["Harz des Stammes", "So gewinnt man Weihrauch und Myrrhe, die hier fehlen."],
+       ["Zwiebel der Pflanze", "Das wären Knoblauch und Schalotte, beide stehen nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'pastaformen', 'Pastaformen & ihre Namen',
      'Was bedeutet der Name auf Italienisch?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rigatoni", "Geriffelte", "Die Rillen halten die Sauce."],
        ["Tagliatelle", "Geschnittene", "Aus Bandnudelteig gerollt und geschnitten."],
        ["Cannelloni", "Große Rohre", "Werden gefüllt und überbacken."],
-       ["Capellini", "Härchen", "Die dünnste gebräuchliche Nudel."]]'::jsonb),
+       ["Capellini", "Härchen", "Die dünnste gebräuchliche Nudel."]]'::jsonb,
+     '[["Heizkörper", "So heißen Radiatori, die hier nicht stehen."],
+       ["Fingerhüte", "Das wären Ditalini, und die fehlen auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'nationalgetraenke', 'Nationalgetränke',
      'Aus welchem Land stammt das Getränk?',
@@ -52,7 +56,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Raki", "Türkei", "Trübt sich mit Wasser, daher Löwenmilch genannt."],
        ["Pilsner Bier", "Tschechien", "Das erste helle Lagerbier, 1842 in Pilsen."],
        ["Stout", "Irland", "Dunkles Bier mit geröstetem Malz."],
-       ["Rum Punch", "Jamaika", "Ein Teil sauer, zwei süß, drei stark, vier schwach."]]'::jsonb),
+       ["Rum Punch", "Jamaika", "Ein Teil sauer, zwei süß, drei stark, vier schwach."]]'::jsonb,
+     '[["Mexiko", "Tequila wäre das Getränk dazu, es steht nicht auf dem Brett."],
+       ["Japan", "Sake fehlt in dieser Liste."]]'::jsonb),
 
     ('essen-trinken', 'kochtechniken', 'Kochtechniken',
      'Was geschieht bei dieser Technik?',
@@ -68,7 +74,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Konfieren", "Garen in Fett", "Klassisch für Entenkeulen."],
        ["Fermentieren", "Mikroorganismen arbeiten lassen", "Aus Kohl wird Sauerkraut."],
        ["Räuchern", "Rauch als Konservierung", "Kalt für Lachs, heiß für Makrele."],
-       ["Sieden", "Gleichmäßig ohne starkes Wallen", "Schont die Struktur des Garguts."]]'::jsonb),
+       ["Sieden", "Gleichmäßig ohne starkes Wallen", "Schont die Struktur des Garguts."]]'::jsonb,
+     '[["Bei niedriger Hitze trocknen", "Das ist Dörren, keine Technik auf diesem Brett."],
+       ["Über offener Flamme rösten", "Grillen kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('essen-trinken', 'brotsorten', 'Brotsorten & Länder',
      'Woher stammt das Brot?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Challa", "Israel", "Geflochten, für den Sabbat."],
        ["Lavash", "Armenien", "Hauchdünn, als Welterbe anerkannt."],
        ["Bannock", "Schottland", "Flach, ursprünglich auf einer Platte gebacken."],
-       ["Damper", "Australien", "In der Glut des Lagerfeuers gebacken."]]'::jsonb),
+       ["Damper", "Australien", "In der Glut des Lagerfeuers gebacken."]]'::jsonb,
+     '[["Türkei", "Simit und Pide wären dort zu Hause, hier fehlen sie."],
+       ["Irland", "Das Sodabrot steht nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'weinregionen', 'Weinregionen & Länder',
      'In welchem Land liegt die Region?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mendoza", "Argentinien", "Weinberge auf über tausend Metern Höhe."],
        ["Stellenbosch", "Südafrika", "Zentrum des südafrikanischen Weinbaus."],
        ["Tokaj", "Ungarn", "Süßwein aus edelfaulen Beeren."],
-       ["Wachau", "Österreich", "Terrassen an der Donau, Welterbe."]]'::jsonb),
+       ["Wachau", "Österreich", "Terrassen an der Donau, Welterbe."]]'::jsonb,
+     '[["Chile", "Das Colchagua-Tal fehlt auf diesem Brett."],
+       ["Griechenland", "Nemea und Santorin stehen hier nicht."]]'::jsonb),
 
     ('essen-trinken', 'eierspeisen', 'Eierzubereitungen',
      'Wie wird das Ei zubereitet?',
@@ -116,7 +128,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mayonnaise", "Eigelb mit Öl emulgiert", "Das Lecithin hält Öl und Wasser zusammen."],
        ["Zabaione", "Über dem Wasserbad aufgeschlagen", "Mit Eigelb, Zucker und Marsala."],
        ["Hartgekochtes Ei", "Rund zehn Minuten gekocht", "Ein grüner Rand zeigt zu langes Kochen."],
-       ["Eier Benedict", "Pochiert mit Sauce hollandaise", "Auf getoastetem Muffin serviert."]]'::jsonb),
+       ["Eier Benedict", "Pochiert mit Sauce hollandaise", "Auf getoastetem Muffin serviert."]]'::jsonb,
+     '[["In Tee und Gewürzen eingelegt", "Das wäre das chinesische Teeei, es fehlt hier."],
+       ["In Essig und Salzlake eingelegt", "Das Soleier steht nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'suessspeisen-laender', 'Süßspeisen & Länder',
      'Aus welchem Land stammt die Süßspeise?',
@@ -132,7 +146,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Stollen", "Deutschland", "Die Form soll ein gewickeltes Kind darstellen."],
        ["Brownie", "USA", "Angeblich als misslungener Kuchen entstanden."],
        ["Rote Grütze", "Dänemark", "Beeren mit Stärke gebunden."],
-       ["Pastel de Nata", "Portugal", "Rezept aus einem Kloster in Belém."]]'::jsonb),
+       ["Pastel de Nata", "Portugal", "Rezept aus einem Kloster in Belém."]]'::jsonb,
+     '[["Griechenland", "Galaktoboureko wäre die Süßspeise dazu, hier fehlt sie."],
+       ["Schweden", "Die Prinzessinnentorte steht nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'kueche-koeche', 'Köche & ihre Restaurants',
      'Welches Haus ist mit dem Namen verbunden?',
@@ -148,7 +164,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Dabiz Muñoz", "DiverXO", "Sehr laute, sehr eigene Küche in Madrid."],
        ["Clare Smyth", "Core", "Erste britische Köchin mit drei Sternen."],
        ["Yotam Ottolenghi", "Ottolenghi", "Machte Gemüse zur Hauptsache."],
-       ["Alain Ducasse", "Le Louis XV", "Erstes Hotelrestaurant mit drei Sternen."]]'::jsonb),
+       ["Alain Ducasse", "Le Louis XV", "Erstes Hotelrestaurant mit drei Sternen."]]'::jsonb,
+     '[["The French Laundry", "Das Haus von Thomas Keller, der hier nicht steht."],
+       ["Mugaritz", "Geführt von Andoni Luis Aduriz, und der fehlt auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'kuechengeraete', 'Küchengeräte & Zweck',
      'Wozu dient das Gerät?',
@@ -165,7 +183,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zestenreißer", "Aromatische Schale abziehen", "Nur die Farbe, nicht das Weiße darunter."],
        ["Spätzlehobel", "Teig ins Wasser schaben", "Alternative zum Brett mit dem Messer."],
        ["Dampfgarer", "Ohne Wasserkontakt garen", "Vitamine bleiben besser erhalten."],
-       ["Küchenthermometer", "Kerntemperatur messen", "Entscheidend beim Braten großer Stücke."]]'::jsonb),
+       ["Küchenthermometer", "Kerntemperatur messen", "Entscheidend beim Braten großer Stücke."]]'::jsonb,
+     '[["Teig gleichmäßig ausrollen", "Dafür gibt es das Nudelholz, es steht nicht auf dem Brett."],
+       ["Kaffee unter Druck brühen", "Das leistet die Espressomaschine, hier fehlt sie."]]'::jsonb),
 
     ('essen-trinken', 'gerichte-namensgeber', 'Gerichte & ihre Namensgeber',
      'Nach wem ist das Gericht benannt?',
@@ -181,7 +201,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Nachos", "Ignacio Anaya", "Sein Spitzname war Nacho."],
        ["Sacher", "Franz Sacher", "Mit sechzehn Jahren als Lehrling erfunden."],
        ["Béchamel", "Marquis de Béchameil", "Er ließ sich die Sauce widmen."],
-       ["Margarita", "Königin Margherita", "Farben der italienischen Flagge auf dem Teig."]]'::jsonb),
+       ["Margarita", "Königin Margherita", "Farben der italienischen Flagge auf dem Teig."]]'::jsonb,
+     '[["Fürst Pückler", "Nach ihm ist das Eis benannt, das auf diesem Brett fehlt."],
+       ["Giuseppe Garibaldi", "Der Garibaldi-Keks trägt seinen Namen, er steht hier nicht."]]'::jsonb),
 
     ('essen-trinken', 'fleischstuecke', 'Fleischstücke',
      'Woher am Tier stammt das Stück?',
@@ -195,7 +217,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Brisket", "Brust", "Klassiker im amerikanischen Barbecue."],
        ["Short Ribs", "Querrippe", "Lange geschmort, sehr saftig."],
        ["Nacken", "Hals", "Durchzogen und ideal für Schmorgerichte."],
-       ["Haxe", "Unterschenkel", "Reich an Kollagen, wird beim Schmoren weich."]]'::jsonb),
+       ["Haxe", "Unterschenkel", "Reich an Kollagen, wird beim Schmoren weich."]]'::jsonb,
+     '[["Zunge", "Ein Stück für sich, aber keines auf diesem Brett."],
+       ["Backe", "Die Rinderbacke fehlt in dieser Liste."]]'::jsonb),
 
     ('essen-trinken', 'fermentiertes', 'Fermentierte Spezialitäten',
      'Woher stammt das Ferment?',
@@ -212,7 +236,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pu-Erh-Tee", "China", "Wird nach der Ernte nachgereift."],
        ["Kombucha", "Mandschurei", "Der Teepilz ist eine Symbiose."],
        ["Ayran", "Türkei", "Joghurt mit Wasser und Salz."],
-       ["Idli", "Südindien", "Reis und Linsen über Nacht vergoren."]]'::jsonb),
+       ["Idli", "Südindien", "Reis und Linsen über Nacht vergoren."]]'::jsonb,
+     '[["Georgien", "Auch dort wird viel fermentiert, hier steht nichts davon."],
+       ["Frankreich", "Der Rohmilchkäse gehörte dazu, auf dem Brett fehlt er."]]'::jsonb),
 
     ('essen-trinken', 'nutzpflanzen-herkunft', 'Nutzpflanzen & ihre Heimat',
      'Woher stammt die Pflanze ursprünglich?',
@@ -228,7 +254,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Avocado", "Guatemala", "Ihre Verbreiter, große Urzeittiere, sind längst ausgestorben."],
        ["Reis", "Ostasien", "Vor über 8000 Jahren am Jangtse angebaut."],
        ["Chili", "Bolivien", "Die Wildform stammt aus dem südamerikanischen Tiefland."],
-       ["Wassermelone", "Afrika", "Ursprünglich als Wasserspeicher genutzt."]]'::jsonb),
+       ["Wassermelone", "Afrika", "Ursprünglich als Wasserspeicher genutzt."]]'::jsonb,
+     '[["Neuguinea", "Von dort stammt das Zuckerrohr, das hier nicht steht."],
+       ["Australien", "Die Macadamia wäre die Pflanze dazu, sie fehlt auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'cocktails-zutaten', 'Cocktails & Zutaten',
      'Woraus besteht der Cocktail vor allem?',
@@ -244,7 +272,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Old Fashioned", "Bourbon und Zucker", "Einer der ältesten bekannten Cocktails."],
        ["Gin Tonic", "Gin und Tonic Water", "Das Chinin stammt aus der Malariavorsorge."],
        ["Espresso Martini", "Wodka und Espresso", "In den 1980ern in London erfunden."],
-       ["Daiquiri", "Rum und Limettensaft", "Benannt nach einem Ort in Kuba."]]'::jsonb),
+       ["Daiquiri", "Rum und Limettensaft", "Benannt nach einem Ort in Kuba."]]'::jsonb,
+     '[["Whiskey und Zitrone", "Das wäre ein Whiskey Sour, er fehlt auf dem Brett."],
+       ["Wodka und Ginger Beer", "So entsteht ein Moscow Mule, der hier nicht steht."]]'::jsonb),
 
     ('essen-trinken', 'tischsitten', 'Tischsitten weltweit',
      'Was gilt in diesem Land bei Tisch?',
@@ -258,7 +288,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Äthiopien", "Gemeinsam von einer Platte", "Man reicht einander Bissen an."],
        ["Russland", "Trinksprüche gehören dazu", "Getrunken wird selten ohne Anlass."],
        ["Portugal", "Nicht nachsalzen", "Es gilt als Kritik am Koch."],
-       ["Thailand", "Gegessen wird vom Löffel", "Gegessen wird vom Löffel."]]'::jsonb),
+       ["Thailand", "Gegessen wird vom Löffel", "Gegessen wird vom Löffel."]]'::jsonb,
+     '[["Nach dem Essen wird laut aufgestoßen", "Das sagt man Ägypten nach, und das Land fehlt hier."],
+       ["Erst wenn alle sitzen, wird angestoßen", "Eine deutsche Regel, und Deutschland steht nicht auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'gastronomie-begriffe', 'Begriffe der Gastronomie',
      'Was bezeichnet der Begriff?',
@@ -274,7 +306,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Izakaya", "Japanische Kneipe mit Speisen", "Getrunken und dazu gegessen wird gemeinsam."],
        ["Brasserie", "Französisches Lokal mit Bierausschank", "Der Name bedeutet Brauerei."],
        ["Tapas-Bar", "Kleine Gerichte zum Teilen", "Ursprünglich ein Deckel auf dem Glas."],
-       ["Service compris", "Bedienung im Preis enthalten", "Trinkgeld wird dann nur aufgerundet."]]'::jsonb),
+       ["Service compris", "Bedienung im Preis enthalten", "Trinkgeld wird dann nur aufgerundet."]]'::jsonb,
+     '[["Küchenchef des ganzen Hauses", "Das wäre der Chef de Cuisine, der hier nicht steht."],
+       ["Feste Speisenfolge zum festen Preis", "Das Menü prix fixe fehlt auf dem Brett."]]'::jsonb),
 
     ('essen-trinken', 'herkunftsbezeichnungen', 'Geschützte Herkunft',
      'Aus welchem Land darf das Produkt allein kommen?',
@@ -291,7 +325,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ungarische Salami", "Ungarn", "Mit Edelschimmel im Reifekeller."],
        ["Portwein", "Portugal", "Die Gärung wird mit Weinbrand gestoppt."],
        ["Havarti", "Dänemark", "Benannt nach einem Bauernhof bei Kopenhagen."],
-       ["Ementálsky syr", "Slowakei", "Eigene geschützte Bezeichnung neben dem Schweizer Vorbild."]]'::jsonb),
+       ["Ementálsky syr", "Slowakei", "Eigene geschützte Bezeichnung neben dem Schweizer Vorbild."]]'::jsonb,
+     '[["Belgien", "Auch das Lambic-Bier ist geschützt, es fehlt auf dem Brett."],
+       ["Polen", "Der Oscypek trägt den Schutz, steht aber nicht auf diesem Brett."]]'::jsonb),
 
     ('essen-trinken', 'backzutaten', 'Backzutaten & ihre Wirkung',
      'Was bewirkt die Zutat im Teig?',
@@ -307,7 +343,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gelatine", "Geliert kalte Massen", "Wird beim Erwärmen wieder flüssig."],
        ["Pektin", "Geliert Fruchtmassen", "Steckt natürlich in Äpfeln und Zitrusschalen."],
        ["Sauerteig", "Säuert und lockert zugleich", "Nötig, damit Roggen überhaupt backfähig wird."],
-       ["Xanthan", "Bindet ohne Klebereiweiß", "Wichtig für glutenfreies Backen."]]'::jsonb),
+       ["Xanthan", "Bindet ohne Klebereiweiß", "Wichtig für glutenfreies Backen."]]'::jsonb,
+     '[["Färbt den Teig gelb", "Das täte Safran, und der steht nicht auf dem Brett."],
+       ["Verhindert das Anhaften am Blech", "Das leistet Backpapier, keine Zutat im Teig."]]'::jsonb),
 
     ('essen-trinken', 'streetfood', 'Streetfood weltweit',
      'Woher kommt das Straßengericht?',
@@ -323,7 +361,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Simit", "Türkei", "Sesamkringel, auf dem Kopf getragen verkauft."],
        ["Bunny Chow", "Südafrika", "Ausgehöhltes Brot, mit Curry gefüllt."],
        ["Pierogi", "Polen", "Gefüllte Teigtaschen, gekocht oder gebraten."],
-       ["Baozi", "China", "Gedämpfte Hefeteigtaschen."]]'::jsonb)
+       ["Baozi", "China", "Gedämpfte Hefeteigtaschen."]]'::jsonb,
+     '[["Indien", "Pani Puri wäre das Gericht dazu, hier fehlt es."],
+       ["Griechenland", "Gyros im Pitabrot steht nicht auf dem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -348,15 +388,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

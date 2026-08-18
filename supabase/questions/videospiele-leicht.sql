@@ -9,7 +9,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('videospiele', 'leicht-konsolen-hersteller', 'Firmen & ihre Konsolen',
@@ -24,7 +24,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Commodore", "C64", "Ein Heimcomputer, kein reines Spielgerät."],
        ["SNK", "Neo Geo", "Spielhallentechnik fürs Wohnzimmer."],
        ["Sinclair", "ZX Spectrum", "In Großbritannien sehr verbreitet."],
-       ["NEC", "PC Engine", "In Japan ein großer Erfolg."]]'::jsonb),
+       ["NEC", "PC Engine", "In Japan ein großer Erfolg."]]'::jsonb,
+     '[["GameCube", "Auch von Nintendo, doch auf dem Brett steht die Switch."],
+       ["Ouya", "Sie kam von einer Firma, die hier nicht steht."]]'::jsonb),
 
     ('videospiele', 'leicht-spiele-figuren', 'Spiele & ihre Helden',
      'Wer ist die Hauptfigur?',
@@ -38,7 +40,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Uncharted", "Nathan Drake", "Schatzsucher mit lockerem Spruch."],
        ["The Witcher", "Geralt von Riva", "Der Hexer mit weißem Haar."],
        ["Minecraft", "Steve", "Die Standardfigur der Klötzchenwelt."],
-       ["Final Fantasy VII", "Cloud Strife", "Er trägt ein überdimensioniertes Schwert."]]'::jsonb),
+       ["Final Fantasy VII", "Cloud Strife", "Er trägt ein überdimensioniertes Schwert."]]'::jsonb,
+     '[["Sonic", "Er gehört zu Sega, und die Reihe fehlt auf diesem Brett."],
+       ["Ezio Auditore", "Aus Assassin''s Creed, das hier nicht steht."]]'::jsonb),
 
     ('videospiele', 'leicht-spielgenres', 'Genres einfach erklärt',
      'Was macht man in diesem Genre?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Puzzlespiel", "Rätsel lösen", "Meist ohne Zeitdruck."],
        ["Aufbauspiel", "Städte errichten", "Erst planen, dann wachsen lassen."],
        ["Musikspiel", "Im Takt drücken", "Punkte gibt es für Timing."],
-       ["Sportspiel", "Sport am Bildschirm", "Mit echten Vereinen und Regeln."]]'::jsonb),
+       ["Sportspiel", "Sport am Bildschirm", "Mit echten Vereinen und Regeln."]]'::jsonb,
+     '[["Karten sammeln und ausspielen", "Das Kartenspiel fehlt auf diesem Brett."],
+       ["Gruselig durch dunkle Gänge", "Das Horrorspiel steht nicht in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'leicht-mario-welt', 'Die Welt von Super Mario',
      'Wer oder was ist das?',
@@ -67,7 +73,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wario", "Gieriger Gegenspieler", "Gelb statt rot, Z statt M."],
        ["Feuerblume", "Ermöglicht Feuerbälle", "Mario wird dabei weiß-rot."],
        ["Superpilz", "Lässt Mario wachsen", "Der bekannteste Gegenstand der Reihe."],
-       ["Warpröhre", "Grüne Röhre zum Reisen", "Man springt einfach hinein."]]'::jsonb),
+       ["Warpröhre", "Grüne Röhre zum Reisen", "Man springt einfach hinein."]]'::jsonb,
+     '[["Blauer Igel mit roten Schuhen", "Das ist Sonic, und der gehört nicht zu Mario."],
+       ["Sternenmütze zum Werfen", "Sie stammt aus Mario Odyssey und fehlt auf diesem Brett."]]'::jsonb),
 
     ('videospiele', 'leicht-pokemon-typen', 'Pokémon & ihre Typen',
      'Welchen Typ hat das Pokémon?',
@@ -83,7 +91,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Onix", "Gestein", "Eine Schlange aus Felsbrocken."],
        ["Nebulak", "Geist", "Ein Schatten mit Grinsen."],
        ["Sichlor", "Käfer", "Sicheln statt Arme."],
-       ["Dratini", "Drache", "Sehr selten zu finden."]]'::jsonb),
+       ["Dratini", "Drache", "Sehr selten zu finden."]]'::jsonb,
+     '[["Eis", "Kein Pokémon auf diesem Brett hat diesen Typ."],
+       ["Stahl", "Auch dieser Typ kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('videospiele', 'leicht-zelda', 'The Legend of Zelda',
      'Was gehört dazu?',
@@ -98,7 +108,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Epona", "Links Pferd", "Sie kommt auf einen Pfiff."],
        ["Herzcontainer", "Mehr Lebensenergie", "Belohnung nach einem Bosskampf."],
        ["Okarina", "Instrument für Melodien", "Lieder verändern die Welt."],
-       ["Navi", "Begleiterin mit Hinweisen", "Eine Fee, die ständig ruft."]]'::jsonb),
+       ["Navi", "Begleiterin mit Hinweisen", "Eine Fee, die ständig ruft."]]'::jsonb,
+     '[["Blauer Igel als Begleiter", "Er gehört nicht in diese Reihe."],
+       ["Segelboot mit sprechendem Kopf", "Aus Wind Waker, und das fehlt auf diesem Brett."]]'::jsonb),
 
     ('videospiele', 'leicht-minecraft', 'Minecraft',
      'Was ist das im Spiel?',
@@ -114,7 +126,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Dorfbewohner", "Handelspartner", "Sie tauschen gegen Smaragde."],
        ["Bett", "Überspringt die Nacht", "Und setzt den Startpunkt."],
        ["Fackel", "Licht gegen Monster", "Im Dunkeln entstehen Gegner."],
-       ["Ofen", "Zum Schmelzen und Braten", "Braucht Kohle oder Holz."]]'::jsonb),
+       ["Ofen", "Zum Schmelzen und Braten", "Braucht Kohle oder Holz."]]'::jsonb,
+     '[["Amboss zum Reparieren", "Es gibt ihn, er steht aber nicht auf diesem Brett."],
+       ["Ein Auto zum Fahren", "So etwas gibt es im Spiel gar nicht."]]'::jsonb),
 
     ('videospiele', 'leicht-spielhalle', 'Klassiker der Spielhalle',
      'Worum geht es in dem Automatenspiel?',
@@ -128,7 +142,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Asteroids", "Felsen im Weltall zerschießen", "Sie zerbrechen in kleinere Stücke."],
        ["Frogger", "Straße und Fluss überqueren", "Als Frosch, ohne getroffen zu werden."],
        ["Breakout", "Steine wegschlagen", "Der Vorläufer vieler Klonspiele."],
-       ["Galaga", "Angreifende Raumschiffe", "Sie fliegen in Formation."]]'::jsonb),
+       ["Galaga", "Angreifende Raumschiffe", "Sie fliegen in Formation."]]'::jsonb,
+     '[["Bälle mit dem Schläger zurückschlagen", "Arkanoid wäre das, und es fehlt auf dem Brett."],
+       ["Auf einem Motorrad durch die Kurven", "Kein Automat in dieser Liste ist das."]]'::jsonb),
 
     ('videospiele', 'leicht-tiere', 'Tiere als Spielhelden',
      'Welches Tier ist die Figur?',
@@ -142,7 +158,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Spyro", "Drache", "Lila und noch klein."],
        ["Ecco", "Delfin", "Ein Spiel unter Wasser."],
        ["Fox McCloud", "Fuchs", "Anführer eines Raumschiffgeschwaders."],
-       ["Bowser", "Schildkröte", "Genauer: ein Koopa."]]'::jsonb),
+       ["Bowser", "Schildkröte", "Genauer: ein Koopa."]]'::jsonb,
+     '[["Waschbär", "Kein Held auf diesem Brett ist einer."],
+       ["Katze", "Auch sie kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('videospiele', 'leicht-sportspiele', 'Sportspiele',
      'Welche Sportart wird gespielt?',
@@ -156,7 +174,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["PGA Tour", "Golf", "Wind und Neigung zählen mit."],
        ["SSX", "Snowboard", "Sprünge weit jenseits der Physik."],
        ["MotoGP", "Motorradrennen", "Mit lizenzierten Fahrern."],
-       ["Rocket League", "Fußball mit Autos", "Die Tore fallen in der Luft."]]'::jsonb),
+       ["Rocket League", "Fußball mit Autos", "Die Tore fallen in der Luft."]]'::jsonb,
+     '[["Tennis", "Ein Tennisspiel fehlt auf diesem Brett."],
+       ["Boxen", "Kein Titel in dieser Liste steht dafür."]]'::jsonb),
 
     ('videospiele', 'leicht-handyspiele', 'Spiele auf dem Handy',
      'Was macht man in dem Spiel?',
@@ -170,7 +190,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Temple Run", "Endlos weglaufen", "Verfolgt von Affen."],
        ["Fruit Ninja", "Früchte zerschneiden", "Bomben besser stehen lassen."],
        ["Subway Surfers", "Vor dem Wächter fliehen", "Über Gleise und Züge."],
-       ["2048", "Zahlen verdoppeln", "Bis eine Kachel 2048 zeigt."]]'::jsonb),
+       ["2048", "Zahlen verdoppeln", "Bis eine Kachel 2048 zeigt."]]'::jsonb,
+     '[["Steine in Reihen schieben", "Das wäre Tetris, und es steht nicht auf diesem Brett."],
+       ["Ein Restaurant führen", "So ein Spiel fehlt in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'leicht-begriffe', 'Wörter aus dem Spiel',
      'Was bedeutet der Begriff?',
@@ -184,7 +206,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cheat", "Trick zum Schummeln", "Oft als Tastenfolge eingegeben."],
        ["Respawn", "Rückkehr ins Spiel", "Meist am letzten Kontrollpunkt."],
        ["Inventar", "Liste der Gegenstände", "Oft mit begrenztem Platz."],
-       ["Patch", "Nachträgliche Verbesserung", "Sie behebt Fehler."]]'::jsonb),
+       ["Patch", "Nachträgliche Verbesserung", "Sie behebt Fehler."]]'::jsonb,
+     '[["Zusätzlicher Inhalt zum Kaufen", "Der DLC fehlt auf diesem Brett."],
+       ["Bild pro Sekunde", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('videospiele', 'leicht-konsolen-merkmale', 'Was kann die Konsole?',
      'Wodurch fällt das Gerät auf?',
@@ -199,7 +223,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["VR-Brille", "Bild vor den Augen", "Der Kopf steuert die Blickrichtung."],
        ["Spielautomat", "Münze einwerfen", "Das Spiel endet mit dem Guthaben."],
        ["Nintendo 64", "Controller mit drei Griffen", "Ungewöhnlich, aber durchdacht."],
-       ["Sega Mega Drive", "Modul einstecken", "Ladezeiten gab es damals nicht."]]'::jsonb),
+       ["Sega Mega Drive", "Modul einstecken", "Ladezeiten gab es damals nicht."]]'::jsonb,
+     '[["Legt CDs zum Abspielen ein", "Kein Gerät auf diesem Brett ist so beschrieben."],
+       ["Zwei Controller fest verbaut", "Das trifft auf keines in dieser Liste zu."]]'::jsonb),
 
     ('videospiele', 'leicht-steuerung', 'Steuerung & Zubehör',
      'Wozu dient das Gerät?',
@@ -213,7 +239,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tanzmatte", "Steuerung mit den Füßen", "Man tritt auf Pfeile."],
        ["Lichtpistole", "Zielen auf den Bildschirm", "Funktioniert nur mit Röhrenfernsehern."],
        ["Vibration", "Spürbare Rückmeldung", "Ein kleiner Motor im Gehäuse."],
-       ["Touchscreen", "Bedienung mit dem Finger", "Auf Handy und Tablet üblich."]]'::jsonb),
+       ["Touchscreen", "Bedienung mit dem Finger", "Auf Handy und Tablet üblich."]]'::jsonb,
+     '[["Kamera erkennt Bewegungen", "Die Kinect fehlt auf diesem Brett."],
+       ["Sitz, der sich mitbewegt", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('videospiele', 'leicht-mario-kart', 'Mario Kart',
      'Was bewirkt das im Rennen?',
@@ -227,7 +255,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Regenbogen-Boulevard", "Strecke im Weltall", "Ohne Leitplanken."],
        ["Drift", "Kurve mit Extraschub", "Belohnt sauberes Fahren."],
        ["Zeitfahren", "Allein gegen die Uhr", "Ohne Gegner und Gegenstände."],
-       ["Startbeschleunigung", "Schub beim Startsignal", "Gas geben im richtigen Moment."]]'::jsonb),
+       ["Startbeschleunigung", "Schub beim Startsignal", "Gas geben im richtigen Moment."]]'::jsonb,
+     '[["Grüner Panzer", "Er fliegt geradeaus und fehlt auf diesem Brett."],
+       ["Sprungfeder auf der Strecke", "So etwas kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('videospiele', 'leicht-reihen-thema', 'Bekannte Reihen',
      'Worum geht es in der Spielereihe?',
@@ -241,7 +271,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Anno", "Inseln besiedeln", "Jeder Teil nennt eine Jahreszahl."],
        ["Die Siedler", "Warenketten aufbauen", "Erst Holz, dann alles andere."],
        ["Farming Simulator", "Landwirtschaft mit Traktoren", "Mit echten Maschinenmarken."],
-       ["Guitar Hero", "Gitarrenriffs nachspielen", "Auf einer Plastikgitarre."]]'::jsonb),
+       ["Guitar Hero", "Gitarrenriffs nachspielen", "Auf einer Plastikgitarre."]]'::jsonb,
+     '[["Zombies im Herrenhaus", "Resident Evil fehlt auf diesem Brett."],
+       ["Ein Zoo verwalten", "Keine Reihe in dieser Liste handelt davon."]]'::jsonb),
 
     ('videospiele', 'leicht-maskottchen', 'Maskottchen der Firmen',
      'Welche Figur steht für das Studio?',
@@ -256,7 +288,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Microsoft", "Master Chief", "Sein Start rettete die erste Xbox."],
        ["Capcom", "Mega Man", "Blauer Roboter mit Armkanone."],
        ["Konami", "Solid Snake", "Ein Soldat mit Pappkarton."],
-       ["Ubisoft", "Rayman", "Eine Figur ganz ohne Arme und Beine."]]'::jsonb),
+       ["Ubisoft", "Rayman", "Eine Figur ganz ohne Arme und Beine."]]'::jsonb,
+     '[["Lara Croft", "Sie steht für ein Studio, das hier nicht aufgeführt ist."],
+       ["Crash Bandicoot", "Er gehört zu Naughty Dog, und das fehlt auf dem Brett."]]'::jsonb),
 
     ('videospiele', 'leicht-zusammen-spielen', 'Zusammen spielen',
      'Was bedeutet das?',
@@ -270,7 +304,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Voice-Chat", "Reden während des Spiels", "Absprachen in Echtzeit."],
        ["Ranglistenspiel", "Zählt für die Platzierung", "Niederlagen kosten Punkte."],
        ["Zuschauermodus", "Nur zusehen", "Ohne selbst einzugreifen."],
-       ["Turnier", "Wettbewerb mit vielen Teams", "Meist im K.-o.-System."]]'::jsonb),
+       ["Turnier", "Wettbewerb mit vielen Teams", "Meist im K.-o.-System."]]'::jsonb,
+     '[["Allein gegen den Computer", "Das ist kein gemeinsames Spielen auf diesem Brett."],
+       ["Der Spielstand für zwei Personen", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('videospiele', 'leicht-wo-spielt-man', 'Wo wird gespielt?',
      'Was ist typisch für diese Art zu spielen?',
@@ -284,7 +320,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Handheld", "Unterwegs in der Hand", "Bildschirm und Tasten in einem."],
        ["Cloud-Gaming", "Rechenarbeit im Rechenzentrum", "Nur das Bild kommt an."],
        ["Tablet", "Größer als das Handy", "Bedienung per Berührung."],
-       ["Smart-TV", "Ohne zusätzliches Gerät", "Die App steckt im Fernseher."]]'::jsonb),
+       ["Smart-TV", "Ohne zusätzliches Gerät", "Die App steckt im Fernseher."]]'::jsonb,
+     '[["Im Kino auf großer Leinwand", "Dort wird nicht gespielt."],
+       ["Auf der Armbanduhr", "Kein Ort auf diesem Brett meint das."]]'::jsonb),
 
     ('videospiele', 'leicht-bosewichte', 'Bekannte Bösewichte',
      'Aus welchem Spiel stammt der Schurke?',
@@ -298,7 +336,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Enderdrache", "Minecraft", "Er wartet in der letzten Welt."],
        ["Dr. Neo Cortex", "Crash Bandicoot", "Er erschuf den Helden selbst."],
        ["Ridley", "Metroid", "Ein Weltraumdrache."],
-       ["GLaDOS", "Portal", "Eine Computerstimme mit Kuchenversprechen."]]'::jsonb)
+       ["GLaDOS", "Portal", "Eine Computerstimme mit Kuchenversprechen."]]'::jsonb,
+     '[["Bowser Jr.", "Der Sohn kommt in dieser Liste nicht vor, nur der Vater."],
+       ["Handsome Jack", "Aus Borderlands, das auf diesem Brett fehlt."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -323,15 +363,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

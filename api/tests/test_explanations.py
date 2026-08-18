@@ -48,14 +48,15 @@ def test_the_graded_result_carries_it():
     assert "Portugal" in result.explanation
 
 
-def test_a_graded_result_always_names_the_right_category():
-    """`correct_category_id` is not optional: every answer has exactly one
-    category, so a result that cannot say which one is a bug, not a fake."""
-    with pytest.raises(PydanticValidationError):
-        ItemResult(
-            item_id=uuid4(), label="Lissabon", assigned_category_id=None,
-            correct_category_id=None, is_correct=False, explanation=None,
-        )
+def test_a_graded_result_can_say_the_answer_belonged_nowhere():
+    """`correct_category_id` is optional again, and null is a real verdict:
+    the answer was a fake, and the player who said so was right."""
+    result = ItemResult(
+        item_id=uuid4(), label="Lissabon", assigned_category_id=None,
+        correct_category_id=None, is_correct=True, explanation=None,
+    )
+
+    assert result.correct_category_id is None
 
 
 def test_a_round_in_progress_serialises_without_any_explanation():

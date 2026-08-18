@@ -1,0 +1,82 @@
+{
+  "leicht-maerchenfiguren": [
+    ["Die Bienenkönigin", "Ein Grimm-Märchen, das auf diesem Brett fehlt."],
+    ["Der Wolf und die sieben Geißlein", "Es steht nicht in dieser Liste."]
+  ],
+  "leicht-kinderbuchfiguren": [
+    ["Der kleine Wassermann", "Auch von Otfried Preußler, aber nicht auf diesem Brett."],
+    ["Alice im Wunderland", "Sie fehlt in dieser Liste."]
+  ],
+  "leicht-instrumente": [
+    ["Harfe", "Sie wird auch gezupft, steht auf diesem Brett aber nicht."],
+    ["Mundharmonika", "Sie fehlt in dieser Liste."]
+  ],
+  "leicht-malen": [
+    ["Staffelei", "Sie hält die Leinwand, danach fragt hier keine Zeile."],
+    ["Wachsmalstifte", "Auch damit malt man, auf dem Brett stehen sie nicht."]
+  ],
+  "leicht-museen": [
+    ["Bibliothek", "Dort stehen Bücher, und sie ist kein Museum auf diesem Brett."],
+    ["Botanischer Garten", "Dort wachsen Pflanzen, hier ist er keine Antwort."]
+  ],
+  "leicht-theater": [
+    ["Kartenhäuschen am Eingang", "Die Theaterkasse steht nicht auf diesem Brett."],
+    ["Der Text des Stücks auf Papier", "Das Textbuch fehlt in dieser Liste."]
+  ],
+  "leicht-farben-bedeutung": [
+    ["Orange", "Eine Farbe, für die auf diesem Brett keine Bedeutung steht."],
+    ["Rosa", "Auch sie kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-weltbekannte-bauwerke": [
+    ["Moskau", "Die Basilius-Kathedrale stünde dort, sie fehlt auf dem Brett."],
+    ["Athen", "Die Akropolis steht nicht in dieser Liste."]
+  ],
+  "leicht-weihnachten": [
+    ["Eier suchen im Garten", "Das gehört zu Ostern, nicht zu Weihnachten."],
+    ["Kürbis mit Gesicht vor der Tür", "Das ist Halloween und steht hier nicht."]
+  ],
+  "leicht-sprachen-gruesse": [
+    ["Niederländisch", "Goedendag wäre der Gruß, und der fehlt auf dem Brett."],
+    ["Arabisch", "Salam steht nicht in dieser Liste."]
+  ],
+  "leicht-comicfiguren": [
+    ["Werner mit dem Motorrad", "Eine deutsche Comicfigur, die hier fehlt."],
+    ["Calvin mit seinem Tiger", "Er steht nicht auf diesem Brett."]
+  ],
+  "leicht-zirkus": [
+    ["Verkauft Popcorn in der Pause", "Ein Verkäufer, aber keine Nummer auf dem Brett."],
+    ["Spielt die Musik zur Vorstellung", "Die Zirkuskapelle fehlt in dieser Liste."]
+  ],
+  "leicht-buecher-teile": [
+    ["Zahl unten auf jeder Seite", "Die Seitenzahl steht nicht auf diesem Brett."],
+    ["Widmung an eine Person", "Sie fehlt in dieser Liste."]
+  ],
+  "leicht-sagen": [
+    ["Vogel, der aus der Asche steigt", "Der Phönix fehlt auf diesem Brett."],
+    ["Schiff, das ewig über die Meere fährt", "Der Fliegende Holländer steht hier nicht."]
+  ],
+  "leicht-tanz": [
+    ["Springen im Zweiertakt zu Blasmusik", "Die Polka fehlt auf diesem Brett."],
+    ["Sprünge über gekreuzte Schwerter", "Ein schottischer Tanz, der hier nicht steht."]
+  ],
+  "leicht-alphabet": [
+    ["Zeichen für einen Ausruf", "Das Ausrufezeichen steht nicht auf diesem Brett."],
+    ["Buchstabe zwischen A und C", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-berufe-kultur": [
+    ["Übersetzt Bücher in eine andere Sprache", "Der Übersetzer fehlt auf diesem Brett."],
+    ["Schreibt Kritiken über Filme", "Der Kritiker steht nicht in dieser Liste."]
+  ],
+  "leicht-laender-symbole": [
+    ["Kiwi-Vogel", "Er steht für Neuseeland, und das fehlt auf dem Brett."],
+    ["Kleeblatt", "Es steht für Irland, das hier nicht vorkommt."]
+  ],
+  "leicht-musik-hoeren": [
+    ["Zwei Menschen singen zusammen", "Das Duett steht nicht auf diesem Brett."],
+    ["Ein Konzert unter freiem Himmel", "Es fehlt in dieser Liste."]
+  ],
+  "leicht-film-fuer-kinder": [
+    ["Mädchen zieht in ein Haus voller Geister", "Das wäre Coraline, und der Film fehlt hier."],
+    ["Vier Tiere fliehen aus dem Zoo nach Afrika", "Madagascar steht nicht auf diesem Brett."]
+  ]
+}

@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('kunst-kultur', 'griechische-goetter', 'Griechische Götter & ihre Bereiche',
@@ -21,7 +21,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Artemis", "Jagd und Mond", "Zwillingsschwester des Apollon."],
        ["Hephaistos", "Schmiedefeuer", "Schmiedet unter dem Vulkan die Waffen der Götter."],
        ["Demeter", "Ackerbau", "Ihre Trauer um Persephone erklärt den Winter."],
-       ["Dionysos", "Wein und Rausch", "Aus seinen Festen entstand das Theater."]]'::jsonb),
+       ["Dionysos", "Wein und Rausch", "Aus seinen Festen entstand das Theater."]]'::jsonb,
+     '[["Herdfeuer und Haus", "Das wäre Hestia, und die fehlt auf diesem Brett."],
+       ["Ehe und Geburt", "Hera stünde dafür, und sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'goetter-griechisch-roemisch', 'Griechische & römische Götternamen',
      'Wie heißt die Gottheit bei den Römern?',
@@ -38,7 +40,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hephaistos", "Vulcanus", "Aus seinem Namen wurde das Wort Vulkan."],
        ["Demeter", "Ceres", "Von ihrem Namen stammt das englische cereal."],
        ["Dionysos", "Bacchus", "Die Bacchanalien waren in Rom zeitweise verboten."],
-       ["Hades", "Pluto", "Der Zwergplanet ist nach ihm benannt."]]'::jsonb),
+       ["Hades", "Pluto", "Der Zwergplanet ist nach ihm benannt."]]'::jsonb,
+     '[["Saturn", "Der römische Name des Kronos, und der fehlt auf dem Brett."],
+       ["Apollo", "Er heißt bei beiden gleich, deshalb steht er hier nicht."]]'::jsonb),
 
     ('kunst-kultur', 'literaturepochen-werke', 'Literaturepochen & Werke',
      'Aus welcher Epoche stammt das Werk?',
@@ -55,7 +59,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Berlin Alexanderplatz", "Neue Sachlichkeit", "Großstadtmontage um Franz Biberkopf."],
        ["Draußen vor der Tür", "Trümmerliteratur", "Ein Heimkehrer findet keinen Platz mehr."],
        ["Die Blechtrommel", "Nachkriegsmoderne", "Oskar Matzerath weigert sich zu wachsen."],
-       ["Das Parfum", "Postmoderne", "Ein Mörder auf der Suche nach dem vollkommenen Duft."]]'::jsonb),
+       ["Das Parfum", "Postmoderne", "Ein Mörder auf der Suche nach dem vollkommenen Duft."]]'::jsonb,
+     '[["Vormärz", "Heines Deutschland gehört dorthin, und das Werk fehlt hier."],
+       ["Biedermeier", "Keine Zeile auf diesem Brett steht für diese Epoche."]]'::jsonb),
 
     ('kunst-kultur', 'kunstepochen-merkmale', 'Kunstepochen & Merkmale',
      'Woran ist die Epoche zu erkennen?',
@@ -72,7 +78,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kubismus", "Zersplitterte Formen", "Mehrere Ansichten zugleich auf einer Fläche."],
        ["Surrealismus", "Traumbilder", "Vertraute Dinge in unmöglichen Zusammenhängen."],
        ["Bauhaus", "Form folgt Funktion", "Schmuck gilt als überflüssig."],
-       ["Pop Art", "Motive der Werbung", "Alltagsware und Comic werden zum Bildgegenstand."]]'::jsonb),
+       ["Pop Art", "Motive der Werbung", "Alltagsware und Comic werden zum Bildgegenstand."]]'::jsonb,
+     '[["Farbfelder ohne jeden Gegenstand", "Das wäre die abstrakte Malerei, die hier fehlt."],
+       ["Punkte statt Pinselstriche", "Der Pointillismus steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'skulpturen-kuenstler', 'Skulpturen & ihre Schöpfer',
      'Wer schuf die Skulptur?',
@@ -88,7 +96,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Spiral Jetty", "Robert Smithson", "Steinspirale im Großen Salzsee."],
        ["Endlose Säule", "Constantin Brâncuși", "Rhombenstapel als Denkmal in Rumänien."],
        ["Bavaria", "Ludwig Schwanthaler", "Bronzefigur über der Münchner Theresienwiese."],
-       ["Marc Aurel zu Pferde", "Unbekannter Römer", "Einziges erhaltenes antikes Reiterstandbild aus Bronze."]]'::jsonb),
+       ["Marc Aurel zu Pferde", "Unbekannter Römer", "Einziges erhaltenes antikes Reiterstandbild aus Bronze."]]'::jsonb,
+     '[["Niki de Saint Phalle", "Ihre Nanas wären das Werk dazu, und die fehlen hier."],
+       ["Henry Moore", "Seine liegenden Figuren stehen nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'weltliteratur-laender', 'Weltliteratur & Herkunftsländer',
      'Aus welchem Land stammt das Werk?',
@@ -105,7 +115,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ulysses", "Irland", "Ein einziger Tag in Dublin auf über tausend Seiten."],
        ["Tausendundeine Nacht", "Arabischer Raum", "Schahrasad erzählt, um zu überleben."],
        ["Der Traum der roten Kammer", "China", "Der Niedergang einer großen Familie."],
-       ["Genji Monogatari", "Japan", "Um 1000 von einer Hofdame geschrieben."]]'::jsonb),
+       ["Genji Monogatari", "Japan", "Um 1000 von einer Hofdame geschrieben."]]'::jsonb,
+     '[["Nigeria", "Things Fall Apart stammt von dort, und das Werk fehlt hier."],
+       ["Tschechien", "Der brave Soldat Schwejk steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'comicfiguren-schoepfer', 'Figuren & ihre Erfinder',
      'Wer hat die Figur erfunden?',
@@ -121,7 +133,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Die Peanuts", "Charles Schulz", "Charlie Brown und sein Beagle Snoopy."],
        ["Der Grüffelo", "Julia Donaldson", "Eine Maus erfindet ein Ungeheuer, das es gibt."],
        ["Momo", "Michael Ende", "Ein Mädchen kämpft gegen die grauen Herren."],
-       ["Die Schlümpfe", "Peyo", "Blaue Wichte, 1958 zuerst als Nebenfiguren."]]'::jsonb),
+       ["Die Schlümpfe", "Peyo", "Blaue Wichte, 1958 zuerst als Nebenfiguren."]]'::jsonb,
+     '[["Wilhelm Busch", "Max und Moritz wären die Figuren dazu, und die fehlen hier."],
+       ["René Goscinny allein", "Asterix schuf er zusammen mit Uderzo, wie das Brett auch sagt."]]'::jsonb),
 
     ('kunst-kultur', 'architekten-bauwerke', 'Architekten & ihre Bauten',
      'Welches Bauwerk stammt von dieser Person?',
@@ -137,7 +151,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Norman Foster", "Reichstagskuppel", "Begehbare Glaskuppel über dem Plenarsaal."],
        ["Ieoh Ming Pei", "Louvre-Pyramide", "Glaspyramide im Hof des alten Palasts."],
        ["Gottfried Semper", "Semperoper", "Opernhaus in Dresden, zweimal wieder aufgebaut."],
-       ["Kenzō Tange", "Olympiahallen von Tokio", "Hängedächer für die Spiele 1964."]]'::jsonb),
+       ["Kenzō Tange", "Olympiahallen von Tokio", "Hängedächer für die Spiele 1964."]]'::jsonb,
+     '[["Oscar Niemeyer", "Die Bauten von Brasília stammen von ihm, sie fehlen hier."],
+       ["Mies van der Rohe", "Die Neue Nationalgalerie steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'theaterstuecke-autoren', 'Theaterstücke & Autoren',
      'Wer schrieb das Stück?',
@@ -153,7 +169,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Tod eines Handlungsreisenden", "Arthur Miller", "Das Scheitern des amerikanischen Traums."],
        ["Endstation Sehnsucht", "Tennessee Williams", "Blanche DuBois zerbricht in New Orleans."],
        ["Warten auf Godot", "Samuel Beckett", "Zwei Männer warten, und es geschieht nichts."],
-       ["Der Besuch der alten Dame", "Friedrich Dürrenmatt", "Eine Milliardärin kauft sich Gerechtigkeit."]]'::jsonb),
+       ["Der Besuch der alten Dame", "Friedrich Dürrenmatt", "Eine Milliardärin kauft sich Gerechtigkeit."]]'::jsonb,
+     '[["Molière", "Der Geizige wäre das Stück dazu, und es fehlt auf dem Brett."],
+       ["Georg Büchner", "Woyzeck steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'kunstwerke-museen', 'Kunstwerke & ihre Museen',
      'Wo hängt oder steht das Werk?',
@@ -169,7 +187,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Wanderer über dem Nebelmeer", "Kunsthalle Hamburg", "Rückenfigur über der Wolkendecke."],
        ["Mädchen mit dem Perlenohrring", "Mauritshuis", "Vermeers Blick über die Schulter."],
        ["David", "Galleria dell''Accademia", "Seit 1873 im Museum, auf der Piazza steht eine Kopie."],
-       ["Die Erschaffung Adams", "Sixtinische Kapelle", "Die berühmten zwei Finger an der Decke."]]'::jsonb),
+       ["Die Erschaffung Adams", "Sixtinische Kapelle", "Die berühmten zwei Finger an der Decke."]]'::jsonb,
+     '[["Eremitage", "Kein Werk auf diesem Brett hängt dort."],
+       ["Vatikanische Museen", "Die Sixtinische Kapelle gehört dazu, genannt ist sie hier selbst."]]'::jsonb),
 
     ('kunst-kultur', 'maltechniken', 'Techniken der Kunst',
      'Was macht die Technik aus?',
@@ -185,7 +205,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Siebdruck", "Farbe durch ein Gewebe", "Andy Warhol machte das Verfahren zur Kunst."],
        ["Mosaik", "Bild aus Steinchen", "In Ravenna sogar mit Gold hinterlegtem Glas."],
        ["Collage", "Aufgeklebte Fundstücke", "Zeitung und Tapete werden Bildmaterial."],
-       ["Sfumato", "Weiche Übergänge ohne Kontur", "Leonardos Kunstgriff, Haut wie Dunst wirken zu lassen."]]'::jsonb),
+       ["Sfumato", "Weiche Übergänge ohne Kontur", "Leonardos Kunstgriff, Haut wie Dunst wirken zu lassen."]]'::jsonb,
+     '[["Farbe direkt aus der Tube auf die Leinwand", "Die Pastose Malweise fehlt auf dem Brett."],
+       ["Bild aus vielen kleinen Fotos", "Die Fotomontage steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'dichter-gedichte', 'Dichter & ihre Gedichte',
      'Von wem stammt das Gedicht?',
@@ -201,7 +223,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Rabe", "Edgar Allan Poe", "Der Vogel antwortet immer nur Nimmermehr."],
        ["Sonett 18", "William Shakespeare", "Soll ich dich einem Sommertag vergleichen."],
        ["Grodek", "Georg Trakl", "Sein letztes Gedicht, geschrieben nach einer Schlacht 1914."],
-       ["Sachliche Romanze", "Erich Kästner", "Zwei Menschen, denen nach acht Jahren die Liebe abhandenkommt."]]'::jsonb),
+       ["Sachliche Romanze", "Erich Kästner", "Zwei Menschen, denen nach acht Jahren die Liebe abhandenkommt."]]'::jsonb,
+     '[["Bertolt Brecht", "Die Ballade vom Wasserrad wäre das Gedicht dazu, es fehlt hier."],
+       ["Annette von Droste-Hülshoff", "Der Knabe im Moor steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'sprachen-schriften', 'Sprachen & ihre Schriften',
      'In welcher Schrift wird die Sprache geschrieben?',
@@ -217,7 +241,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Thai", "Thailändische Schrift", "Wörter werden ohne Leerzeichen gereiht."],
        ["Georgisch", "Mchedruli", "Kennt keine Groß- und Kleinschreibung."],
        ["Armenisch", "Armenisches Alphabet", "Um 405 von Mesrop Maschtoz geschaffen."],
-       ["Amharisch", "Äthiopische Silbenschrift", "Jedes Zeichen trägt Konsonant und Vokal."]]'::jsonb),
+       ["Amharisch", "Äthiopische Silbenschrift", "Jedes Zeichen trägt Konsonant und Vokal."]]'::jsonb,
+     '[["Lateinisches Alphabet", "Die Sprachen, die es nutzen, fehlen auf diesem Brett."],
+       ["Keilschrift", "Sie wird für keine der Sprachen hier verwendet."]]'::jsonb),
 
     ('kunst-kultur', 'taenze-herkunft', 'Tänze & ihre Herkunft',
      'Woher stammt der Tanz?',
@@ -233,7 +259,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sirtaki", "Griechenland", "Für einen Film erfunden, heute Nationalsymbol."],
        ["Csárdás", "Ungarn", "Beginnt langsam und endet in rasendem Tempo."],
        ["Mazurka", "Polen", "Chopin machte den Volkstanz zur Klaviermusik."],
-       ["Square Dance", "USA", "Ein Caller ruft die Figuren während des Tanzes an."]]'::jsonb),
+       ["Square Dance", "USA", "Ein Caller ruft die Figuren während des Tanzes an."]]'::jsonb,
+     '[["Irland", "Der Stepptanz käme von dort, und er fehlt auf dem Brett."],
+       ["Frankreich", "Das Menuett steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'literaturnobelpreis-laender', 'Literaturnobelpreis & Länder',
      'Aus welchem Land stammt die ausgezeichnete Person?',
@@ -250,7 +278,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Orhan Pamuk", "Türkei", "Chronist des alten und neuen Istanbul."],
        ["Swetlana Alexijewitsch", "Belarus", "Schreibt Bücher aus vielen Stimmen."],
        ["Mo Yan", "China", "Sein Künstlername bedeutet: sprich nicht."],
-       ["Annie Ernaux", "Frankreich", "Erzählt das eigene Leben als Zeitgeschichte."]]'::jsonb),
+       ["Annie Ernaux", "Frankreich", "Erzählt das eigene Leben als Zeitgeschichte."]]'::jsonb,
+     '[["Russland", "Boris Pasternak stammte von dort, und er fehlt auf dem Brett."],
+       ["Norwegen", "Jon Fosse steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'gemaelde-epochen', 'Gemälde & Epochen',
      'Welches Werk steht für diese Epoche?',
@@ -267,7 +297,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Expressionismus", "Der Schrei", "Munchs Figur unter blutrotem Himmel."],
        ["Kubismus", "Les Demoiselles d''Avignon", "Picassos Bruch mit der einen Perspektive."],
        ["Surrealismus", "Die Beständigkeit der Erinnerung", "Dalís zerfließende Uhren."],
-       ["Pop Art", "Campbell''s Soup Cans", "Warhol malt zweiunddreißig Suppendosen."]]'::jsonb),
+       ["Pop Art", "Campbell''s Soup Cans", "Warhol malt zweiunddreißig Suppendosen."]]'::jsonb,
+     '[["Die Sixtinische Madonna", "Ein Werk Raffaels, das keiner Zeile auf dem Brett zugeordnet ist."],
+       ["Das Abendmahl", "Von Leonardo, und es steht hier nicht."]]'::jsonb),
 
     ('kunst-kultur', 'zeitungen-laender', 'Zeitungen & Länder',
      'In welchem Land erscheint die Zeitung?',
@@ -283,7 +315,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Asahi Shimbun", "Japan", "Eine der auflagenstärksten Zeitungen weltweit."],
        ["Gazeta Wyborcza", "Polen", "1989 aus der Solidarność-Bewegung entstanden."],
        ["Politiken", "Dänemark", "Kopenhagener Blatt mit eigenem Verlagshaus am Rathausplatz."],
-       ["The Hindu", "Indien", "Erscheint seit 1878 in englischer Sprache."]]'::jsonb),
+       ["The Hindu", "Indien", "Erscheint seit 1878 in englischer Sprache."]]'::jsonb,
+     '[["Schweden", "Dagens Nyheter erschiene dort, und die Zeitung fehlt hier."],
+       ["Brasilien", "A Folha de S. Paulo steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'philosophen-begriffe', 'Philosophen & ihre Begriffe',
      'Welcher Begriff steht für diese Person?',
@@ -299,7 +333,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Karl Marx", "Klassenkampf", "Die Geschichte als Kampf gesellschaftlicher Klassen."],
        ["Friedrich Nietzsche", "Wille zur Macht", "Umwertung aller bisherigen Werte."],
        ["Ludwig Wittgenstein", "Grenzen der Sprache", "Wovon man nicht sprechen kann, darüber muss man schweigen."],
-       ["Jean-Paul Sartre", "Existenz vor Essenz", "Der Mensch ist, wozu er sich macht."]]'::jsonb),
+       ["Jean-Paul Sartre", "Existenz vor Essenz", "Der Mensch ist, wozu er sich macht."]]'::jsonb,
+     '[["Panta rhei", "Der Satz stammt von Heraklit, der hier nicht steht."],
+       ["Der Schleier des Nichtwissens", "John Rawls prägte ihn, und der fehlt auf dem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'maerchen-herkunft', 'Märchen & Sagen',
      'Woher stammt die Geschichte?',
@@ -315,7 +351,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ikarus", "Griechische Mythologie", "Er flog zu nah an die Sonne."],
        ["Baba Jaga", "Russische Volkserzählung", "Eine Hexe in einer Hütte auf Hühnerfüßen."],
        ["Anansi", "Westafrikanische Erzählung", "Die Spinne siegt mit List statt mit Kraft."],
-       ["Momotarō", "Japanische Volkserzählung", "Ein Junge aus einem Pfirsich zieht gegen Dämonen."]]'::jsonb),
+       ["Momotarō", "Japanische Volkserzählung", "Ein Junge aus einem Pfirsich zieht gegen Dämonen."]]'::jsonb,
+     '[["Wilhelm Hauff", "Das kalte Herz stammt von ihm, und es fehlt auf dem Brett."],
+       ["Isländische Sage", "Keine Geschichte in dieser Liste kommt von dort."]]'::jsonb),
 
     ('kunst-kultur', 'kunsthandwerk-laender', 'Kunsthandwerk & Länder',
      'Aus welchem Land stammt das Handwerk?',
@@ -332,7 +370,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Talavera-Keramik", "Mexiko", "Spanische Technik, in Puebla weiterentwickelt."],
        ["Damaszener Klingen", "Syrien", "Erkennbar an der geflammten Musterung im Stahl."],
        ["Kuckucksuhr", "Deutschland", "Aus dem Schwarzwald in alle Welt verkauft."],
-       ["Maori-Schnitzerei", "Neuseeland", "Spiralen aus Holz, Knochen und Jade."]]'::jsonb)
+       ["Maori-Schnitzerei", "Neuseeland", "Spiralen aus Holz, Knochen und Jade."]]'::jsonb,
+     '[["Portugal", "Die Azulejos kämen von dort, und sie fehlen auf dem Brett."],
+       ["Türkei", "Die Iznik-Fliesen stehen nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -357,15 +397,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

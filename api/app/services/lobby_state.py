@@ -59,8 +59,17 @@ class Round:
     categories: list[Category] = field(default_factory=list)
     items: list[ItemSolution] = field(default_factory=list)
 
-    def answer_key(self) -> dict[UUID, UUID]:
+    def answer_key(self) -> dict[UUID, UUID | None]:
+        """Every item in the pool, mapped to where it belongs -- None for a fake."""
         return {item.id: item.category_id for item in self.items}
+
+    def fakes(self) -> list[ItemSolution]:
+        """The answers in this pool that belong to no category."""
+        return [item for item in self.items if item.category_id is None]
+
+    def pairs(self) -> list[ItemSolution]:
+        """The answers that do belong somewhere."""
+        return [item for item in self.items if item.category_id is not None]
 
 
 @dataclass

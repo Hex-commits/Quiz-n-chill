@@ -1,0 +1,110 @@
+{
+  "hauptstaedte-europas": [
+    ["Amsterdam", "Die Hauptstadt der Niederlande, und das Land fehlt auf dem Brett."],
+    ["Zürich", "Die größte Stadt der Schweiz, aber nicht deren Hauptstadt."]
+  ],
+  "fluesse-hauptstaedte": [
+    ["Hamburg", "Es liegt an der Elbe, und die fehlt auf diesem Brett."],
+    ["Lissabon", "Es liegt am Tejo, der hier nicht steht."]
+  ],
+  "laender-waehrungen": [
+    ["Forint", "Damit zahlt man in Ungarn, das auf diesem Brett fehlt."],
+    ["Real", "Die Währung Brasiliens, und das steht nicht in dieser Liste."]
+  ],
+  "beruehmte-herrscher": [
+    ["Sultan Süleyman", "Er herrschte über das Osmanische Reich, das hier fehlt."],
+    ["Qin Shihuangdi", "Der erste Kaiser Chinas, und China steht nicht auf dem Brett."]
+  ],
+  "ereignisse-jahrhunderte": [
+    ["Krönung Karls des Großen", "Sie fällt ins 9. Jahrhundert, das hier fehlt."],
+    ["Untergang des Weströmischen Reiches", "Das 5. Jahrhundert steht nicht auf diesem Brett."]
+  ],
+  "historische-bauwerke": [
+    ["Stonehenge", "Es steht in England, und das fehlt auf diesem Brett."],
+    ["Angkor Wat", "Es steht in Kambodscha, das hier nicht vorkommt."]
+  ],
+  "chemische-elemente": [
+    ["N", "Das Symbol für Stickstoff, und das Element fehlt auf dem Brett."],
+    ["Pb", "Blei trägt es, und das steht nicht in dieser Liste."]
+  ],
+  "planeten-monde": [
+    ["Charon", "Der Begleiter Plutos, und Pluto fehlt auf diesem Brett."],
+    ["Ceres", "Ein Zwergplanet im Asteroidengürtel, gar kein Mond."]
+  ],
+  "organe-systeme": [
+    ["Skelettsystem", "Kein Organ auf diesem Brett gehört dazu."],
+    ["Muskelsystem", "Auch dafür steht in dieser Liste kein Organ."]
+  ],
+  "gemaelde-maler": [
+    ["Rembrandt", "Die Nachtwache wäre das Bild dazu, und die fehlt hier."],
+    ["Salvador Dalí", "Seine zerfließenden Uhren stehen nicht auf diesem Brett."]
+  ],
+  "werke-autoren": [
+    ["Dostojewski", "Schuld und Sühne wäre das Werk dazu, und das fehlt hier."],
+    ["Homer", "Die Ilias steht nicht auf diesem Brett."]
+  ],
+  "bauwerke-baustile": [
+    ["Rokoko", "Die Wieskirche stünde dafür, und die fehlt auf diesem Brett."],
+    ["Art déco", "Kein Bauwerk in dieser Liste ist so gebaut."]
+  ],
+  "sportarten-geraete": [
+    ["Federball", "Er gehört zum Badminton, und das fehlt auf diesem Brett."],
+    ["Boxhandschuh", "Boxen steht nicht in dieser Liste."]
+  ],
+  "vereine-laender": [
+    ["Schottland", "Celtic Glasgow spielte dort, und der Verein fehlt hier."],
+    ["Griechenland", "Kein Verein auf diesem Brett spielt dort."]
+  ],
+  "olympische-disziplinen": [
+    ["Freistilringen", "Ringen steht nicht auf diesem Brett."],
+    ["Kunstspringen vom Brett", "Das Wasserspringen fehlt in dieser Liste."]
+  ],
+  "erfindungen": [
+    ["Dampfmaschine", "Sie geht auf James Watt zurück, und der fehlt auf dem Brett."],
+    ["Funktelegrafie", "Guglielmo Marconi steht nicht in dieser Liste."]
+  ],
+  "programmiersprachen": [
+    ["Bjarne Stroustrup", "Er entwarf C++, und das fehlt auf diesem Brett."],
+    ["Grace Hopper", "Sie steht für COBOL, das hier nicht vorkommt."]
+  ],
+  "automarken-laender": [
+    ["Vereinigtes Königreich", "Jaguar käme von dort, und die Marke fehlt hier."],
+    ["USA", "Ford steht nicht auf diesem Brett."]
+  ],
+  "instrumente-familien": [
+    ["Elektrophon", "Die Orgel steht hier als Tasteninstrument; ein elektronisches fehlt."],
+    ["Gesangsstimme", "Sie bildet eine eigene Gruppe, und die kommt hier nicht vor."]
+  ],
+  "komponisten-epochen": [
+    ["Minimal Music", "Steve Reich stünde dafür, und der fehlt auf diesem Brett."],
+    ["Neue Musik nach 1945", "Kein Komponist in dieser Liste wird ihr zugerechnet."]
+  ],
+  "bands-herkunft": [
+    ["Norwegen", "A-ha käme von dort, und die Band fehlt auf diesem Brett."],
+    ["Italien", "Måneskin steht nicht in dieser Liste."]
+  ],
+  "regisseure-filme": [
+    ["Martin Scorsese", "Taxi Driver wäre der Film dazu, und der fehlt hier."],
+    ["Akira Kurosawa", "Die sieben Samurai stehen nicht auf diesem Brett."]
+  ],
+  "figuren-serien": [
+    ["Sherlock", "Keine Figur auf diesem Brett stammt daraus."],
+    ["Friends", "Die Serie fehlt in dieser Liste."]
+  ],
+  "filmgenres": [
+    ["Musical", "Kein Film auf diesem Brett gehört dazu."],
+    ["Dokumentarfilm", "Auch dafür steht hier kein Film."]
+  ],
+  "gerichte-laender": [
+    ["Vietnam", "Phở käme von dort, und das Gericht fehlt auf dem Brett."],
+    ["Indien", "Das Curry steht nicht in dieser Liste."]
+  ],
+  "gerichte-zutaten": [
+    ["Kartoffel", "Kein Gericht auf diesem Brett wird von ihr bestimmt."],
+    ["Linsen", "Auch sie macht kein Gericht in dieser Liste aus."]
+  ],
+  "getraenke-herkunft": [
+    ["Peru", "Der Pisco käme von dort, und der fehlt auf diesem Brett."],
+    ["Kuba", "Der Rum steht nicht in dieser Liste."]
+  ]
+}

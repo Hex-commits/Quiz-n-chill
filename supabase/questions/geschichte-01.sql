@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geschichte', 'antike-staetten-laender', 'Antike Stätten & heutige Länder',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mohenjo-Daro", "Pakistan", "Planstadt der Indus-Kultur mit Kanalisation."],
        ["Masada", "Israel", "Bergfestung, in der sich Aufständische 73 n. Chr. ergaben."],
        ["Great Zimbabwe", "Simbabwe", "Steinstadt, die dem heutigen Staat den Namen gab."],
-       ["Pompeji", "Italien", "79 n. Chr. unter der Asche des Vesuvs begraben."]]'::jsonb),
+       ["Pompeji", "Italien", "79 n. Chr. unter der Asche des Vesuvs begraben."]]'::jsonb,
+     '[["Jordanien", "Petra läge dort, und die Stätte fehlt auf dem Brett."],
+       ["Peru", "Machu Picchu steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'vertraege-jahre', 'Verträge & Jahreszahlen',
      'In welchem Jahr wurde der Vertrag geschlossen?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Römische Verträge", "1957", "Gründeten die Europäische Wirtschaftsgemeinschaft."],
        ["Zwei-plus-Vier-Vertrag", "1990", "Machte den Weg zur deutschen Einheit völkerrechtlich frei."],
        ["Vertrag von Maastricht", "1992", "Gründete die Europäische Union."],
-       ["Vertrag von Lissabon", "2007", "Gab der EU ihre heutige Struktur."]]'::jsonb),
+       ["Vertrag von Lissabon", "2007", "Gab der EU ihre heutige Struktur."]]'::jsonb,
+     '[["1815 im Herbst", "Der Wiener Kongress endete im Juni, nicht später im Jahr."],
+       ["1928", "Der Briand-Kellogg-Pakt wurde damals geschlossen, er fehlt auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'entdecker-leistungen', 'Entdecker & ihre Fahrten',
      'Wofür steht der Name dieses Reisenden?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Robert Peary", "Nordpol", "Beanspruchte 1909 als Erster den Pol."],
        ["David Livingstone", "Victoriafälle", "Benannte sie 1855 nach der britischen Königin."],
        ["Alexander von Humboldt", "Orinoco", "Wies die Verbindung zum Amazonasbecken nach."],
-       ["Marco Polo", "Handelsweg nach China", "Beschrieb den Hof des Kublai Khan."]]'::jsonb),
+       ["Marco Polo", "Handelsweg nach China", "Beschrieb den Hof des Kublai Khan."]]'::jsonb,
+     '[["Nordwestpassage zu Fuß", "Sie wurde erfahren, nicht erlaufen."],
+       ["Quelle des Nils", "John Hanning Speke wird sie zugeschrieben, und der fehlt hier."]]'::jsonb),
 
     ('geschichte', 'revolutionen-jahre', 'Revolutionen & Jahreszahlen',
      'In welchem Jahr begann der Umsturz?',
@@ -69,7 +75,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kubanische Revolution", "1959", "Fidel Castro stürzte den Machthaber Batista."],
        ["Nelkenrevolution", "1974", "Unblutiger Umsturz in Portugal, benannt nach der Blume."],
        ["Islamische Revolution", "1979", "Der Schah floh, Ajatollah Chomeini kehrte zurück."],
-       ["Samtene Revolution", "1989", "Führte in der Tschechoslowakei ohne Gewalt zum Machtwechsel."]]'::jsonb),
+       ["Samtene Revolution", "1989", "Führte in der Tschechoslowakei ohne Gewalt zum Machtwechsel."]]'::jsonb,
+     '[["1830", "Die Julirevolution begann damals, sie steht nicht auf dem Brett."],
+       ["2011", "Der Arabische Frühling fällt in dieses Jahr, das hier fehlt."]]'::jsonb),
 
     ('geschichte', 'roemische-kaiser', 'Römische Kaiser',
      'Wofür steht der Name dieses Kaisers?',
@@ -86,7 +94,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Diokletian", "Herrschaft zu viert", "Teilte die Macht auf vier Herrscher auf."],
        ["Konstantin", "Duldung der Christen", "Die Mailänder Vereinbarung von 313 beendete die Verfolgung."],
        ["Theodosius", "Endgültige Reichsteilung", "Nach seinem Tod 395 blieb das Reich geteilt."],
-       ["Caligula", "Willkürherrschaft", "Wurde nach vier Jahren von der eigenen Garde ermordet."]]'::jsonb),
+       ["Caligula", "Willkürherrschaft", "Wurde nach vier Jahren von der eigenen Garde ermordet."]]'::jsonb,
+     '[["Bau der Hagia Sophia", "Das war Justinian, ein oströmischer Kaiser, der hier fehlt."],
+       ["Teilung des Reiches unter vier Söhne", "So ist es keinem Kaiser auf diesem Brett zuzuordnen."]]'::jsonb),
 
     ('geschichte', 'pharaonen', 'Pharaonen & ihre Spuren',
      'Wofür steht der Name dieses Pharaos?',
@@ -102,7 +112,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ramses III.", "Abwehr der Seevölker", "Letzter Pharao, der große Feldzüge gewann."],
        ["Amenophis III.", "Memnonkolosse", "Zwei Sitzstatuen bewachten seinen Totentempel."],
        ["Kleopatra VII.", "Letzte Herrscherin", "Mit ihrem Tod 30 v. Chr. wurde Ägypten römisch."],
-       ["Narmer", "Einigung des Reiches", "Seine Palette zeigt die Vereinigung von Ober- und Unterägypten."]]'::jsonb),
+       ["Narmer", "Einigung des Reiches", "Seine Palette zeigt die Vereinigung von Ober- und Unterägypten."]]'::jsonb,
+     '[["Bau des Suezkanals der Antike", "Necho II. begann ihn, und der steht nicht auf dem Brett."],
+       ["Erste Pyramide aus Ziegeln", "So etwas gehört zu keinem Namen in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'herrscherbeinamen', 'Herrscher & ihre Beinamen',
      'Welchen Beinamen trägt der Herrscher?',
@@ -118,7 +130,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Karl Martell", "der Hammer", "Stoppte 732 den arabischen Vorstoß bei Tours."],
        ["Heinrich IV.", "Büßer von Canossa", "Ging 1077 im Streit mit dem Papst über die Alpen."],
        ["Suleiman I.", "der Prächtige", "Unter ihm stand das Osmanische Reich auf dem Höhepunkt."],
-       ["Ludwig I.", "der Fromme", "Sohn Karls des Großen, teilte das Reich unter seinen Söhnen."]]'::jsonb),
+       ["Ludwig I.", "der Fromme", "Sohn Karls des Großen, teilte das Reich unter seinen Söhnen."]]'::jsonb,
+     '[["die Große", "Katharina II. trug ihn, und sie fehlt auf dem Brett."],
+       ["der Bekenner", "Eduard von England hieß so, und der steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'reiche-hauptstaedte', 'Reiche & ihre Hauptstädte',
      'Von welcher Stadt aus wurde das Reich regiert?',
@@ -134,7 +148,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kalifat der Abbasiden", "Bagdad", "762 als kreisrunde Stadt gegründet."],
        ["Russisches Zarenreich", "Sankt Petersburg", "1712 zur Residenz gemacht, statt Moskau."],
        ["Habsburgermonarchie", "Wien", "Von der Hofburg aus regiert."],
-       ["Königreich Preußen", "Berlin", "Residenz der Hohenzollern an der Spree."]]'::jsonb),
+       ["Königreich Preußen", "Berlin", "Residenz der Hohenzollern an der Spree."]]'::jsonb,
+     '[["Xi''an", "Von dort regierten die Tang, und deren Reich fehlt auf dem Brett."],
+       ["Kyoto", "Der Kaisersitz Japans, und das Reich steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'deutsche-geschichte-orte', 'Deutsche Geschichte & Orte',
      'An welchem Ort geschah das?',
@@ -151,7 +167,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mauerbau", "Berlin", "Ab dem 13. August 1961 riegelte die DDR den Westteil ab."],
        ["Nürnberger Prozesse", "Nürnberg", "1945 begann das Verfahren gegen die Hauptkriegsverbrecher."],
        ["Potsdamer Konferenz", "Potsdam", "1945 legten die Siegermächte die Nachkriegsordnung fest."],
-       ["Montagsdemonstrationen", "Leipzig", "Ab 1989 gingen sie von der Nikolaikirche aus."]]'::jsonb),
+       ["Montagsdemonstrationen", "Leipzig", "Ab 1989 gingen sie von der Nikolaikirche aus."]]'::jsonb,
+     '[["Worms", "Der Reichstag mit Luther fand dort statt, er fehlt auf dem Brett."],
+       ["Bonn", "Das Grundgesetz entstand dort, und das steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'schlachten-kriege', 'Schlachten & Kriege',
      'Zu welchem Krieg gehört die Schlacht?',
@@ -167,7 +185,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sedan", "Deutsch-Französischer Krieg", "1870 geriet Napoleon III. in Gefangenschaft."],
        ["Verdun", "Erster Weltkrieg", "1916 zermürbten sich beide Seiten zehn Monate lang."],
        ["Stalingrad", "Zweiter Weltkrieg", "1943 kapitulierte die eingeschlossene 6. Armee."],
-       ["Dien Bien Phu", "Indochinakrieg", "1954 endete die französische Herrschaft in Vietnam."]]'::jsonb),
+       ["Dien Bien Phu", "Indochinakrieg", "1954 endete die französische Herrschaft in Vietnam."]]'::jsonb,
+     '[["Krimkrieg", "Sewastopol gehörte dazu, und die Schlacht fehlt auf dem Brett."],
+       ["Spanischer Bürgerkrieg", "Guernica gehörte dazu, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'herrscherhaeuser-laender', 'Herrscherhäuser & Länder',
      'Über welches Land herrschte das Haus?',
@@ -183,7 +203,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wittelsbacher", "Bayern", "Regierten dort mehr als 700 Jahre."],
        ["Haus Savoyen", "Italien", "Stellte ab 1861 die Könige des geeinten Landes."],
        ["Oranien-Nassau", "Niederlande", "Aus ihm stammt das heutige Königshaus."],
-       ["Wasa", "Schweden", "Gustav I. löste 1523 die Union mit Dänemark."]]'::jsonb),
+       ["Wasa", "Schweden", "Gustav I. löste 1523 die Union mit Dänemark."]]'::jsonb,
+     '[["Spanien", "Die Trastámara herrschten dort, und das Haus fehlt auf dem Brett."],
+       ["Dänemark", "Das Haus Oldenburg steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'schiffe-fahrten', 'Berühmte Schiffe & ihre Fahrten',
      'Wer oder was gehört zu diesem Schiff?',
@@ -200,7 +222,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Endurance", "Ernest Shackleton", "Zerbrach im Eis; die Mannschaft überlebte dennoch."],
        ["Kon-Tiki", "Thor Heyerdahl", "Floß aus Balsaholz, 1947 quer über den Pazifik."],
        ["Titanic", "Untergang 1912", "Sank auf der Jungfernfahrt nach einer Kollision mit einem Eisberg."],
-       ["Gjøa", "Nordwestpassage", "Durchfuhr sie als erstes Schiff vollständig."]]'::jsonb),
+       ["Gjøa", "Nordwestpassage", "Durchfuhr sie als erstes Schiff vollständig."]]'::jsonb,
+     '[["Erste Nordpolfahrt unter Eis", "Das gelang der Nautilus, die hier nicht steht."],
+       ["Ferdinand Magellan selbst", "Er starb unterwegs; sein Schiff vollendete die Fahrt ohne ihn."]]'::jsonb),
 
     ('geschichte', 'erfindungen-kulturen', 'Erfindungen & Kulturen',
      'Welche Kultur brachte das hervor?',
@@ -216,7 +240,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kalender mit 365 Tagen", "Maya", "Zwei ineinandergreifende Zyklen ergaben das Datum."],
        ["Windmühle", "Perser", "Frühe Mühlen mit senkrechter Achse im Osten Irans."],
        ["Langschiff", "Wikinger", "Flach genug für Flüsse, seetüchtig genug für den Atlantik."],
-       ["Buchdruck mit Lettern", "Koreaner", "Metalllettern kamen dort vor Gutenberg in Gebrauch."]]'::jsonb),
+       ["Buchdruck mit Lettern", "Koreaner", "Metalllettern kamen dort vor Gutenberg in Gebrauch."]]'::jsonb,
+     '[["Azteken", "Keine Erfindung auf diesem Brett stammt von ihnen."],
+       ["Griechen der Antike", "Sie erfanden vieles, gefragt ist hier aber die Volksversammlung Athens."]]'::jsonb),
 
     ('geschichte', 'unabhaengigkeit-fuehrer', 'Unabhängigkeit & ihre Köpfe',
      'Wer führte das Land in die Unabhängigkeit oder in den neuen Staat?',
@@ -233,7 +259,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["China", "Mao Zedong", "Rief 1949 die Volksrepublik aus."],
        ["Israel", "David Ben-Gurion", "Verlas 1948 die Unabhängigkeitserklärung."],
        ["USA", "George Washington", "Führte die Kontinentalarmee und wurde erster Präsident."],
-       ["Italien", "Giuseppe Garibaldi", "Sein Zug der Tausend brachte den Süden ins geeinte Reich."]]'::jsonb),
+       ["Italien", "Giuseppe Garibaldi", "Sein Zug der Tausend brachte den Süden ins geeinte Reich."]]'::jsonb,
+     '[["Simón Bolívar für Kolumbien", "Er steht hier für Venezuela, nicht für ein zweites Land."],
+       ["Josip Broz Tito", "Er führte Jugoslawien, und das fehlt auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'burgen-schloesser-laender', 'Burgen, Schlösser & Länder',
      'In welchem Land steht der Bau?',
@@ -250,7 +278,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bran", "Rumänien", "Wird als Draculaschloss vermarktet, ohne echten Bezug."],
        ["Kronborg", "Dänemark", "Schauplatz von Shakespeares Hamlet."],
        ["Marienburg", "Polen", "Größte Backsteinburg der Welt, Sitz des Deutschen Ordens."],
-       ["Alcázar von Segovia", "Spanien", "Schiffsförmige Burg über dem Zusammenfluss zweier Flüsse."]]'::jsonb),
+       ["Alcázar von Segovia", "Spanien", "Schiffsförmige Burg über dem Zusammenfluss zweier Flüsse."]]'::jsonb,
+     '[["Portugal", "Der Palast von Pena stünde dort, er fehlt auf dem Brett."],
+       ["Ungarn", "Die Budaer Burg steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'kolonien-kolonialmaechte', 'Kolonien & Kolonialmächte',
      'Welche Macht beherrschte das Gebiet?',
@@ -266,7 +296,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Alaska", "Russland", "1867 für 7,2 Millionen Dollar an die USA verkauft."],
        ["Grönland", "Dänemark", "Seit 1979 mit weitgehender Selbstverwaltung."],
        ["Taiwan", "Japan", "Von 1895 bis 1945 japanische Kolonie."],
-       ["Puerto Rico", "USA", "1898 im Krieg gegen Spanien gewonnen, bis heute Außengebiet."]]'::jsonb),
+       ["Puerto Rico", "USA", "1898 im Krieg gegen Spanien gewonnen, bis heute Außengebiet."]]'::jsonb,
+     '[["Osmanisches Reich", "Kein Gebiet auf diesem Brett war ihm unterstellt."],
+       ["Schweden", "Neuschweden in Amerika war schwedisch, es fehlt in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'roemische-provinzen', 'Römische Provinzen & heutige Länder',
      'Welches heutige Land deckt die Provinz größtenteils ab?',
@@ -283,7 +315,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Thracia", "Bulgarien", "Südöstlicher Balkan, Heimat des Spartacus."],
        ["Lusitania", "Portugal", "Provinz westlich des Flusses Guadiana."],
        ["Cappadocia", "Türkei", "Hochland mit den späteren Felsenkirchen."],
-       ["Mauretania Tingitana", "Marokko", "Nordwestzipfel Afrikas, benannt nach Tingis, dem heutigen Tanger."]]'::jsonb),
+       ["Mauretania Tingitana", "Marokko", "Nordwestzipfel Afrikas, benannt nach Tingis, dem heutigen Tanger."]]'::jsonb,
+     '[["Griechenland", "Achaea deckte es ab, und die Provinz fehlt auf dem Brett."],
+       ["Schweiz", "Raetia reichte dorthin, sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'historische-dokumente', 'Historische Dokumente & Länder',
      'Wo entstand das Dokument?',
@@ -299,7 +333,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Vertrag von Waitangi", "Neuseeland", "1840 zwischen der Krone und Māori-Häuptlingen geschlossen."],
        ["Pragmatische Sanktion", "Österreich", "Sicherte 1713 die Erbfolge auch für eine Tochter."],
        ["Grundgesetz", "Deutschland", "1949 als Provisorium gedacht, bis heute in Kraft."],
-       ["Statut von Westminster", "Britisches Weltreich", "Machte die Dominions 1931 rechtlich selbstständig."]]'::jsonb),
+       ["Statut von Westminster", "Britisches Weltreich", "Machte die Dominions 1931 rechtlich selbstständig."]]'::jsonb,
+     '[["Polen", "Die Verfassung vom 3. Mai 1791 entstand dort, sie fehlt auf dem Brett."],
+       ["Sowjetunion", "Kein Dokument in dieser Liste entstand dort."]]'::jsonb),
 
     ('geschichte', 'weltausstellungen-bauten', 'Weltausstellungen & ihre Bauten',
      'Für welche Ausstellung entstand der Bau?',
@@ -313,7 +349,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Barcelona-Pavillon", "Barcelona 1929", "Mies van der Rohes Bau aus Marmor, Stahl und Glas."],
        ["Unisphere", "New York 1964", "Stahlkugel als Sinnbild des Friedens auf der Erde."],
        ["Palais du Trocadéro", "Paris 1878", "Hallenbau mit zwei Minaretttürmen, 1937 abgerissen."],
-       ["Erstes Riesenrad", "Chicago 1893", "Gebaut, um dem Eiffelturm etwas entgegenzusetzen."]]'::jsonb),
+       ["Erstes Riesenrad", "Chicago 1893", "Gebaut, um dem Eiffelturm etwas entgegenzusetzen."]]'::jsonb,
+     '[["Wien 1873", "Die Rotunde entstand dafür, und sie fehlt auf dem Brett."],
+       ["Hannover 2000", "Kein Bau in dieser Liste stammt von dort."]]'::jsonb),
 
     ('geschichte', 'antike-gesetzgeber-staaten', 'Antike Reformer & ihre Städte',
      'In welcher Stadt oder welchem Staat wirkte die Person?',
@@ -328,7 +366,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Echnaton", "Amarna", "Ließ für seinen Sonnenkult eine ganz neue Residenz bauen."],
        ["Pythagoras", "Kroton", "Gründete in der griechischen Kolonie einen Bund von Anhängern."],
        ["Ptolemaios I.", "Alexandria", "Machte die Stadt zur Hauptstadt und begann das Museion."],
-       ["Hannibal", "Karthago", "Führte von dort den Krieg, der Rom fast das Ende brachte."]]'::jsonb)
+       ["Hannibal", "Karthago", "Führte von dort den Krieg, der Rom fast das Ende brachte."]]'::jsonb,
+     '[["Theben", "Keine Person auf diesem Brett wirkte dort."],
+       ["Syrakus", "Archimedes lebte dort, und der steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -353,15 +393,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

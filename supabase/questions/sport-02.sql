@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('sport', 'sportler-laender', 'Sportgrößen & ihre Länder',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Marit Bjørgen", "Norwegen", "Erfolgreichste Wintersportlerin der Olympiageschichte."],
        ["Sachin Tendulkar", "Indien", "Im Cricket zu Lebzeiten wie ein Gott verehrt."],
        ["Nadia Comăneci", "Rumänien", "Mit 14 Jahren die erste perfekte Wertung."],
-       ["Ian Thorpe", "Australien", "Schwimmer mit den auffällig großen Füßen."]]'::jsonb),
+       ["Ian Thorpe", "Australien", "Schwimmer mit den auffällig großen Füßen."]]'::jsonb,
+     '[["Spanien", "Rafael Nadal träte dafür an, und der fehlt auf diesem Brett."],
+       ["Äthiopien", "Haile Gebrselassie käme von dort, er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'motorsport-serien', 'Motorsport-Serien',
      'Was kennzeichnet diese Rennserie?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["DTM", "Tourenwagen mit Serienbezug", "Aus der Deutschen Tourenwagen-Meisterschaft hervorgegangen."],
        ["Dragster-Rennen", "Viertelmeile geradeaus", "Entschieden wird in unter vier Sekunden."],
        ["Trial", "Hindernisse ohne Fußaufsetzen", "Gewertet werden Fehlerpunkte, nicht die Zeit."],
-       ["Speedway", "Bahnrennen ohne Bremsen", "Vier Fahrer, vier Runden, linksherum."]]'::jsonb),
+       ["Speedway", "Bahnrennen ohne Bremsen", "Vier Fahrer, vier Runden, linksherum."]]'::jsonb,
+     '[["Rennen nur bergauf", "Das Bergrennen fehlt auf diesem Brett."],
+       ["Rundenrennen mit Karts", "Der Kartsport steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'fussball-regeln', 'Fußballregeln & Begriffe',
      'Was bedeutet der Begriff?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Videobeweis", "Überprüfung strittiger Szenen", "Nur bei Toren, Platzverweisen und Strafstößen."],
        ["Eigentor", "Treffer ins eigene Netz", "Wird dem Team gutgeschrieben, das angegriffen hat."],
        ["Elfmeterschießen", "Entscheidung nach Verlängerung", "Erst fünf Schützen, dann abwechselnd bis zur Entscheidung."],
-       ["Handspiel", "Berührung mit dem Arm", "Der Torwart ist im eigenen Strafraum ausgenommen."]]'::jsonb),
+       ["Handspiel", "Berührung mit dem Arm", "Der Torwart ist im eigenen Strafraum ausgenommen."]]'::jsonb,
+     '[["Wechsel eines Spielers", "Die Auswechslung fehlt auf diesem Brett."],
+       ["Anstoß nach einem Tor", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'derbys', 'Derbys & ihre Vereine',
      'Welche beiden Klubs treffen aufeinander?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Derby d''Italia", "Juventus und Inter", "Die beiden nie abgestiegenen Klubs Italiens."],
        ["Interkontinentales Derby", "Galatasaray und Fenerbahçe", "Istanbul, europäische gegen asiatische Seite."],
        ["Kairoer Derby", "Al Ahly und Zamalek", "Eines der meistbesuchten Spiele Afrikas."],
-       ["Nordderby", "Hamburg und Bremen", "Die beiden großen Nordklubs Deutschlands."]]'::jsonb),
+       ["Nordderby", "Hamburg und Bremen", "Die beiden großen Nordklubs Deutschlands."]]'::jsonb,
+     '[["Bayern und Nürnberg", "Das bayerische Derby fehlt auf diesem Brett."],
+       ["Ajax und Feyenoord", "De Klassieker steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'extremsport', 'Extremsportarten',
      'Was macht man dabei?',
@@ -86,7 +94,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Slacklining", "Balancieren auf Gurtband", "In großer Höhe gespannt heißt es Highline."],
        ["Eisklettern", "Aufstieg an gefrorenen Wasserfällen", "Mit Steigeisen und zwei Eisgeräten."],
        ["Freeclimbing", "Klettern ohne technische Hilfsmittel", "Gesichert wird, aber nicht am Seil hochgezogen."],
-       ["Skitourengehen", "Aufstieg mit Fellen", "Abfahrt abseits präparierter Pisten."]]'::jsonb),
+       ["Skitourengehen", "Aufstieg mit Fellen", "Abfahrt abseits präparierter Pisten."]]'::jsonb,
+     '[["Sprung aus dem Flugzeug am Schirm", "Das Fallschirmspringen fehlt auf diesem Brett."],
+       ["Radfahren über steile Felsen", "Das Downhill steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'laufveranstaltungen-laender', 'Große Läufe & Länder',
      'In welchem Land findet der Lauf statt?',
@@ -102,7 +112,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Berlin-Marathon", "Deutschland", "Flacher Kurs, auf dem viele Weltrekorde fielen."],
        ["Tokio-Marathon", "Japan", "Jüngster der großen Weltmarathons."],
        ["Great North Run", "England", "Größter Halbmarathon der Welt."],
-       ["City2Surf", "Australien", "Von Sydney zum Bondi Beach."]]'::jsonb),
+       ["City2Surf", "Australien", "Von Sydney zum Bondi Beach."]]'::jsonb,
+     '[["Niederlande", "Der Rotterdam-Marathon fehlt auf diesem Brett."],
+       ["Kenia", "Kein Lauf in dieser Liste findet dort statt."]]'::jsonb),
 
     ('sport', 'spielzeiten-punkte', 'Spielzeiten & Zählweisen',
      'Wie lange oder bis wohin wird gespielt?',
@@ -118,7 +130,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tischtennissatz", "11 Punkte", "Aufschlagwechsel alle zwei Punkte."],
        ["Darts-Leg", "501 Punkte", "Heruntergespielt und mit einem Doppel beendet."],
        ["Tennisspiel", "15, 30, 40", "Die Zählweise stammt vermutlich vom Zifferblatt."],
-       ["Basketballviertel", "10 Minuten", "In der NBA sind es zwölf."]]'::jsonb),
+       ["Basketballviertel", "10 Minuten", "In der NBA sind es zwölf."]]'::jsonb,
+     '[["45 Minuten", "So lang ist eine Fußballhalbzeit, gefragt ist hier das ganze Spiel."],
+       ["6 Punkte", "Keine Zählweise auf diesem Brett endet dort."]]'::jsonb),
 
     ('sport', 'segeln-wassersport', 'Segeln & Wassersport',
      'Was verbirgt sich dahinter?',
@@ -132,7 +146,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Katamaran", "Zwei Rümpfe nebeneinander", "Weniger Wasserwiderstand, mehr Tempo."],
        ["Windsurfen", "Segel auf dem Brett", "Der Mast wird mit dem Gabelbaum geführt."],
        ["The Boat Race", "Oxford gegen Cambridge", "Achter gegen Achter auf der Themse."],
-       ["Kanuslalom", "Tore im Wildwasser", "Rote Tore müssen stromaufwärts durchfahren werden."]]'::jsonb),
+       ["Kanuslalom", "Tore im Wildwasser", "Rote Tore müssen stromaufwärts durchfahren werden."]]'::jsonb,
+     '[["Rudern zu acht mit Steuermann", "Der Achter fehlt auf diesem Brett."],
+       ["Wasserski hinter dem Boot", "Es steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'sportler-spitznamen', 'Sportler & ihre Beinamen',
      'Wer wurde so genannt?',
@@ -148,7 +164,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der fliegende Finne", "Paavo Nurmi", "Neun olympische Goldmedaillen im Laufen."],
        ["Der Titan", "Oliver Kahn", "Torwart, der 2002 fast im Alleingang ins WM-Finale hielt."],
        ["Der Terrier", "Berti Vogts", "Als Verteidiger klebte er an jedem Gegenspieler."],
-       ["Der Thorpedo", "Ian Thorpe", "Wortspiel aus seinem Namen und dem Torpedo."]]'::jsonb),
+       ["Der Thorpedo", "Ian Thorpe", "Wortspiel aus seinem Namen und dem Torpedo."]]'::jsonb,
+     '[["Der fliegende Holländer", "So hieß Johan Cruyff, und der fehlt auf diesem Brett."],
+       ["Air Jordan", "Michael Jordan steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'nationalstadien-laender', 'Nationalstadien & Länder',
      'In welchem Land steht das Stadion?',
@@ -164,7 +182,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Estádio da Luz", "Portugal", "Das Stadion des Lichts in Lissabon."],
        ["Johan Cruijff Arena", "Niederlande", "Erstes europäisches Stadion mit verschiebbarem Dach."],
        ["Luschniki-Stadion", "Russland", "Finalort der Weltmeisterschaft 2018."],
-       ["Nissan Stadium", "Japan", "Hier fiel die Entscheidung der WM 2002."]]'::jsonb),
+       ["Nissan Stadium", "Japan", "Hier fiel die Entscheidung der WM 2002."]]'::jsonb,
+     '[["Argentinien", "Das Monumental stünde dort, und es fehlt auf dem Brett."],
+       ["Südafrika", "Das Soccer City steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'golf-begriffe', 'Golfbegriffe',
      'Was bedeutet der Begriff?',
@@ -180,7 +200,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Green", "Fläche um das Loch", "Ganz kurz gemäht, für das Putten."],
        ["Handicap", "Vorgabe eines Spielers", "Macht Spieler unterschiedlicher Stärke vergleichbar."],
        ["Caddie", "Träger und Berater", "Kennt Schläge, Wind und Distanzen."],
-       ["Tee", "Abschlagpunkt und Stift", "Der Ball liegt erhöht auf einem Stift."]]'::jsonb),
+       ["Tee", "Abschlagpunkt und Stift", "Der Ball liegt erhöht auf einem Stift."]]'::jsonb,
+     '[["Sieger eines Major-Turniers", "Danach fragt keine Zeile auf diesem Brett."],
+       ["Schlag über das Wasser hinweg", "Kein Begriff in dieser Liste meint das."]]'::jsonb),
 
     ('sport', 'radklassiker-laender', 'Radklassiker & Länder',
      'In welchem Land wird gefahren?',
@@ -195,7 +217,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tour Down Under", "Australien", "Eröffnet die Saison im Januar."],
        ["Tour of Britain", "Vereinigtes Königreich", "Etappenrennen quer über die Insel."],
        ["Tour de Pologne", "Polen", "Rundfahrt mit Bergankünften in der Tatra."],
-       ["Tour of Oman", "Oman", "Frühjahrsrennen mit Anstieg zum Green Mountain."]]'::jsonb),
+       ["Tour of Oman", "Oman", "Frühjahrsrennen mit Anstieg zum Green Mountain."]]'::jsonb,
+     '[["Österreich", "Die Österreich-Rundfahrt fehlt auf diesem Brett."],
+       ["Norwegen", "Kein Rennen in dieser Liste wird dort gefahren."]]'::jsonb),
 
     ('sport', 'sportgeschichte-erste-male', 'Premieren des Sports',
      'Wann fand das zum ersten Mal statt?',
@@ -210,7 +234,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erste Frauen-Fußball-WM", "1991", "In China, mit zwölf Mannschaften."],
        ["Erste Leichtathletik-WM", "1983", "In Helsinki, zuvor gab es nur Olympia."],
        ["Erstes Wimbledonturnier", "1877", "Nur Herreneinzel, 22 Teilnehmer."],
-       ["Erster Marathon der Neuzeit", "1896", "Bei den ersten Spielen in Athen."]]'::jsonb),
+       ["Erster Marathon der Neuzeit", "1896", "Bei den ersten Spielen in Athen."]]'::jsonb,
+     '[["1972", "Kein Ereignis auf diesem Brett fand zum ersten Mal in diesem Jahr statt."],
+       ["1904", "Die zweiten Spiele der Neuzeit, aber keine Premiere in dieser Liste."]]'::jsonb),
 
     ('sport', 'turngeraete', 'Turngeräte & Merkmale',
      'Woran wird hier geturnt?',
@@ -224,7 +250,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schwebebalken", "Zehn Zentimeter Breite", "In 1,25 Metern Höhe."],
        ["Boden", "Federnde Fläche", "Zwölf mal zwölf Meter, bei Frauen mit Musik."],
        ["Trampolin", "Sprungtuch mit Federn", "Seit 2000 olympische Disziplin."],
-       ["Rhönrad", "Zwei verbundene Reifen", "Der Turner steht im Inneren."]]'::jsonb),
+       ["Rhönrad", "Zwei verbundene Reifen", "Der Turner steht im Inneren."]]'::jsonb,
+     '[["Kletterstange an der Wand", "Sie ist kein Turngerät auf diesem Brett."],
+       ["Sprungseil", "Es steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'boxgewichtsklassen', 'Gewichtsklassen im Boxen',
      'Welche Grenze gilt für die Klasse?',
@@ -238,7 +266,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Leichtgewicht", "Bis 61,2 Kilogramm", "Schnelle Kämpfe mit hoher Schlagzahl."],
        ["Federgewicht", "Bis 57,2 Kilogramm", "Der Name steht sprichwörtlich für leicht."],
        ["Bantamgewicht", "Bis 53,5 Kilogramm", "Benannt nach einer Hühnerrasse."],
-       ["Fliegengewicht", "Bis 50,8 Kilogramm", "Leichteste klassische Klasse."]]'::jsonb),
+       ["Fliegengewicht", "Bis 50,8 Kilogramm", "Leichteste klassische Klasse."]]'::jsonb,
+     '[["Bis 100 Kilogramm", "Keine Klasse auf diesem Brett hat diese Grenze."],
+       ["Bis 48 Kilogramm", "Das Strohgewicht fehlt in dieser Liste."]]'::jsonb),
 
     ('sport', 'eishockey-begriffe', 'Eishockeybegriffe',
      'Was bedeutet der Begriff?',
@@ -252,7 +282,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Empty Net", "Tor ohne Torwart", "Am Ende für einen zusätzlichen Feldspieler geräumt."],
        ["Slapshot", "Schlagschuss mit Ausholen", "Der schnellste, aber ungenaueste Schuss."],
        ["Blaue Linie", "Grenze der Angriffszone", "Wer sie zu früh überquert, steht im Abseits."],
-       ["Shutout", "Spiel ohne Gegentor", "Wird dem Torwart gutgeschrieben."]]'::jsonb),
+       ["Shutout", "Spiel ohne Gegentor", "Wird dem Torwart gutgeschrieben."]]'::jsonb,
+     '[["Wechsel bei laufendem Spiel", "Der fliegende Wechsel fehlt auf diesem Brett."],
+       ["Verlängerung nach Unentschieden", "Sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'baelle-sportarten', 'Bälle & Sportarten',
      'Zu welcher Sportart gehört der Ball?',
@@ -268,7 +300,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Klebriger Handball", "Handball", "Harz sorgt für den Halt in einer Hand."],
        ["Ball mit Korkkern", "Cricket", "Hart genug, dass Helme Pflicht wurden."],
        ["Griffiger Ball fürs Wasser", "Wasserball", "Muss auch nass einhändig zu halten sein."],
-       ["Leichter Ball für den Innenraum", "Volleyball", "Wird nur gespielt, nie gefangen."]]'::jsonb),
+       ["Leichter Ball für den Innenraum", "Volleyball", "Wird nur gespielt, nie gefangen."]]'::jsonb,
+     '[["Sehr harter Ball mit Löchern zum Greifen", "Die Bowlingkugel fehlt auf diesem Brett."],
+       ["Kleiner Ball mit Federkranz", "Der Federball steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'sportverletzungen', 'Verletzungen & Körperteile',
      'Wo tritt die Verletzung auf?',
@@ -283,7 +317,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Muskelfaserriss", "Oberschenkel", "Häufig beim Antritt aus dem Stand."],
        ["Gehirnerschütterung", "Kopf", "Im Kampfsport und beim Football besonders beachtet."],
        ["Bandscheibenvorfall", "Lendenwirbelsäule", "Oft bei Gewichthebern und Ruderern."],
-       ["Karpaltunnelsyndrom", "Handgelenk", "Der Nerv wird im Kanal eingeengt."]]'::jsonb),
+       ["Karpaltunnelsyndrom", "Handgelenk", "Der Nerv wird im Kanal eingeengt."]]'::jsonb,
+     '[["Nasenbeinbruch", "Er trifft die Nase, und die fehlt auf diesem Brett."],
+       ["Rippenprellung", "Sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'skisprungschanzen', 'Skisprungschanzen & Orte',
      'Wo steht die Schanze?',
@@ -299,7 +335,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mühlenkopfschanze", "Willingen", "Größte Großschanze der Welt nach Größe des Hügels."],
        ["Okurayama", "Sapporo", "Schauplatz der Winterspiele 1972."],
        ["Kulm", "Bad Mitterndorf", "Österreichische Skiflugschanze in der Steiermark."],
-       ["Wielka Krokiew", "Zakopane", "Vor bis zu 50000 Zuschauern."]]'::jsonb),
+       ["Wielka Krokiew", "Zakopane", "Vor bis zu 50000 Zuschauern."]]'::jsonb,
+     '[["Klingenthal", "Die Vogtlandschanze steht dort, und sie fehlt auf dem Brett."],
+       ["Lahti", "Die finnische Schanze kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('sport', 'sportpionierinnen', 'Pionierinnen des Sports',
      'Wofür steht ihr Name?',
@@ -314,7 +352,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Danica Patrick", "Erste IndyCar-Siegerin", "Gewann 2008 in Japan."],
        ["Ellen MacArthur", "Schnellste Weltumseglung allein", "2005 in 71 Tagen um den Globus."],
        ["Wilma Rudolph", "Dreimal Gold nach Kinderlähmung", "Siegte 1960 in Rom über Sprint und Staffel."],
-       ["Fanny Blankers-Koen", "Vier Goldmedaillen als Mutter", "1948 in London, gegen alle Erwartungen."]]'::jsonb)
+       ["Fanny Blankers-Koen", "Vier Goldmedaillen als Mutter", "1948 in London, gegen alle Erwartungen."]]'::jsonb,
+     '[["Erste Frau im Formel-1-Rennen", "Das war Maria Teresa de Filippis, die hier fehlt."],
+       ["Steffi Graf", "Der Golden Slam von 1988 steht nicht auf diesem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -339,15 +379,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

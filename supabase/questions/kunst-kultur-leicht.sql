@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('kunst-kultur', 'leicht-maerchenfiguren', 'Märchenfiguren',
@@ -23,7 +23,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Junge, dessen Nase beim Lügen wächst", "Pinocchio", "Aus Holz geschnitzt."],
        ["Mädchen, das Streichhölzer verkauft", "Die Schwefelhölzer", "Eine Geschichte von Andersen."],
        ["Ein Frosch, der ein Prinz ist", "Der Froschkönig", "Erst der Wurf an die Wand hilft."],
-       ["Tapferes Schneiderlein am Gürtel", "Das tapfere Schneiderlein", "Sieben auf einen Streich."]]'::jsonb),
+       ["Tapferes Schneiderlein am Gürtel", "Das tapfere Schneiderlein", "Sieben auf einen Streich."]]'::jsonb,
+     '[["Die Bienenkönigin", "Ein Grimm-Märchen, das auf diesem Brett fehlt."],
+       ["Der Wolf und die sieben Geißlein", "Es steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-kinderbuchfiguren', 'Figuren aus Kinderbüchern',
      'Wer ist das?',
@@ -40,7 +42,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Junge mit einer Lokomotive und einem Freund", "Jim Knopf", "Lokomotive Emma trägt ihn."],
        ["Kater in Stiefeln", "Der gestiefelte Kater", "Er macht seinen Herrn zum Grafen."],
        ["Ein Löwe, der eigentlich Angst hat", "Der feige Löwe", "Er sucht Mut beim Zauberer von Oz."],
-       ["Kleiner Prinz von einem winzigen Planeten", "Der kleine Prinz", "Er zähmt einen Fuchs."]]'::jsonb),
+       ["Kleiner Prinz von einem winzigen Planeten", "Der kleine Prinz", "Er zähmt einen Fuchs."]]'::jsonb,
+     '[["Der kleine Wassermann", "Auch von Otfried Preußler, aber nicht auf diesem Brett."],
+       ["Alice im Wunderland", "Sie fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-instrumente', 'Instrumente erkennen',
      'Welches Instrument ist gemeint?',
@@ -57,7 +61,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kleine Röhre, in die man hineinbläst", "Blockflöte", "Meist das erste Instrument in der Schule."],
        ["Hat Pfeifen und steht in der Kirche", "Orgel", "Die Königin der Instrumente."],
        ["Wird mit Klöppeln geschlagen und ist gestimmt", "Pauke", "Ein Pedal ändert die Tonhöhe."],
-       ["Man hält sie in einer Hand und schüttelt sie", "Rassel", "Eines der ältesten Instrumente überhaupt."]]'::jsonb),
+       ["Man hält sie in einer Hand und schüttelt sie", "Rassel", "Eines der ältesten Instrumente überhaupt."]]'::jsonb,
+     '[["Harfe", "Sie wird auch gezupft, steht auf diesem Brett aber nicht."],
+       ["Mundharmonika", "Sie fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-malen', 'Malen & Basteln',
      'Womit macht man das?',
@@ -71,7 +77,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Einen sauberen Kreis zeichnen", "Zirkel", "Eine Spitze steht fest, die andere dreht."],
        ["Aus Ton eine Figur formen", "Hände", "Getrocknet wird sie hart."],
        ["Bilder aufhängen ohne Nagel", "Klebestreifen", "Hält nur auf glatter Wand."],
-       ["Ein Bild einrahmen", "Bilderrahmen", "Das Passepartout hält das Glas fern."]]'::jsonb),
+       ["Ein Bild einrahmen", "Bilderrahmen", "Das Passepartout hält das Glas fern."]]'::jsonb,
+     '[["Staffelei", "Sie hält die Leinwand, danach fragt hier keine Zeile."],
+       ["Wachsmalstifte", "Auch damit malt man, auf dem Brett stehen sie nicht."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-museen', 'Im Museum',
      'Was findet man dort?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Planetarium", "Der Sternenhimmel", "Projiziert auf eine Kuppel."],
        ["Spielzeugmuseum", "Puppen und Eisenbahnen", "Oft aus einer Privatsammlung entstanden."],
        ["Archäologisches Museum", "Funde aus der Erde", "Scherben erzählen den Alltag."],
-       ["Zoo", "Lebende Tiere", "Heute auch mit Zuchtprogrammen für bedrohte Arten."]]'::jsonb),
+       ["Zoo", "Lebende Tiere", "Heute auch mit Zuchtprogrammen für bedrohte Arten."]]'::jsonb,
+     '[["Bibliothek", "Dort stehen Bücher, und sie ist kein Museum auf diesem Brett."],
+       ["Botanischer Garten", "Dort wachsen Pflanzen, hier ist er keine Antwort."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-theater', 'Im Theater',
      'Wer oder was ist das?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Steht hinten und zeigt den Ort", "Bühnenbild", "Es wird zwischen den Akten getauscht."],
        ["Kurze Pause in der Mitte des Abends", "Pause", "Zeit für ein Glas im Foyer."],
        ["Zettel mit allen Mitwirkenden", "Programmheft", "Wird vor der Vorstellung verkauft."],
-       ["Sitzplatz ganz oben im Rang", "Galerie", "Günstig, aber weit weg."]]'::jsonb),
+       ["Sitzplatz ganz oben im Rang", "Galerie", "Günstig, aber weit weg."]]'::jsonb,
+     '[["Kartenhäuschen am Eingang", "Die Theaterkasse steht nicht auf diesem Brett."],
+       ["Der Text des Stücks auf Papier", "Das Textbuch fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-farben-bedeutung', 'Farben & ihre Bedeutung',
      'Wofür steht die Farbe meistens?',
@@ -115,7 +127,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gold", "Reichtum und Sieg", "Die erste Medaille glänzt golden."],
        ["Violett", "Würde und Kirche", "Die Farbe der Fastenzeit."],
        ["Braun", "Erde und Holz", "Die Farbe des Bodens."],
-       ["Grau", "Nüchternheit", "Weder hell noch dunkel."]]'::jsonb),
+       ["Grau", "Nüchternheit", "Weder hell noch dunkel."]]'::jsonb,
+     '[["Orange", "Eine Farbe, für die auf diesem Brett keine Bedeutung steht."],
+       ["Rosa", "Auch sie kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-weltbekannte-bauwerke', 'Bekannte Bauwerke',
      'In welcher Stadt steht das?',
@@ -131,7 +145,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Goldenes Tor als rote Brücke", "San Francisco", "Sie ist nicht golden, sondern rot."],
        ["Kölner Dom", "Köln", "Zwei Türme direkt am Bahnhof."],
        ["Opernhaus mit Segeldächern", "Sydney", "Am Wasser gelegen."],
-       ["Christusstatue über der Bucht", "Rio de Janeiro", "Sie steht auf dem Corcovado."]]'::jsonb),
+       ["Christusstatue über der Bucht", "Rio de Janeiro", "Sie steht auf dem Corcovado."]]'::jsonb,
+     '[["Moskau", "Die Basilius-Kathedrale stünde dort, sie fehlt auf dem Brett."],
+       ["Athen", "Die Akropolis steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-weihnachten', 'Weihnachten & Bräuche',
      'Was gehört dazu?',
@@ -145,7 +161,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bunt beleuchtete Buden im Dezember", "Weihnachtsmarkt", "Glühwein und gebrannte Mandeln."],
        ["Kekse in vielen Formen", "Plätzchen", "Werden im Advent gebacken."],
        ["Langer Hefekuchen mit Puderzucker", "Christstollen", "Die Form soll ein gewickeltes Kind darstellen."],
-       ["Der Abend der Bescherung", "Heiligabend", "In Deutschland gibt es die Geschenke am 24."]]'::jsonb),
+       ["Der Abend der Bescherung", "Heiligabend", "In Deutschland gibt es die Geschenke am 24."]]'::jsonb,
+     '[["Eier suchen im Garten", "Das gehört zu Ostern, nicht zu Weihnachten."],
+       ["Kürbis mit Gesicht vor der Tür", "Das ist Halloween und steht hier nicht."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-sprachen-gruesse', 'Guten Tag in aller Welt',
      'In welcher Sprache grüßt man so?',
@@ -161,7 +179,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Privet", "Russisch", "Unter Freunden, förmlich heißt es anders."],
        ["Ni hao", "Chinesisch", "Wörtlich: du gut."],
        ["Olá", "Portugiesisch", "Auch in Brasilien üblich."],
-       ["Geia sou", "Griechisch", "Wörtlich ein Wunsch nach Gesundheit."]]'::jsonb),
+       ["Geia sou", "Griechisch", "Wörtlich ein Wunsch nach Gesundheit."]]'::jsonb,
+     '[["Niederländisch", "Goedendag wäre der Gruß, und der fehlt auf dem Brett."],
+       ["Arabisch", "Salam steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-comicfiguren', 'Comic- und Trickfiguren',
      'Wer ist gemeint?',
@@ -177,7 +197,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cowboy, der schneller zieht als sein Schatten", "Lucky Luke", "Am Ende reitet er in den Sonnenuntergang."],
        ["Kleiner gelber Helfer in Latzhose", "Minion", "Sie sprechen eine erfundene Sprache."],
        ["Rosa Panther ohne Worte", "Der rosarote Panther", "Bekannt durch seine Titelmelodie."],
-       ["Hund, der auf seiner Hütte liegt", "Snoopy", "Er träumt sich als Fliegerass."]]'::jsonb),
+       ["Hund, der auf seiner Hütte liegt", "Snoopy", "Er träumt sich als Fliegerass."]]'::jsonb,
+     '[["Werner mit dem Motorrad", "Eine deutsche Comicfigur, die hier fehlt."],
+       ["Calvin mit seinem Tiger", "Er steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-zirkus', 'Im Zirkus',
      'Wer macht das?',
@@ -191,7 +213,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Verbiegt den Körper erstaunlich weit", "Schlangenmensch", "Jahrelanges Training steckt dahinter."],
        ["Lässt Dinge verschwinden", "Zauberer", "Der Trick bleibt sein Geheimnis."],
        ["Reitet stehend auf dem Pferd", "Kunstreiter", "Die älteste Zirkusdisziplin."],
-       ["Das große Zelt über allem", "Zirkuszelt", "Die Kuppel heißt Chapiteau."]]'::jsonb),
+       ["Das große Zelt über allem", "Zirkuszelt", "Die Kuppel heißt Chapiteau."]]'::jsonb,
+     '[["Verkauft Popcorn in der Pause", "Ein Verkäufer, aber keine Nummer auf dem Brett."],
+       ["Spielt die Musik zur Vorstellung", "Die Zirkuskapelle fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-buecher-teile', 'Rund ums Buch',
      'Wie heißt der Teil des Buches?',
@@ -205,7 +229,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bilder in einem Kinderbuch", "Illustrationen", "Sie erzählen mit."],
        ["Verlag und Jahr auf einer eigenen Seite", "Impressum", "Rechtlich vorgeschrieben."],
        ["Kurzer Text auf der Rückseite", "Klappentext", "Er verrät möglichst nicht das Ende."],
-       ["Ort, an dem man Bücher ausleiht", "Bibliothek", "Meist kostenlos oder sehr günstig."]]'::jsonb),
+       ["Ort, an dem man Bücher ausleiht", "Bibliothek", "Meist kostenlos oder sehr günstig."]]'::jsonb,
+     '[["Zahl unten auf jeder Seite", "Die Seitenzahl steht nicht auf diesem Brett."],
+       ["Widmung an eine Person", "Sie fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-sagen', 'Sagen & Gestalten',
      'Wer oder was ist das?',
@@ -221,7 +247,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wesen, das nachts zu Stein wird", "Troll", "Aus nordischen Erzählungen."],
        ["Kleines Wesen, das einen Goldschatz hütet", "Kobold", "In Irland heißt er Leprechaun."],
        ["Pferd mit einem Horn auf der Stirn", "Einhorn", "Im Mittelalter für echt gehalten."],
-       ["Feuer speiendes Wesen mit Flügeln", "Drache", "In Asien gilt er als Glücksbringer."]]'::jsonb),
+       ["Feuer speiendes Wesen mit Flügeln", "Drache", "In Asien gilt er als Glücksbringer."]]'::jsonb,
+     '[["Vogel, der aus der Asche steigt", "Der Phönix fehlt auf diesem Brett."],
+       ["Schiff, das ewig über die Meere fährt", "Der Fliegende Holländer steht hier nicht."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-tanz', 'Tanzen',
      'Was gehört zu diesem Tanz?',
@@ -235,7 +263,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tango", "Enge Haltung", "Aus den Hafenvierteln von Buenos Aires."],
        ["Samba", "Schnelle Hüftbewegungen", "Herz des Karnevals in Rio."],
        ["Discofox", "Einfache Schritte zu Popmusik", "Der beliebteste Paartanz in Deutschland."],
-       ["Line Dance", "Reihen ohne Partner", "Ohne Partner, oft zu Countrymusik."]]'::jsonb),
+       ["Line Dance", "Reihen ohne Partner", "Ohne Partner, oft zu Countrymusik."]]'::jsonb,
+     '[["Springen im Zweiertakt zu Blasmusik", "Die Polka fehlt auf diesem Brett."],
+       ["Sprünge über gekreuzte Schwerter", "Ein schottischer Tanz, der hier nicht steht."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-alphabet', 'Buchstaben & Schrift',
      'Was ist gemeint?',
@@ -249,7 +279,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Buchstaben, die man singen kann", "Vokale", "A, E, I, O und U."],
        ["Schrift für blinde Menschen", "Brailleschrift", "Punkte werden ertastet."],
        ["Große Anfangsbuchstaben", "Großbuchstaben", "Im Deutschen bei allen Nomen."],
-       ["Zeichen zwischen zwei Wortteilen", "Bindestrich", "Er hält lange Wörter lesbar."]]'::jsonb),
+       ["Zeichen zwischen zwei Wortteilen", "Bindestrich", "Er hält lange Wörter lesbar."]]'::jsonb,
+     '[["Zeichen für einen Ausruf", "Das Ausrufezeichen steht nicht auf diesem Brett."],
+       ["Buchstabe zwischen A und C", "Danach fragt hier keine Zeile."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-berufe-kultur', 'Berufe in der Kultur',
      'Wer macht das?',
@@ -263,7 +295,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Entwirft Kleidung", "Modedesigner", "Zweimal im Jahr eine neue Kollektion."],
        ["Baut Häuser am Reißbrett", "Architekt", "Er plant, bevor jemand gräbt."],
        ["Repariert alte Gemälde", "Restaurator", "Jeder Eingriff muss rückgängig zu machen sein."],
-       ["Erklärt Gruppen im Museum die Bilder", "Museumsführer", "Er kennt die Geschichten dahinter."]]'::jsonb),
+       ["Erklärt Gruppen im Museum die Bilder", "Museumsführer", "Er kennt die Geschichten dahinter."]]'::jsonb,
+     '[["Übersetzt Bücher in eine andere Sprache", "Der Übersetzer fehlt auf diesem Brett."],
+       ["Schreibt Kritiken über Filme", "Der Kritiker steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-laender-symbole', 'Länder & ihre Symbole',
      'Zu welchem Land gehört das Symbol?',
@@ -279,7 +313,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Matrjoschka", "Russland", "Puppen, die ineinander stecken."],
        ["Stier beim Stierkampf", "Spanien", "Umstritten und regional verboten."],
        ["Wikingerschiff", "Norwegen", "Funde stehen heute im Museum."],
-       ["Kuckucksuhr", "Deutschland", "Aus dem Schwarzwald in alle Welt."]]'::jsonb),
+       ["Kuckucksuhr", "Deutschland", "Aus dem Schwarzwald in alle Welt."]]'::jsonb,
+     '[["Kiwi-Vogel", "Er steht für Neuseeland, und das fehlt auf dem Brett."],
+       ["Kleeblatt", "Es steht für Irland, das hier nicht vorkommt."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-musik-hoeren', 'Musik im Alltag',
      'Was ist das?',
@@ -295,7 +331,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Lied eines Landes zu feierlichen Anlässen", "Nationalhymne", "Man steht dabei auf."],
        ["Gerät, das den Takt vorgibt", "Metronom", "Es tickt gleichmäßig."],
        ["Melodie, die im Ohr bleibt", "Ohrwurm", "Man wird sie schwer wieder los."],
-       ["Aufnahme aller Lieder einer Gruppe", "Album", "Früher auf Schallplatte."]]'::jsonb),
+       ["Aufnahme aller Lieder einer Gruppe", "Album", "Früher auf Schallplatte."]]'::jsonb,
+     '[["Zwei Menschen singen zusammen", "Das Duett steht nicht auf diesem Brett."],
+       ["Ein Konzert unter freiem Himmel", "Es fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'leicht-film-fuer-kinder', 'Zeichentrickfilme',
      'Um welchen Film geht es?',
@@ -311,7 +349,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mädchen arbeitet in einem Badehaus für Geister", "Chihiros Reise ins Zauberland", "Ihre Eltern werden zu Schweinen."],
        ["Roboter räumt allein die Erde auf", "WALL·E", "Fast die erste halbe Stunde ohne Worte."],
        ["Junge Elefant mit sehr großen Ohren", "Dumbo", "Die Ohren werden zu Flügeln."],
-       ["Hund und Katze finden nach Hause", "Susi und Strolch", "Bekannt für die Spaghettiszene."]]'::jsonb)
+       ["Hund und Katze finden nach Hause", "Susi und Strolch", "Bekannt für die Spaghettiszene."]]'::jsonb,
+     '[["Mädchen zieht in ein Haus voller Geister", "Das wäre Coraline, und der Film fehlt hier."],
+       ["Vier Tiere fliehen aus dem Zoo nach Afrika", "Madagascar steht nicht auf diesem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -336,15 +376,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

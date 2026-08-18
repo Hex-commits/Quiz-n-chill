@@ -92,7 +92,11 @@ export interface QuizDetail {
   items: Item[];
 }
 
-/** `category_id: null` means the player has not placed this answer yet. */
+/**
+ * `category_id: null` is the player saying this answer belongs to no category
+ * at all — it is a fake. An answer they simply never touched is left out of
+ * the list entirely; the two used to mean the same thing and no longer do.
+ */
 export interface Assignment {
   item_id: string;
   category_id: string | null;
@@ -102,7 +106,8 @@ export interface ItemResult {
   item_id: string;
   label: string;
   assigned_category_id: string | null;
-  correct_category_id: string;
+  /** Null when the answer was a fake and belonged nowhere. */
+  correct_category_id: string | null;
   is_correct: boolean;
   /**
    * One line on why this answer belongs where it does. Revealed with the
@@ -143,7 +148,8 @@ export interface PlayerPublic {
 export interface SolvedItem {
   item_id: string;
   label: string;
-  category_id: string;
+  /** Null when this was a fake and the player correctly said so. */
+  category_id: string | null;
   solved_by: string;
 }
 
@@ -152,8 +158,8 @@ export interface LastMove {
   nickname: string;
   /** Always named: answers are words, readable in the pool either way. */
   item_label: string;
-  /** Where it was placed — always a real category, right or wrong. */
-  category_id: string;
+  /** Where it was placed, or null for "this one belongs nowhere". */
+  category_id: string | null;
   was_correct: boolean;
 }
 
@@ -169,6 +175,15 @@ export interface ResolvedPair {
   solved_by: string | null;
 }
 
+/** An answer that belonged to no category, revealed once the round is over. */
+export interface ResolvedFake {
+  item_label: string;
+  /** Why it does not fit. Null for questions seeded before the explain step. */
+  explanation: string | null;
+  /** Who spotted it, or null if nobody did. */
+  solved_by: string | null;
+}
+
 /** A round that is over, so its source and answer key can be shown. */
 export interface FinishedRound {
   quiz_id: string;
@@ -177,6 +192,8 @@ export interface FinishedRound {
   difficulty: Difficulty;
   source: Source | null;
   solution: ResolvedPair[];
+  /** The rest of the answer key: what was in the pool and belonged nowhere. */
+  fakes: ResolvedFake[];
 }
 
 export interface RoundView {

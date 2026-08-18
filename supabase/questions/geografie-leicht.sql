@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geografie', 'leicht-hauptstaedte-europa', 'Hauptstädte in Europa',
@@ -23,7 +23,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Dänemark", "Kopenhagen", "Mit der kleinen Meerjungfrau am Hafen."],
        ["Norwegen", "Oslo", "Am Ende eines langen Fjords."],
        ["Schweden", "Stockholm", "Auf vierzehn Inseln gebaut."],
-       ["Polen", "Warschau", "Nach dem Krieg wieder aufgebaut."]]'::jsonb),
+       ["Polen", "Warschau", "Nach dem Krieg wieder aufgebaut."]]'::jsonb,
+     '[["Lissabon", "Die Hauptstadt Portugals, und das Land steht nicht auf dem Brett."],
+       ["Zürich", "Die größte Stadt der Schweiz, deren Hauptstadt aber Bern ist."]]'::jsonb),
 
     ('geografie', 'leicht-staedte-laender', 'Städte & Länder',
      'In welchem Land liegt die Stadt?',
@@ -39,7 +41,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mumbai", "Indien", "Zentrum der indischen Filmindustrie."],
        ["Istanbul", "Türkei", "Sie liegt auf zwei Kontinenten."],
        ["Zürich", "Schweiz", "Am Ende eines Sees."],
-       ["Marseille", "Frankreich", "Ein alter Hafen am Mittelmeer."]]'::jsonb),
+       ["Marseille", "Frankreich", "Ein alter Hafen am Mittelmeer."]]'::jsonb,
+     '[["Japan", "Keine Stadt auf diesem Brett liegt dort."],
+       ["Mexiko", "Guadalajara läge dort, und die Stadt fehlt hier."]]'::jsonb),
 
     ('geografie', 'leicht-flaggen-farben', 'Flaggen & Farben',
      'Wie sieht die Flagge aus?',
@@ -55,7 +59,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Österreich", "Rot, Weiß, Rot", "Eine der ältesten Flaggen."],
        ["Belgien", "Schwarz, Gelb, Rot", "Senkrecht angeordnet."],
        ["Niederlande", "Rot, Weiß, Blau", "Waagerecht gestreift."],
-       ["Spanien", "Rot, Gelb, Rot", "Mit dem Wappen links."]]'::jsonb),
+       ["Spanien", "Rot, Gelb, Rot", "Mit dem Wappen links."]]'::jsonb,
+     '[["Rot, Weiß, Blau von oben nach unten", "So sieht die russische Flagge aus, und Russland fehlt hier."],
+       ["Sterne auf blauem Feld", "Das wäre die Flagge der USA, die nicht auf dem Brett steht."]]'::jsonb),
 
     ('geografie', 'leicht-himmelsrichtungen', 'Auf der Landkarte',
      'Was bedeutet das?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Nordpol", "Nördlichster Punkt der Erde", "Dort gibt es kein Land, nur Eis."],
        ["Südpol", "Südlichster Punkt der Erde", "Er liegt auf dem Festland."],
        ["Maßstab", "Verhältnis zur Wirklichkeit", "Ein Zentimeter kann ein Kilometer sein."],
-       ["Legende", "Erklärung der Zeichen", "Sie steht am Kartenrand."]]'::jsonb),
+       ["Legende", "Erklärung der Zeichen", "Sie steht am Kartenrand."]]'::jsonb,
+     '[["Zeigt die Höhe über dem Meer", "Das täte eine Höhenlinie, und die steht hier nicht."],
+       ["Trennt Ost und West", "So etwas gibt es auf der Karte nicht."]]'::jsonb),
 
     ('geografie', 'leicht-rekorde-erde', 'Rekorde der Erde',
      'Was ist gesucht?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Größte Insel", "Grönland", "Trotzdem kein Kontinent."],
        ["Größter See", "Kaspisches Meer", "Er heißt Meer, ist aber ein See."],
        ["Tiefste Stelle im Meer", "Marianengraben", "Fast elf Kilometer tief."],
-       ["Kontinent ohne feste Bewohner", "Antarktika", "Nur Forscher leben zeitweise dort."]]'::jsonb),
+       ["Kontinent ohne feste Bewohner", "Antarktika", "Nur Forscher leben zeitweise dort."]]'::jsonb,
+     '[["Sahara-Wüste in Asien", "Die Sahara liegt in Afrika, der Satz stimmt nicht."],
+       ["Australien", "Ein Kontinent und ein Land zugleich, aber kein Rekord auf dem Brett."]]'::jsonb),
 
     ('geografie', 'leicht-sprachen-laender', 'Sprachen & Länder',
      'Welche Sprache spricht man dort?',
@@ -100,7 +110,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Niederlande", "Niederländisch", "Dem Deutschen sehr ähnlich."],
        ["Türkei", "Türkisch", "Seit 1928 mit lateinischen Buchstaben."],
        ["Finnland", "Finnisch", "Verwandt mit dem Ungarischen."],
-       ["Tschechien", "Tschechisch", "Mit vielen Häkchen über den Buchstaben."]]'::jsonb),
+       ["Tschechien", "Tschechisch", "Mit vielen Häkchen über den Buchstaben."]]'::jsonb,
+     '[["Norwegisch", "Norwegen steht nicht auf diesem Brett."],
+       ["Dänisch", "Auch Dänemark fehlt in dieser Liste."]]'::jsonb),
 
     ('geografie', 'leicht-deutschland-sehenswert', 'Sehenswertes in Deutschland',
      'In welcher Stadt oder Region steht das?',
@@ -117,7 +129,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zeche Zollverein", "Essen", "Früher Kohle, heute Welterbe."],
        ["Bremer Stadtmusikanten", "Bremen", "Vier Tiere übereinander."],
        ["Schloss Neuschwanstein", "Bayern", "Vorbild für Märchenschlösser."],
-       ["Loreley", "Rheintal", "Ein Felsen über dem Fluss."]]'::jsonb),
+       ["Loreley", "Rheintal", "Ein Felsen über dem Fluss."]]'::jsonb,
+     '[["Nürnberg", "Die Kaiserburg stünde dort, und sie fehlt auf dem Brett."],
+       ["Heidelberg", "Das Schloss über dem Neckar steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'leicht-fluesse-laender', 'Flüsse & Länder',
      'Durch welches Land fließt er vor allem?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jangtse", "China", "Der längste Fluss Asiens."],
        ["Tiber", "Italien", "Rom entstand an seinen Ufern."],
        ["Weichsel", "Polen", "Sie fließt durch Warschau."],
-       ["Ebro", "Spanien", "Er mündet ins Mittelmeer."]]'::jsonb),
+       ["Ebro", "Spanien", "Er mündet ins Mittelmeer."]]'::jsonb,
+     '[["Österreich", "Die Donau fließt auch dort, gefragt ist hier aber ein anderer Fluss."],
+       ["Portugal", "Kein Fluss auf diesem Brett fließt vor allem dort."]]'::jsonb),
 
     ('geografie', 'leicht-meere', 'Meere & Ozeane',
      'Was stimmt?',
@@ -147,7 +163,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rotes Meer", "Zwischen Afrika und Arabien", "Bekannt für Korallenriffe."],
        ["Schwarzes Meer", "Östlich des Balkans", "Über den Bosporus verbunden."],
        ["Totes Meer", "Salziger als jedes Meer", "Untergehen ist kaum möglich."],
-       ["Karibisches Meer", "Bei Mittelamerika", "Bekannt für seine Inseln."]]'::jsonb),
+       ["Karibisches Meer", "Bei Mittelamerika", "Bekannt für seine Inseln."]]'::jsonb,
+     '[["Zwischen Australien und Asien", "Kein Meer auf diesem Brett liegt so."],
+       ["Der zweitgrößte Ozean", "Das wäre der Atlantik, gefragt ist dort aber etwas anderes."]]'::jsonb),
 
     ('geografie', 'leicht-laender-typisch', 'Typisch für das Land',
      'Zu welchem Land gehört das?',
@@ -163,7 +181,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Oliven und Antike", "Griechenland", "Tempel und Inseln."],
        ["Curry und Bollywood", "Indien", "Filme mit viel Musik."],
        ["Große Mauer und Pandas", "China", "Beides Wahrzeichen des Landes."],
-       ["Baguette und Eiffelturm", "Frankreich", "Beides Sinnbilder von Paris."]]'::jsonb),
+       ["Baguette und Eiffelturm", "Frankreich", "Beides Sinnbilder von Paris."]]'::jsonb,
+     '[["Fjorde und Trolle", "Das wäre Norwegen, und das Land fehlt auf dem Brett."],
+       ["Flamenco und Stierkampf", "Spanien steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'leicht-landschaften', 'Landschaften',
      'Was zeichnet die Landschaft aus?',
@@ -177,7 +197,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tundra", "Kalt und baumlos", "Der Boden bleibt tief gefroren."],
        ["Moor", "Nasser, weicher Boden", "Es speichert viel Kohlenstoff."],
        ["Tal", "Senke zwischen Bergen", "Oft mit einem Fluss darin."],
-       ["Hochebene", "Flach, aber weit oben", "Zum Beispiel in Tibet."]]'::jsonb),
+       ["Hochebene", "Flach, aber weit oben", "Zum Beispiel in Tibet."]]'::jsonb,
+     '[["Vom Menschen bebautes Land", "Ein Acker ist keine der Landschaften auf diesem Brett."],
+       ["Ein zugefrorener See", "Keine Landschaft in dieser Liste."]]'::jsonb),
 
     ('geografie', 'leicht-europa-nachbarn', 'Nachbarn Deutschlands',
      'Was gehört zum Nachbarland?',
@@ -191,7 +213,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Luxemburg", "Ein kleines Nachbarland", "Sehr klein, sehr wohlhabend."],
        ["Belgien", "Im Westen", "Mit Brüssel als EU-Sitz."],
        ["Niederlande", "Im Nordwesten", "Viel Land liegt unter dem Meeresspiegel."],
-       ["Nordsee und Ostsee", "Deutschlands zwei Meere", "Beide im Norden."]]'::jsonb),
+       ["Nordsee und Ostsee", "Deutschlands zwei Meere", "Beide im Norden."]]'::jsonb,
+     '[["Im Südwesten hinter den Pyrenäen", "Spanien ist kein Nachbarland Deutschlands."],
+       ["Im Nordosten über die Ostsee", "Schweden grenzt nicht an Deutschland."]]'::jsonb),
 
     ('geografie', 'leicht-inseln', 'Inseln',
      'Zu welchem Meer oder Land gehört die Insel?',
@@ -205,7 +229,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sizilien", "Italien", "Mit dem Ätna darauf."],
        ["Kreta", "Griechenland", "Die größte griechische Insel."],
        ["Grönland", "Dänemark", "Weitgehend selbst verwaltet."],
-       ["Korsika", "Frankreich", "Geburtsinsel Napoleons."]]'::jsonb),
+       ["Korsika", "Frankreich", "Geburtsinsel Napoleons."]]'::jsonb,
+     '[["Rotes Meer", "Keine Insel auf diesem Brett liegt dort."],
+       ["Spanien", "Mallorca gehört dazu, gefragt ist dort aber das Meer."]]'::jsonb),
 
     ('geografie', 'leicht-reisen', 'Auf Reisen',
      'Was braucht oder macht man da?',
@@ -219,7 +245,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Unterkunft für die Nacht", "Hotel", "Frühstück oft inklusive."],
        ["Andere Uhrzeit im Zielland", "Zeitverschiebung", "Sie macht müde."],
        ["Kontrolle an der Grenze", "Zoll", "Manches darf man nicht mitbringen."],
-       ["Kleines Andenken", "Souvenir", "Es erinnert an die Reise."]]'::jsonb),
+       ["Kleines Andenken", "Souvenir", "Es erinnert an die Reise."]]'::jsonb,
+     '[["Schutz für den Notfall", "Die Reiseversicherung steht nicht auf dem Brett."],
+       ["Karte für die Fahrt vor Ort", "Der Stadtplan kommt hier nicht vor."]]'::jsonb),
 
     ('geografie', 'leicht-berge-bekannt', 'Bekannte Berge',
      'In welchem Land oder Gebirge steht er?',
@@ -233,7 +261,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ätna", "Italien", "Ein sehr aktiver Vulkan."],
        ["Uluru", "Australien", "Ein großer roter Felsen."],
        ["Tafelberg", "Südafrika", "Er hat oben eine flache Fläche."],
-       ["Brocken", "Harz", "Der höchste Berg Norddeutschlands."]]'::jsonb),
+       ["Brocken", "Harz", "Der höchste Berg Norddeutschlands."]]'::jsonb,
+     '[["Frankreich", "Der Mont Blanc stünde dort, und er fehlt auf dem Brett."],
+       ["Spanien", "Der Teide steht nicht in dieser Liste."]]'::jsonb),
 
     ('geografie', 'leicht-kontinente-tiere', 'Wo lebt das Tier?',
      'Auf welchem Kontinent lebt es frei?',
@@ -247,7 +277,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Faultier", "Südamerika", "Es hängt fast immer in Bäumen."],
        ["Bison", "Nordamerika", "Früher in riesigen Herden."],
        ["Kiwi", "Neuseeland", "Ein Vogel, der nicht fliegen kann."],
-       ["Kamel mit zwei Höckern", "Zentralasien", "Es hält Kälte gut aus."]]'::jsonb),
+       ["Kamel mit zwei Höckern", "Zentralasien", "Es hält Kälte gut aus."]]'::jsonb,
+     '[["Grönland", "Kein Tier auf diesem Brett lebt nur dort."],
+       ["Madagaskar", "Die Lemuren leben dort, und die fehlen in dieser Liste."]]'::jsonb),
 
     ('geografie', 'leicht-wetter-orte', 'Wetter & Orte',
      'Wie ist das Wetter dort meistens?',
@@ -261,7 +293,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wüste Gobi", "Kalte Wüste", "Im Winter tief unter null."],
        ["Island", "Kühl und windig", "Das Wetter wechselt sehr schnell."],
        ["Indien im Sommer", "Regenzeit mit Monsun", "Wochenlang starker Regen."],
-       ["Kanarische Inseln", "Ganzjährig mild", "Deshalb Insel des ewigen Frühlings genannt."]]'::jsonb),
+       ["Kanarische Inseln", "Ganzjährig mild", "Deshalb Insel des ewigen Frühlings genannt."]]'::jsonb,
+     '[["Ständig windstill", "Auf keinen Ort in dieser Liste trifft das zu."],
+       ["Sechs Monate Dunkelheit", "Das gilt am Südpol, der hier nicht steht."]]'::jsonb),
 
     ('geografie', 'leicht-europa-fakten', 'Europa',
      'Was gilt für Europa?',
@@ -275,7 +309,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Insel im Nordatlantik", "Island", "Vulkanisch sehr aktiv."],
        ["Meer zwischen Europa und Afrika", "Mittelmeer", "Über Gibraltar mit dem Atlantik verbunden."],
        ["Land mit den meisten Einwohnern", "Deutschland", "Über achtzig Millionen Menschen."],
-       ["Halbinsel mit Spanien und Portugal", "Iberische Halbinsel", "Durch die Pyrenäen abgetrennt."]]'::jsonb),
+       ["Halbinsel mit Spanien und Portugal", "Iberische Halbinsel", "Durch die Pyrenäen abgetrennt."]]'::jsonb,
+     '[["Größtes Land Europas nach Fläche", "Das wäre Russland, und danach fragt hier keine Zeile."],
+       ["Insel im Mittelmeer", "Zypern wäre es, und es fehlt auf dem Brett."]]'::jsonb),
 
     ('geografie', 'leicht-karte-lesen', 'Karte lesen',
      'Was zeigt das auf der Karte?',
@@ -289,7 +325,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kleines Flugzeugsymbol", "Flughafen", "Meist am Rand einer Stadt."],
        ["Zahl neben einem Gipfel", "Höhe in Metern", "Über dem Meeresspiegel gemessen."],
        ["Nordpfeil", "Ausrichtung der Karte", "Er zeigt, wo Norden liegt."],
-       ["Balken mit Kilometerangabe", "Maßstab", "Damit misst man Entfernungen."]]'::jsonb),
+       ["Balken mit Kilometerangabe", "Maßstab", "Damit misst man Entfernungen."]]'::jsonb,
+     '[["Gelbe Flächen", "Für Sand oder Wüste, auf diesem Brett aber keine Antwort."],
+       ["Kleines Zeltsymbol", "Ein Campingplatz, und der steht hier nicht."]]'::jsonb),
 
     ('geografie', 'leicht-welt-zahlen', 'Die Erde in Zahlen',
      'Wie viele sind es?',
@@ -303,7 +341,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Länder in der Europäischen Union", "27", "Nach dem Austritt Großbritanniens."],
        ["Grad zwischen Nord- und Südpol", "180", "Vom Pol zum Pol gemessen."],
        ["Bundesländer in Österreich", "9", "Wien ist eines davon."],
-       ["Kantone der Schweiz", "26", "Sechs davon sind Halbkantone."]]'::jsonb)
+       ["Kantone der Schweiz", "26", "Sechs davon sind Halbkantone."]]'::jsonb,
+     '[["12", "Die Zahl der Monate, und danach fragt hier keine Zeile."],
+       ["60", "Minuten einer Stunde, aber keine Antwort auf diesem Brett."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -328,15 +368,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

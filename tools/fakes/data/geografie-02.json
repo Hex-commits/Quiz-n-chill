@@ -1,0 +1,82 @@
+{
+  "wolkenkratzer-staedte": [
+    ["Hongkong", "Das International Commerce Centre stünde dort, es fehlt auf dem Brett."],
+    ["Toronto", "Der CN Tower steht nicht in dieser Liste."]
+  ],
+  "staedte-fluesse-weltweit": [
+    ["Seine", "Paris läge daran, und die Stadt fehlt auf dem Brett."],
+    ["Donau", "Keine Stadt in dieser Liste liegt an ihr."]
+  ],
+  "einziges-nachbarland": [
+    ["Italien", "Der Vatikan hätte nur diesen Nachbarn, und er fehlt auf dem Brett."],
+    ["Papua-Neuguinea", "Für kein Land in dieser Liste ist es der einzige Nachbar."]
+  ],
+  "staedte-frueherer-name": [
+    ["Danzig", "Der frühere Name von Gdansk, und die Stadt fehlt auf dem Brett."],
+    ["Karl-Marx-Stadt", "So hieß Chemnitz, das hier nicht steht."]
+  ],
+  "wasserfaelle-laender": [
+    ["Simbabwe", "Die Victoriafälle lägen dort, sie fehlen auf dem Brett."],
+    ["Argentinien", "Die Iguazú-Fälle stehen nicht in dieser Liste."]
+  ],
+  "inselstaaten-ozeanien": [
+    ["Honolulu", "Die Hauptstadt Hawaiis, und das ist kein eigener Staat."],
+    ["Avarua", "Der Hauptort der Cookinseln, die hier nicht stehen."]
+  ],
+  "karibik-hauptstaedte": [
+    ["Willemstad", "Die Hauptstadt Curaçaos, das auf dem Brett fehlt."],
+    ["Basseterre", "Die Hauptstadt von St. Kitts und Nevis, hier nicht aufgeführt."]
+  ],
+  "osteuropa-hauptstaedte": [
+    ["Warschau", "Die Hauptstadt Polens, und das Land fehlt auf dem Brett."],
+    ["Podgorica", "Die Hauptstadt Montenegros, das hier nicht steht."]
+  ],
+  "zentralasien-hauptstaedte": [
+    ["Islamabad", "Die Hauptstadt Pakistans, und das Land fehlt auf dem Brett."],
+    ["Ulaanbaatar", "Die Hauptstadt der Mongolei, die hier nicht steht."]
+  ],
+  "stadtteile-staedte": [
+    ["Wien", "Der Prater läge dort, und das Viertel fehlt auf dem Brett."],
+    ["Istanbul", "Beyoğlu wäre eines, es steht nicht in dieser Liste."]
+  ],
+  "amtssprachen-laender": [
+    ["Griechisch", "Kein Land auf diesem Brett führt es als Amtssprache."],
+    ["Türkisch", "Es fehlt in dieser Liste ebenso wie das Land dazu."]
+  ],
+  "zeitzonen-staedte": [
+    ["UTC-3", "Buenos Aires läge darin, und die Stadt fehlt auf dem Brett."],
+    ["UTC-5", "New York liegt im Winter darin, steht hier aber nicht."]
+  ],
+  "grenzfluesse": [
+    ["Frankreich und Deutschland", "Der Rhein trennt sie, und er fehlt auf dem Brett."],
+    ["Argentinien und Uruguay", "Der Uruguay-Fluss steht nicht in dieser Liste."]
+  ],
+  "bahnstrecken-laender": [
+    ["China", "Die Bahn nach Lhasa führte dorthin, sie fehlt auf dem Brett."],
+    ["Italien", "Die Bernina-Strecke endet dort, steht hier aber nicht."]
+  ],
+  "inselgruppen-laender": [
+    ["Vereinigtes Königreich", "Die Scilly-Inseln gehörten dazu, sie fehlen auf dem Brett."],
+    ["Ecuador", "Die Galápagos-Inseln stehen nicht in dieser Liste."]
+  ],
+  "talsperren-fluesse": [
+    ["Wolga", "Kein Damm auf diesem Brett staut sie."],
+    ["Donau", "Das Eiserne Tor läge dort, es fehlt in dieser Liste."]
+  ],
+  "welterbe-laender": [
+    ["Jordanien", "Petra läge dort, und die Stätte fehlt auf dem Brett."],
+    ["Italien", "Pompeji steht nicht in dieser Liste."]
+  ],
+  "hauptstaedte-nordwesteuropa": [
+    ["Bern", "Die Hauptstadt der Schweiz, und das Land fehlt auf dem Brett."],
+    ["Luxemburg", "Die Hauptstadt des gleichnamigen Landes, das hier nicht steht."]
+  ],
+  "berge-laender": [
+    ["Nepal", "Der Everest stünde dort, er fehlt auf dem Brett."],
+    ["Japan", "Der Fudschi steht nicht in dieser Liste."]
+  ],
+  "haefen-laender": [
+    ["Singapur", "Der zweitgrößte Containerhafen der Welt, und er fehlt hier."],
+    ["Italien", "Genua wäre der Hafen dazu, er steht nicht auf dem Brett."]
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "leicht-trickfilmfiguren": [
+    ["Cinderella", "Der Film steht nicht auf diesem Brett."],
+    ["Bambi", "Auch ein Zeichentrickfilm, aber keine Figur hier stammt daraus."]
+  ],
+  "leicht-berufe-film": [
+    ["Beleuchter", "Er stellt das Licht, und danach wird hier nicht gefragt."],
+    ["Requisiteur", "Er sorgt für die Gegenstände, die auf dem Brett nicht vorkommen."]
+  ],
+  "leicht-genres": [
+    ["Kriegsfilm", "Eine eigene Filmart, die hier nicht beschrieben wird."],
+    ["Stummfilm", "Ganz ohne gesprochenes Wort, auf dem Brett steht das nicht."]
+  ],
+  "leicht-kino": [
+    ["Kinoorgel", "Sie begleitete früher Stummfilme, hier ist sie keine Antwort."],
+    ["Garderobe", "Für die Mäntel, danach fragt auf dem Brett niemand."]
+  ],
+  "leicht-fernsehformate": [
+    ["Hörspiel", "Das läuft im Radio, nicht im Fernsehen."],
+    ["Livekonzert", "Eine Übertragung, die auf diesem Brett fehlt."]
+  ],
+  "leicht-superhelden": [
+    ["Kann sich unsichtbar machen", "Das kann die Unsichtbare, und die steht hier nicht."],
+    ["Spricht mit Fischen", "Aquaman wäre das, und der fehlt auf dem Brett."]
+  ],
+  "leicht-kinderfilme": [
+    ["Ein Haus fliegt an Luftballons davon", "Das ist Oben, der Film fehlt hier."],
+    ["Ein Mädchen fällt in ein Kaninchenloch", "Alice steht nicht auf diesem Brett."]
+  ],
+  "leicht-serienfiguren": [
+    ["Raumschiff Enterprise", "Captain Kirk käme daher, die Serie fehlt hier."],
+    ["Wickie und die starken Männer", "Keine Figur auf diesem Brett stammt daraus."]
+  ],
+  "leicht-filmtiere": [
+    ["Pferd", "Kein Filmtier auf diesem Brett ist ein Pferd."],
+    ["Papagei", "Kein Tier in dieser Liste ist ein Vogel."]
+  ],
+  "leicht-filmsprache": [
+    ["Die Pause zum Essen am Set", "Die Drehpause steht nicht auf dem Brett."],
+    ["Der Plan für den Drehtag", "Der Drehplan kommt hier nicht vor."]
+  ],
+  "leicht-maerchenfilme": [
+    ["Ein Esel, der Gold spuckt", "Tischlein deck dich steht nicht auf dem Brett."],
+    ["Ein Mädchen mit Zündhölzern", "Das Märchen fehlt in dieser Liste."]
+  ],
+  "leicht-filmreihen": [
+    ["Autos, die sprechen können", "Das wäre Cars, und die Reihe fehlt hier."],
+    ["Ein Boxer aus Philadelphia", "Rocky steht nicht auf dem Brett."]
+  ],
+  "leicht-filmlaender": [
+    ["Spanien", "Keine Zeile auf diesem Brett führt dorthin."],
+    ["Australien", "Auch von dort kommen Filme, hier steht keiner."]
+  ],
+  "leicht-geraeusche": [
+    ["Verrät, wo die Kamera steht", "Kein Ton auf diesem Brett tut das."],
+    ["Ersetzt die Untertitel", "Dafür ist keine Zeile hier gedacht."]
+  ],
+  "leicht-fernsehgeraet": [
+    ["Satellitenschüssel", "Sie holt das Signal, danach fragt hier niemand."],
+    ["Videorekorder", "Ein Gerät von früher, das auf dem Brett nicht vorkommt."]
+  ],
+  "leicht-schauspieler-bekannt": [
+    ["Bud Spencer", "Bekannt für Prügelkomödien, er steht nicht auf dem Brett."],
+    ["Louis de Funès", "Der französische Komiker fehlt in dieser Liste."]
+  ],
+  "leicht-orte-film": [
+    ["Narnia", "Die Welt hinter dem Schrank steht nicht auf dem Brett."],
+    ["Atlantis", "Die versunkene Stadt fehlt in dieser Liste."]
+  ],
+  "leicht-filmtechnik-einfach": [
+    ["Zwei Bilder nebeneinander", "Der geteilte Bildschirm steht nicht auf dem Brett."],
+    ["Das Bild wird langsam dunkel", "Die Abblende kommt hier nicht vor."]
+  ],
+  "leicht-preise-film": [
+    ["Der Publikumspreis", "Eine Auszeichnung, die hier nicht beschrieben wird."],
+    ["Die Goldene Himbeere", "Der Preis für den schlechtesten Film fehlt auf dem Brett."]
+  ],
+  "leicht-comicverfilmung": [
+    ["Britischer Comic", "Keine Figur auf diesem Brett stammt von dort."],
+    ["Amerikanischer Zeitungsstrip", "Garfield käme daher, und der steht hier nicht."]
+  ]
+}

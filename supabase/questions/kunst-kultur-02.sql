@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('kunst-kultur', 'nordische-mythologie', 'Nordische Mythologie',
@@ -21,7 +21,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Yggdrasil", "Weltenbaum", "Seine Wurzeln verbinden die neun Welten."],
        ["Walhall", "Halle der gefallenen Krieger", "Walküren führen die Toten dorthin."],
        ["Ragnarök", "Untergang der Welt", "Danach steigt eine neue Erde aus dem Meer."],
-       ["Midgard", "Welt der Menschen", "Umschlungen von einer Schlange im Weltmeer."]]'::jsonb),
+       ["Midgard", "Welt der Menschen", "Umschlungen von einer Schlange im Weltmeer."]]'::jsonb,
+     '[["Gott der Dichtkunst", "Das wäre Bragi, und der fehlt auf diesem Brett."],
+       ["Reich der Riesen", "Jotunheim steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'kirchen-staedte', 'Sakralbauten & Städte',
      'In welcher Stadt steht der Bau?',
@@ -38,7 +40,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mailänder Dom", "Mailand", "Marmorfassade mit über 3000 Figuren."],
        ["Alexander-Newski-Kathedrale", "Sofia", "Erinnert an gefallene russische Soldaten."],
        ["Scheich-Zayid-Moschee", "Abu Dhabi", "Weißer Marmorbau mit dem größten handgeknüpften Teppich."],
-       ["Goldener Tempel", "Amritsar", "Wichtigstes Heiligtum der Sikhs, umgeben von Wasser."]]'::jsonb),
+       ["Goldener Tempel", "Amritsar", "Wichtigstes Heiligtum der Sikhs, umgeben von Wasser."]]'::jsonb,
+     '[["Florenz", "Der Dom Santa Maria del Fiore stünde dort, er fehlt auf dem Brett."],
+       ["Jerusalem", "Die Grabeskirche steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'romanfiguren-werke', 'Romanfiguren & ihre Bücher',
      'Aus welchem Roman stammt die Figur?',
@@ -54,7 +58,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jean Valjean", "Die Elenden", "Ein entlassener Sträfling wird zum Wohltäter."],
        ["Dorian Gray", "Roman von Oscar Wilde", "Das Porträt altert an seiner Stelle, er selbst nicht."],
        ["Elizabeth Bennet", "Stolz und Vorurteil", "Sie durchschaut Mr. Darcy erst spät."],
-       ["Jean-Baptiste Grenouille", "Das Parfum", "Ein Mörder mit dem feinsten Geruchssinn."]]'::jsonb),
+       ["Jean-Baptiste Grenouille", "Das Parfum", "Ein Mörder mit dem feinsten Geruchssinn."]]'::jsonb,
+     '[["Der Steppenwolf", "Harry Haller stammt daher, und die Figur fehlt auf dem Brett."],
+       ["Krieg und Frieden", "Pierre Besuchow käme von dort, der Roman steht hier nicht."]]'::jsonb),
 
     ('kunst-kultur', 'schriftarten', 'Schriftarten & ihr Charakter',
      'Was kennzeichnet die Schrift?',
@@ -68,7 +74,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Frutiger", "Schrift für Flughäfen", "Für Roissy entworfen, auf Fernwirkung geprüft."],
        ["Courier", "Schreibmaschinenschrift", "Jeder Buchstabe nimmt dieselbe Breite ein."],
        ["Fraktur", "Gebrochene Schrift", "In Deutschland bis 1941 als Drucktype üblich."],
-       ["Comic Sans", "Handschriftliche Anmutung", "Für Sprechblasen gedacht, überall sonst verspottet."]]'::jsonb),
+       ["Comic Sans", "Handschriftliche Anmutung", "Für Sprechblasen gedacht, überall sonst verspottet."]]'::jsonb,
+     '[["Nur Großbuchstaben ohne Kleinbuchstaben", "Auf keine Schrift in dieser Liste trifft das zu."],
+       ["Eigens für Bildschirme entworfen", "Verdana wäre das, und die fehlt auf dem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'kulturfeste-laender', 'Feste & Länder',
      'In welchem Land wird gefeiert?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sankt-Patricks-Tag", "Irland", "Weltweit wird an diesem Tag Grün getragen."],
        ["Thanksgiving", "USA", "Erntedank am vierten Donnerstag im November."],
        ["Nouruz", "Iran", "Neujahr zur Tagundnachtgleiche im Frühling."],
-       ["Basler Fasnacht", "Schweiz", "Beginnt am Montag um vier Uhr früh im Dunkeln."]]'::jsonb),
+       ["Basler Fasnacht", "Schweiz", "Beginnt am Montag um vier Uhr früh im Dunkeln."]]'::jsonb,
+     '[["China", "Das Frühlingsfest würde dorthin gehören, und es fehlt auf dem Brett."],
+       ["Schottland", "Hogmanay steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'kuenstler-stilrichtungen', 'Künstler & Stilrichtungen',
      'Für welche Richtung steht die Person?',
@@ -100,7 +110,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Andy Warhol", "Pop Art", "Siebdruck machte das Bild zur Serie."],
        ["Joseph Beuys", "Fluxus", "Erweiterter Kunstbegriff: jeder Mensch ein Künstler."],
        ["Frida Kahlo", "Magischer Realismus", "Selbstbildnisse zwischen Schmerz und Symbolik."],
-       ["Banksy", "Streetart", "Schablonenbilder an Hauswänden, Identität unbekannt."]]'::jsonb),
+       ["Banksy", "Streetart", "Schablonenbilder an Hauswänden, Identität unbekannt."]]'::jsonb,
+     '[["Bauhaus", "Eine Schule und ein Stil, aber keiner Person auf dem Brett zugeordnet."],
+       ["Futurismus", "Marinetti stünde dafür, und der fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'antike-autoren-werke', 'Antike Autoren & Werke',
      'Welches Werk stammt von dieser Person?',
@@ -116,7 +128,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Vergil", "Aeneis", "Von Troja nach Italien, als Gründungsmythos Roms."],
        ["Horaz", "Oden", "Von ihm stammt das carpe diem."],
        ["Ovid", "Metamorphosen", "Verwandlungsgeschichten von der Schöpfung bis Caesar."],
-       ["Plinius der Ältere", "Naturalis historia", "Enzyklopädie der antiken Naturkunde."]]'::jsonb),
+       ["Plinius der Ältere", "Naturalis historia", "Enzyklopädie der antiken Naturkunde."]]'::jsonb,
+     '[["Odyssee", "Auch von Homer, doch auf dem Brett steht seine Ilias."],
+       ["Die Bekenntnisse", "Von Augustinus, und der fehlt in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'pigmente-herkunft', 'Farbpigmente & ihre Herkunft',
      'Woraus wurde die Farbe gewonnen?',
@@ -132,7 +146,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Grünspan", "Kupfer und Essig", "Frisst sich mit der Zeit durch die Malschicht."],
        ["Kobaltblau", "Kobalterz", "Ersetzte ab 1800 das teure Ultramarin."],
        ["Kadmiumgelb", "Kadmiumsulfid", "Kräftig und deckend, ebenfalls giftig."],
-       ["Rußschwarz", "Verbrannte Öle und Harze", "Das älteste Schwarz überhaupt."]]'::jsonb),
+       ["Rußschwarz", "Verbrannte Öle und Harze", "Das älteste Schwarz überhaupt."]]'::jsonb,
+     '[["Gemahlene Perlmuscheln", "Aus ihnen entsteht kein Pigment auf diesem Brett."],
+       ["Safranfäden", "Sie färben Speisen, sind hier aber keine Antwort."]]'::jsonb),
 
     ('kunst-kultur', 'designklassiker', 'Designklassiker & Gestalter',
      'Wer entwarf das Möbel oder Gerät?',
@@ -146,7 +162,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Juicy Salif", "Philippe Starck", "Zitronenpresse, die eher Skulptur als Werkzeug ist."],
        ["Sacco-Sitzsack", "Gatti, Paolini und Teodoro", "Der Sitz passt sich dem Körper an."],
        ["Braun SK 4", "Dieter Rams", "Wegen der Plexiglashaube Schneewittchensarg genannt."],
-       ["iMac G3", "Jonathan Ive", "Durchsichtiges Gehäuse brachte Farbe in die Computer."]]'::jsonb),
+       ["iMac G3", "Jonathan Ive", "Durchsichtiges Gehäuse brachte Farbe in die Computer."]]'::jsonb,
+     '[["Arne Jacobsen", "Der Ameisenstuhl stammt von ihm, und der fehlt auf dem Brett."],
+       ["Alvar Aalto", "Der Hocker 60 steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'gaerten-parks', 'Berühmte Gärten & Orte',
      'Wo liegt der Garten?',
@@ -162,7 +180,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Park Sanssouci", "Potsdam", "Weinbergterrassen unter dem Schloss Friedrichs II."],
        ["Generalife", "Granada", "Sommergarten der Alhambra mit Wasserläufen."],
        ["Butchart Gardens", "Kanada", "In einem ausgebeuteten Kalksteinbruch angelegt."],
-       ["Garten von Versailles", "Frankreich", "Le Nôtres Achsen ordnen die Landschaft."]]'::jsonb),
+       ["Garten von Versailles", "Frankreich", "Le Nôtres Achsen ordnen die Landschaft."]]'::jsonb,
+     '[["Wien", "Der Schlosspark Schönbrunn läge dort, er fehlt auf dem Brett."],
+       ["Suzhou", "Die Gelehrtengärten stehen nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'kleidung-laender', 'Traditionelle Kleidung',
      'Woher stammt das Kleidungsstück?',
@@ -178,7 +198,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kaftan", "Naher Osten", "Langes, weites Obergewand aus Seide oder Baumwolle."],
        ["Boubou", "Westafrika", "Weites Gewand, oft reich bestickt."],
        ["Fez", "Marokko", "Kegelförmige Filzkappe mit Quaste."],
-       ["Sarong", "Indonesien", "Ein Tuch, um die Hüfte gebunden."]]'::jsonb),
+       ["Sarong", "Indonesien", "Ein Tuch, um die Hüfte gebunden."]]'::jsonb,
+     '[["Griechenland", "Die Fustanella käme von dort, und sie fehlt auf dem Brett."],
+       ["Peru", "Der Chullo steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'heilige-buecher', 'Heilige Schriften & Religionen',
      'Zu welcher Religion gehört die Schrift?',
@@ -195,7 +217,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tao Te King", "Daoismus", "Einundachtzig knappe Abschnitte über den Weg."],
        ["Gespräche des Konfuzius", "Konfuzianismus", "Von Schülern gesammelte Aussprüche."],
        ["Buch Mormon", "Mormonen", "1830 von Joseph Smith veröffentlicht."],
-       ["Kitab-i-Aqdas", "Bahaitum", "Hauptwerk von Bahāʾullāh."]]'::jsonb),
+       ["Kitab-i-Aqdas", "Bahaitum", "Hauptwerk von Bahāʾullāh."]]'::jsonb,
+     '[["Jainismus", "Die Agamas gehören dorthin, und sie fehlen auf dem Brett."],
+       ["Manichäismus", "Keine Schrift in dieser Liste gehört dazu."]]'::jsonb),
 
     ('kunst-kultur', 'fotografen', 'Fotografen & ihre Bilder',
      'Wofür steht dieser Name in der Fotografie?',
@@ -209,7 +233,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Annie Leibovitz", "Porträts von Prominenten", "Inszenierte Titelbilder für Magazine."],
        ["Man Ray", "Fotogramme ohne Kamera", "Gegenstände direkt auf lichtempfindliches Papier gelegt."],
        ["Diane Arbus", "Porträts von Außenseitern", "Ihr Blick galt denen am Rand."],
-       ["Alfred Stieglitz", "Fotografie als Kunstform", "Kämpfte dafür, dass Museen Fotos aufnehmen."]]'::jsonb),
+       ["Alfred Stieglitz", "Fotografie als Kunstform", "Kämpfte dafür, dass Museen Fotos aufnehmen."]]'::jsonb,
+     '[["Nan Goldin", "Ihre Bilder aus dem eigenen Umfeld fehlen auf diesem Brett."],
+       ["Erste Farbfotografie überhaupt", "Sie geht auf Maxwell zurück, der hier nicht steht."]]'::jsonb),
 
     ('kunst-kultur', 'kunstbegriffe', 'Begriffe des Kunstbetriebs',
      'Was bezeichnet der Begriff?',
@@ -224,7 +250,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Auflage", "Zahl der Abzüge", "Bei Grafiken auf jedem Blatt vermerkt."],
        ["Biennale", "Alle zwei Jahre", "Die bekannteste findet in Venedig statt."],
        ["Ikonografie", "Deutung der Bildinhalte", "Fragt, wofür Gegenstände im Bild stehen."],
-       ["Pentimento", "Übermalte erste Fassung", "Wird mit der Zeit oder im Röntgenbild sichtbar."]]'::jsonb),
+       ["Pentimento", "Übermalte erste Fassung", "Wird mit der Zeit oder im Röntgenbild sichtbar."]]'::jsonb,
+     '[["Fälschung mit falscher Signatur", "Die Fälschung ist kein Begriff auf diesem Brett."],
+       ["Katalog zur Ausstellung", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'opernhaeuser-staedte', 'Opernhäuser & Städte',
      'In welcher Stadt steht das Haus?',
@@ -240,7 +268,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["La Fenice", "Venedig", "Der Name bedeutet Phönix, was zur Geschichte passt."],
        ["Festspielhaus", "Bayreuth", "Von Wagner für seine eigenen Werke gebaut."],
        ["Elbphilharmonie", "Hamburg", "Konzerthaus auf einem alten Kaispeicher."],
-       ["Semperoper", "Dresden", "Nach Krieg und Zerstörung 1985 neu eröffnet."]]'::jsonb),
+       ["Semperoper", "Dresden", "Nach Krieg und Zerstörung 1985 neu eröffnet."]]'::jsonb,
+     '[["Sydney", "Das Opernhaus dort fehlt auf diesem Brett."],
+       ["Prag", "Das Ständetheater steht nicht in dieser Liste."]]'::jsonb),
 
     ('kunst-kultur', 'pseudonyme', 'Künstlernamen & bürgerliche Namen',
      'Wie hieß die Person wirklich?',
@@ -256,7 +286,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Joseph Conrad", "Józef Korzeniowski", "Schrieb Englisch, seine dritte Sprache."],
        ["Pablo Neruda", "Ricardo Reyes", "Den Namen wählte er nach einem tschechischen Dichter."],
        ["Kurt Tucholsky", "Peter Panter", "Er schrieb unter mehreren Namen zugleich."],
-       ["Le Corbusier", "Charles-Édouard Jeanneret", "Der Name geht auf einen Vorfahren zurück."]]'::jsonb),
+       ["Le Corbusier", "Charles-Édouard Jeanneret", "Der Name geht auf einen Vorfahren zurück."]]'::jsonb,
+     '[["Aurore Dupin", "So hieß George Sand, die hier nicht steht."],
+       ["Erich Kästner", "Er schrieb unter eigenem Namen, deshalb fehlt er auf dem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'handschriften', 'Berühmte Handschriften',
      'Wo entstand oder liegt das Manuskript?',
@@ -270,7 +302,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Lindisfarne-Evangeliar", "Nordengland", "Auf einer Klosterinsel geschrieben."],
        ["Voynich-Manuskript", "Norditalien", "Bis heute unentzifferte Schrift mit Pflanzenbildern."],
        ["Codex Leicester", "Florenz", "Leonardos Notizbuch über Wasser und Licht."],
-       ["Wiener Genesis", "Konstantinopel", "Purpurpergament mit Silberschrift."]]'::jsonb),
+       ["Wiener Genesis", "Konstantinopel", "Purpurpergament mit Silberschrift."]]'::jsonb,
+     '[["Ägypten", "Die Papyri von Oxyrhynchos stammen von dort, sie fehlen hier."],
+       ["Island", "Die Handschriften der Edda liegen dort, sie stehen nicht auf dem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'mythen-helden', 'Helden der griechischen Sage',
      'Wofür ist die Gestalt bekannt?',
@@ -287,7 +321,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tantalus", "Ewig unerreichbare Speise", "Wasser und Früchte weichen zurück."],
        ["Narziss", "Verliebt ins Spiegelbild", "Er verging am eigenen Anblick."],
        ["Orpheus", "Gang in die Unterwelt", "Ein Blick zurück kostete ihn Eurydike."],
-       ["Ödipus", "Rätsel der Sphinx", "Die Antwort lautete: der Mensch."]]'::jsonb),
+       ["Ödipus", "Rätsel der Sphinx", "Die Antwort lautete: der Mensch."]]'::jsonb,
+     '[["Flug zu nah an der Sonne", "Das wäre Ikarus, und der fehlt auf diesem Brett."],
+       ["Blick zurück verwandelt zu Stein", "Auf keine Gestalt in dieser Liste trifft das zu."]]'::jsonb),
 
     ('kunst-kultur', 'sprachfamilien', 'Sprachen & Sprachfamilien',
      'Zu welcher Sprachfamilie gehört die Sprache?',
@@ -303,7 +339,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mandarin", "Sinotibetisch", "Verwandt mit dem Tibetischen und dem Birmanischen."],
        ["Tamil", "Dravidisch", "Im Süden Indiens gesprochen, keine indoeuropäische Sprache."],
        ["Maori", "Austronesisch", "Verwandt mit Sprachen von Hawaii bis Madagaskar."],
-       ["Baskisch", "Isolierte Sprache", "Mit keiner bekannten Sprache verwandt."]]'::jsonb),
+       ["Baskisch", "Isolierte Sprache", "Mit keiner bekannten Sprache verwandt."]]'::jsonb,
+     '[["Keltisch", "Irisch gehörte dazu, und die Sprache fehlt auf dem Brett."],
+       ["Uto-aztekisch", "Keine Sprache in dieser Liste gehört dazu."]]'::jsonb),
 
     ('kunst-kultur', 'palaeste-laender', 'Paläste & Länder',
      'In welchem Land steht der Palast?',
@@ -319,7 +357,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pena-Palast", "Portugal", "Bunter Romantikbau über Sintra."],
        ["Drottningholm", "Schweden", "Mit einem Barocktheater samt originaler Bühnentechnik."],
        ["Potala", "Tibet", "Über tausend Räume auf dem Roten Berg in Lhasa."],
-       ["Mysore-Palast", "Indien", "An Festtagen von fast hunderttausend Lampen beleuchtet."]]'::jsonb)
+       ["Mysore-Palast", "Indien", "An Festtagen von fast hunderttausend Lampen beleuchtet."]]'::jsonb,
+     '[["Japan", "Der Kaiserpalast in Tokio fehlt auf diesem Brett."],
+       ["Marokko", "Der Bahia-Palast steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -344,15 +384,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

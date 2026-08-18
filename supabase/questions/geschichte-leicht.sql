@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geschichte', 'leicht-erfinder', 'Erfinder & Erfindungen',
@@ -23,7 +23,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Levi Strauss", "Jeanshose", "Zuerst Arbeitshose für Goldgräber."],
        ["Melitta Bentz", "Kaffeefilter", "Sie benutzte Löschpapier ihres Sohnes."],
        ["Rudolf Diesel", "Dieselmotor", "Er zündet ohne Zündkerze."],
-       ["Karl Drais", "Laufrad", "Der Urahn des Fahrrads."]]'::jsonb),
+       ["Karl Drais", "Laufrad", "Der Urahn des Fahrrads."]]'::jsonb,
+     '[["Fernseher", "John Logie Baird wäre der Name dazu, und der fehlt auf dem Brett."],
+       ["Fahrrad mit Pedalen", "Auf diesem Brett steht nur das Laufrad ohne Pedale."]]'::jsonb),
 
     ('geschichte', 'leicht-beruehmte-personen', 'Berühmte Personen',
      'Wofür ist die Person bekannt?',
@@ -39,7 +41,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Marie Curie", "Zwei Nobelpreise", "Als erste Frau überhaupt ausgezeichnet."],
        ["Anne Frank", "Tagebuch im Versteck", "Es wurde in viele Sprachen übersetzt."],
        ["Neil Armstrong", "Erster Mann im Mondstaub", "1969 mit Apollo 11."],
-       ["Königin Elisabeth II.", "Längste Regentschaft Großbritanniens", "Über siebzig Jahre auf dem Thron."]]'::jsonb),
+       ["Königin Elisabeth II.", "Längste Regentschaft Großbritanniens", "Über siebzig Jahre auf dem Thron."]]'::jsonb,
+     '[["Erfinder der Relativitätstheorie", "Das wäre Albert Einstein, der hier nicht steht."],
+       ["Erste Frau im Weltall", "Walentina Tereschkowa fehlt auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'leicht-aegypten', 'Im alten Ägypten',
      'Was ist das?',
@@ -54,7 +58,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Beschreibstoff aus einer Sumpfpflanze", "Papyrus", "Vorläufer des Papiers."],
        ["Junger Pharao mit goldener Maske", "Tutanchamun", "Sein Grab war fast unberührt."],
        ["Raum tief in der Pyramide", "Grabkammer", "Dort stand der Sarkophag."],
-       ["Amulett in Form eines Käfers", "Skarabäus", "Es sollte Glück bringen."]]'::jsonb),
+       ["Amulett in Form eines Käfers", "Skarabäus", "Es sollte Glück bringen."]]'::jsonb,
+     '[["Ruderboot auf dem Nil", "Es gab sie, aber auf diesem Brett ist es keine Antwort."],
+       ["Tempel für viele Götter", "Auch die gab es, hier wird aber nicht danach gefragt."]]'::jsonb),
 
     ('geschichte', 'leicht-ritter', 'Ritter & Burg',
      'Wie heißt das?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zacken oben auf der Mauer", "Zinnen", "Dahinter konnte man sich ducken."],
        ["Gefängnis tief in der Burg", "Verlies", "Oft nur von oben zugänglich."],
        ["Langer Stab zum Angriff im Turnier", "Lanze", "Sie zersplitterte beim Treffer."],
-       ["Raum für große Feste", "Rittersaal", "Der größte Raum der Burg."]]'::jsonb),
+       ["Raum für große Feste", "Rittersaal", "Der größte Raum der Burg."]]'::jsonb,
+     '[["Waffe zum Schießen aus der Ferne", "Die Armbrust steht nicht auf diesem Brett."],
+       ["Kettenhemd unter der Kleidung", "Es fehlt in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'leicht-steinzeit', 'In der Steinzeit',
      'Was gehört dazu?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erste Tiere beim Menschen", "Haustiere", "Der Hund kam zuerst."],
        ["Anbau von Getreide", "Ackerbau", "Die Menschen wurden sesshaft."],
        ["Gefäße aus gebranntem Ton", "Keramik", "Zum Kochen und Aufbewahren."],
-       ["Große aufgestellte Steine", "Megalithen", "Stonehenge ist das bekannteste Beispiel."]]'::jsonb),
+       ["Große aufgestellte Steine", "Megalithen", "Stonehenge ist das bekannteste Beispiel."]]'::jsonb,
+     '[["Werkzeuge aus Eisen", "Eisen kam erst lange nach der Steinzeit."],
+       ["Das Rad am Wagen", "Es kam später, und auf diesem Brett steht es nicht."]]'::jsonb),
 
     ('geschichte', 'leicht-roemer', 'Bei den Römern',
      'Was ist das?',
@@ -101,7 +111,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gepflasterte Fernstraße", "Römerstraße", "Manche sind bis heute erhalten."],
        ["Marktplatz und Zentrum der Stadt", "Forum", "Hier wurde Politik gemacht."],
        ["Wagenrennbahn", "Circus", "Der Circus Maximus war der größte."],
-       ["Zahlzeichen aus Buchstaben", "Römische Zahlen", "I, V, X, L, C, D und M."]]'::jsonb),
+       ["Zahlzeichen aus Buchstaben", "Römische Zahlen", "I, V, X, L, C, D und M."]]'::jsonb,
+     '[["Mehrstöckiges Mietshaus", "Die Insula fehlt auf diesem Brett."],
+       ["Öffentliche Toilette", "Die Latrine steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'leicht-wikinger', 'Die Wikinger',
      'Was stimmt?',
@@ -115,7 +127,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Land, das sie vor Kolumbus erreichten", "Nordamerika", "Sie nannten es Vinland."],
        ["Ihre Heimat", "Skandinavien", "Dänemark, Norwegen und Schweden."],
        ["Was sie an den Helmen nicht hatten", "Hörner", "Eine Erfindung des 19. Jahrhunderts."],
-       ["Versammlung der freien Männer", "Thing", "Dort wurde Recht gesprochen."]]'::jsonb),
+       ["Versammlung der freien Männer", "Thing", "Dort wurde Recht gesprochen."]]'::jsonb,
+     '[["Ihre Hauptstadt", "Die Wikinger hatten keine, und hier steht auch keine."],
+       ["Ihre Schrift auf Papier", "Runen wurden geritzt, nicht geschrieben."]]'::jsonb),
 
     ('geschichte', 'leicht-entdecker', 'Entdecker',
      'Was hat die Person erreicht?',
@@ -129,7 +143,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Alexander von Humboldt", "Erforschte Südamerika", "Fünf Jahre unterwegs."],
        ["Edmund Hillary", "Bestieg den Mount Everest", "Gemeinsam mit Tenzing Norgay."],
        ["Juri Gagarin", "Erster Mensch im All", "Er umrundete die Erde einmal."],
-       ["Amelia Earhart", "Alleinflug über den Atlantik", "Später verschwand sie im Pazifik."]]'::jsonb),
+       ["Amelia Earhart", "Alleinflug über den Atlantik", "Später verschwand sie im Pazifik."]]'::jsonb,
+     '[["Erreichte den Nordpol", "Robert Peary wird es zugeschrieben, und der fehlt hier."],
+       ["Segelte allein um die Welt", "Das war Joshua Slocum, der nicht auf dem Brett steht."]]'::jsonb),
 
     ('geschichte', 'leicht-deutschland', 'Deutsche Geschichte',
      'Was geschah da?',
@@ -144,7 +160,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erste Bundeskanzlerin", "2005", "Angela Merkel übernahm das Amt."],
        ["Ende des Zweiten Weltkriegs", "1945", "Am 8. Mai in Europa."],
        ["Gründung der Bundesrepublik", "1949", "Das Grundgesetz trat in Kraft."],
-       ["Erste Mondlandung im Fernsehen", "1969", "Millionen sahen nachts zu."]]'::jsonb),
+       ["Erste Mondlandung im Fernsehen", "1969", "Millionen sahen nachts zu."]]'::jsonb,
+     '[["1871", "Damals wurde das Kaiserreich gegründet, das hier nicht steht."],
+       ["1919", "Die Weimarer Verfassung fällt in dieses Jahr, das auf dem Brett fehlt."]]'::jsonb),
 
     ('geschichte', 'leicht-epochen', 'Zeitalter',
      'Was ist typisch für die Epoche?',
@@ -158,7 +176,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zeitalter der Entdeckungen", "Fahrten über die Ozeane", "Neue Seewege und Kontinente."],
        ["Industrialisierung", "Fabriken und Dampfmaschinen", "Menschen zogen in die Städte."],
        ["20. Jahrhundert", "Zwei Weltkriege", "Und die Teilung der Welt danach."],
-       ["Digitales Zeitalter", "Computer und Internet", "Information wird sofort verfügbar."]]'::jsonb),
+       ["Digitales Zeitalter", "Computer und Internet", "Information wird sofort verfügbar."]]'::jsonb,
+     '[["Ritter mit Feuerwaffen", "Zu keiner Epoche in dieser Liste gehört das."],
+       ["Erste Städte aus Lehmziegeln", "Die Jungsteinzeit steht nicht auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'leicht-herrscher-titel', 'Wer regierte?',
      'Wie nennt man diese Person?',
@@ -172,7 +192,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Herrscher mit Krone und Thron", "König", "Das Amt wird meist vererbt."],
        ["Herrscher über mehrere Königreiche", "Kaiser", "Ein Rang über dem König."],
        ["Anführer eines Stammes", "Häuptling", "Oft von den Ältesten bestimmt."],
-       ["Herrscher in einem Fürstentum", "Fürst", "Etwa in Monaco und Liechtenstein."]]'::jsonb),
+       ["Herrscher in einem Fürstentum", "Fürst", "Etwa in Monaco und Liechtenstein."]]'::jsonb,
+     '[["Kalif", "Ein Herrschertitel im Islam, der auf diesem Brett fehlt."],
+       ["Großherzog", "Ein Titel, nach dem hier keine Zeile fragt."]]'::jsonb),
 
     ('geschichte', 'leicht-schule-frueher', 'Schule früher',
      'Was war das?',
@@ -186,7 +208,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sitzmöbel mit fester Bank", "Schulbank", "Tisch und Sitz waren verbunden."],
        ["Tüte voller Süßigkeiten am ersten Tag", "Schultüte", "Ein Brauch aus dem 19. Jahrhundert."],
        ["Zeugnis am Ende des Jahres", "Schulzeugnis", "Mit Noten von eins bis sechs."],
-       ["Tafel vorn für den Lehrer", "Wandtafel", "Beschrieben mit Kreide."]]'::jsonb),
+       ["Tafel vorn für den Lehrer", "Wandtafel", "Beschrieben mit Kreide."]]'::jsonb,
+     '[["Kugelrahmen zum Rechnen", "Der Abakus steht nicht auf diesem Brett."],
+       ["Landkarte an der Wand", "Sie hing dort, ist hier aber keine Antwort."]]'::jsonb),
 
     ('geschichte', 'leicht-geld-frueher', 'Geld früher',
      'Womit wurde bezahlt?',
@@ -200,7 +224,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gemeinsame Währung Europas", "Euro", "Bargeld seit 2002."],
        ["Karte statt Bargeld", "Girocard", "Früher als EC-Karte bekannt."],
        ["Geld ohne Münzen und Scheine", "Digitales Bezahlen", "Per Handy oder Uhr."],
-       ["Sehr schnelle Geldentwertung", "Inflation", "1923 kostete ein Brot Milliarden."]]'::jsonb),
+       ["Sehr schnelle Geldentwertung", "Inflation", "1923 kostete ein Brot Milliarden."]]'::jsonb,
+     '[["Gold als Deckung des Geldes", "Der Goldstandard fehlt auf diesem Brett."],
+       ["Schecks statt Bargeld", "Sie stehen nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'leicht-symbole-macht', 'Zeichen der Macht',
      'Wofür steht das?',
@@ -214,7 +240,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fahne", "Zeichen eines Landes", "Wird bei Staatsakten gehisst."],
        ["Purpurmantel", "Farbe der Herrscher", "Der Farbstoff war sehr teuer."],
        ["Ritterschlag", "Aufnahme in den Ritterstand", "Mit der flachen Klinge."],
-       ["Denkmal", "Erinnerung an eine Person", "Meist auf einem Sockel."]]'::jsonb),
+       ["Denkmal", "Erinnerung an eine Person", "Meist auf einem Sockel."]]'::jsonb,
+     '[["Orden an der Brust", "Eine Auszeichnung, aber kein Zeichen auf diesem Brett."],
+       ["Roter Teppich", "Ein Ehrenzeichen, nach dem hier niemand fragt."]]'::jsonb),
 
     ('geschichte', 'leicht-alte-bauwerke', 'Alte Bauwerke',
      'Wo steht das Bauwerk?',
@@ -228,7 +256,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Taj Mahal", "Indien", "Ein Grabmal aus weißem Marmor."],
        ["Petra", "Jordanien", "In den Fels geschlagen."],
        ["Chichén Itzá", "Mexiko", "Stufenpyramide der Maya."],
-       ["Angkor Wat", "Kambodscha", "Die größte Tempelanlage der Welt."]]'::jsonb),
+       ["Angkor Wat", "Kambodscha", "Die größte Tempelanlage der Welt."]]'::jsonb,
+     '[["Türkei", "Die Hagia Sophia stünde dort, und sie fehlt auf dem Brett."],
+       ["Irak", "Babylon lag dort, es steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'leicht-verkehr-frueher', 'Unterwegs früher',
      'Womit reiste man?',
@@ -243,7 +273,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tiere als Lasttiere durch die Wüste", "Kamelkarawane", "Wasserstellen bestimmten die Route."],
        ["Luftschiff mit starrem Gerüst", "Zeppelin", "Bis 1937 über den Atlantik."],
        ["Rad ohne Pedale zum Abstoßen", "Laufrad", "Der Anfang des Fahrrads."],
-       ["Schiff mit Schaufelrädern", "Raddampfer", "Vor allem auf Flüssen."]]'::jsonb),
+       ["Schiff mit Schaufelrädern", "Raddampfer", "Vor allem auf Flüssen."]]'::jsonb,
+     '[["Schlitten von Hunden gezogen", "Er fehlt auf diesem Brett."],
+       ["Heißluftballon", "Auch damit reiste man, hier ist es keine Antwort."]]'::jsonb),
 
     ('geschichte', 'leicht-alltag-mittelalter', 'Alltag im Mittelalter',
      'Wer oder was war das?',
@@ -257,7 +289,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Person, die Nachrichten überbrachte", "Bote", "Er ging oder ritt weite Strecken."],
        ["Große Kirche in der Stadt", "Kathedrale", "Der Bau dauerte Jahrhunderte."],
        ["Krankheit, die Europa verheerte", "Pest", "Ein Drittel der Menschen starb."],
-       ["Bad in der Stadt", "Badestube", "Sie war auch Treffpunkt."]]'::jsonb),
+       ["Bad in der Stadt", "Badestube", "Sie war auch Treffpunkt."]]'::jsonb,
+     '[["Fabrikarbeiter in der Stadt", "Fabriken gab es im Mittelalter noch nicht."],
+       ["Lehrer an einer Schule für alle", "Die gab es damals nicht, und hier steht sie nicht."]]'::jsonb),
 
     ('geschichte', 'leicht-jahreszahlen', 'Bekannte Jahreszahlen',
      'Wann war das?',
@@ -271,7 +305,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Beginn der Reformation", "1517", "Luthers Thesen in Wittenberg."],
        ["Untergang der Titanic", "1912", "Auf der Jungfernfahrt."],
        ["Erfindung des Buchdrucks", "Um 1450", "In Mainz durch Gutenberg."],
-       ["Ausbruch des Vesuvs über Pompeji", "79", "Die Stadt verschwand unter Asche."]]'::jsonb),
+       ["Ausbruch des Vesuvs über Pompeji", "79", "Die Stadt verschwand unter Asche."]]'::jsonb,
+     '[["1848", "Die Märzrevolution fällt in dieses Jahr, das hier fehlt."],
+       ["2001", "Kein Ereignis auf diesem Brett gehört dorthin."]]'::jsonb),
 
     ('geschichte', 'leicht-museum-geschichte', 'Spuren der Geschichte',
      'Was ist das?',
@@ -286,7 +322,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Alte Münze im Acker", "Münzfund", "Sie verrät oft das Alter der Fundstelle."],
        ["Bestimmung des Alters über Kohlenstoff", "Radiokarbonmethode", "Sie reicht rund 50000 Jahre zurück."],
        ["Nachbau zum Ausprobieren", "Rekonstruktion", "So versteht man alte Technik."],
-       ["Ort, an dem Funde gezeigt werden", "Museum", "Vitrinen schützen die Stücke."]]'::jsonb),
+       ["Ort, an dem Funde gezeigt werden", "Museum", "Vitrinen schützen die Stücke."]]'::jsonb,
+     '[["Gemälde in einem Rahmen", "Es hängt im Museum, ist hier aber keine Spur der Geschichte."],
+       ["Nachgemachtes Fundstück zum Verkauf", "Eine Fälschung, und die steht nicht auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'leicht-feiertage', 'Feiertage & ihre Herkunft',
      'Woran erinnert der Tag?',
@@ -300,7 +338,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ostern", "Auferstehung Jesu", "Termin richtet sich nach dem Mond."],
        ["Weihnachten", "Geburt Jesu", "Gefeiert am 25. Dezember."],
        ["Silvester", "Letzter Tag des Jahres", "Benannt nach einem Papst."],
-       ["Karneval", "Zeit vor der Fastenzeit", "In Köln beginnt er im November."]]'::jsonb)
+       ["Karneval", "Zeit vor der Fastenzeit", "In Köln beginnt er im November."]]'::jsonb,
+     '[["Christi Himmelfahrt", "Ein Feiertag, der auf diesem Brett fehlt."],
+       ["Erntedankfest", "Es erinnert an die Ernte, steht hier aber nicht."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -325,15 +365,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

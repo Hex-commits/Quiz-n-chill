@@ -1,0 +1,82 @@
+{
+  "leicht-woraus-gemacht": [
+    ["Reis", "Aus Reis wird vieles, auf diesem Brett aber nichts."],
+    ["Erdnüsse", "Erdnussbutter wäre das Beispiel, und die steht hier nicht."]
+  ],
+  "leicht-obst-farben": [
+    ["Schwarz", "Nichts auf diesem Brett ist schwarz."],
+    ["Rosa innen", "Das wäre die Wassermelone, und die fehlt hier."]
+  ],
+  "leicht-mahlzeiten": [
+    ["Brunch", "Frühstück und Mittagessen in einem, hier aber keine Antwort."],
+    ["Zweites Frühstück", "Eine Zwischenmahlzeit am Vormittag, die hier nicht steht."]
+  ],
+  "leicht-kueche-geraete": [
+    ["Toaster", "Zum Rösten von Brot, und das kommt auf dem Brett nicht vor."],
+    ["Mixer", "Zum Pürieren, wonach hier niemand fragt."]
+  ],
+  "leicht-getraenke": [
+    ["Smoothie", "Püriertes Obst, das hier nicht beschrieben wird."],
+    ["Buttermilch", "Ein Milchgetränk, das auf dem Brett fehlt."]
+  ],
+  "leicht-gerichte-laender": [
+    ["Griechenland", "Moussaka käme von dort, das Gericht fehlt hier."],
+    ["Indien", "Das Curry steht nicht auf dem Brett."]
+  ],
+  "leicht-geschmack": [
+    ["Fettig", "Ein Mundgefühl, keine Geschmacksrichtung auf diesem Brett."],
+    ["Rauchig", "Kommt vom Räuchern, hier ist es keine Antwort."]
+  ],
+  "leicht-fruehstueck-welt": [
+    ["Italien", "Cornetto und Espresso wären das, Italien fehlt hier."],
+    ["Mexiko", "Huevos rancheros stehen nicht auf dem Brett."]
+  ],
+  "leicht-suess": [
+    ["Getrocknete Früchte", "Süß, aber keine Süßware auf diesem Brett."],
+    ["Gebrannte Mandeln", "Sie stehen nicht in dieser Liste."]
+  ],
+  "leicht-tisch-decken": [
+    ["Blumen in der Vase", "Schmuck für den Tisch, aber keine Aufgabe auf dem Brett."],
+    ["Salzstreuer", "Zum Nachwürzen, und danach wird hier nicht gefragt."]
+  ],
+  "leicht-tiere-lebensmittel": [
+    ["Pute", "Der Putenbraten fehlt auf diesem Brett."],
+    ["Karpfen", "Ein Speisefisch, der hier nicht vorkommt."]
+  ],
+  "leicht-lagern": [
+    ["Im Backofen", "Für nichts auf diesem Brett ein Lagerort."],
+    ["Luftdicht im Vakuum", "Eine Methode, die zu keiner Zeile hier gehört."]
+  ],
+  "leicht-gewuerze": [
+    ["Rotkohl im Winter", "Nelken gehören dazu, und die stehen nicht auf dem Brett."],
+    ["Sauerbraten", "Wacholder passt dazu, er fehlt in dieser Liste."]
+  ],
+  "leicht-brot-baecker": [
+    ["Kuchen mit Streuseln", "Der Streuselkuchen steht nicht auf dem Brett."],
+    ["Toastbrot in Scheiben", "Es fehlt in dieser Liste."]
+  ],
+  "leicht-essen-feste": [
+    ["Zum Erntedankfest", "Ein Fest, zu dem hier nichts steht."],
+    ["Beim Einzug ins neue Haus", "Ein Anlass, der auf dem Brett nicht vorkommt."]
+  ],
+  "leicht-milchprodukte": [
+    ["Mandelmilch", "Sie wird gar nicht aus Milch gemacht."],
+    ["Sojajoghurt", "Auch er kommt ohne Milch aus."]
+  ],
+  "leicht-restaurant": [
+    ["Garderobe", "Für die Mäntel, aber keine Zeile auf diesem Brett."],
+    ["Weinkarte", "Eine eigene Liste nur für Getränke, hier nicht gefragt."]
+  ],
+  "leicht-gesunde-ernaehrung": [
+    ["Acht Stunden Schlaf", "Gesund, aber auf diesem Brett keine Frage des Essens."],
+    ["Täglich ein Glas Saft", "Als Empfehlung steht das hier nicht."]
+  ],
+  "leicht-kochbegriffe": [
+    ["Mit Alkohol abbrennen", "Das ist Flambieren, es steht nicht auf dem Brett."],
+    ["Im Wasserbad schmelzen", "Eine Anweisung, die hier fehlt."]
+  ],
+  "leicht-eis-sorten": [
+    ["Kaffee", "Kaffee-Eis gibt es, auf diesem Brett steht es nicht."],
+    ["Malaga mit Rosinen", "Diese Sorte fehlt in der Liste."]
+  ]
+}

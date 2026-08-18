@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('geschichte', 'archaeologische-raetsel', 'Rätsel der Archäologie',
@@ -18,7 +18,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sutton Hoo", "England", "Ein ganzes Schiff diente als Grab."],
        ["Sanxingdui", "China", "Bronzemasken einer bis dahin unbekannten Kultur."],
        ["Cahokia", "USA", "Erdpyramiden einer Großstadt am Mississippi."],
-       ["Nebra", "Sachsen-Anhalt", "Die Himmelsscheibe zeigt Sonne, Mond und Sterne."]]'::jsonb),
+       ["Nebra", "Sachsen-Anhalt", "Die Himmelsscheibe zeigt Sonne, Mond und Sterne."]]'::jsonb,
+     '[["Ägypten", "Die Sphinx läge dort, und sie fehlt auf diesem Brett."],
+       ["Mexiko", "Teotihuacán steht nicht in dieser Liste."]]'::jsonb),
 
     ('geschichte', 'verschollenes', 'Verschollene Dinge & Menschen',
      'Wo verliert sich die Spur?',
@@ -32,7 +34,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Neuntes Adlerbanner Roms", "Britannien", "Die Legende von der verlorenen Legion."],
        ["Peking-Mensch", "Schanghai", "Die Fossilien gingen 1941 im Kriegsgewirr verloren."],
        ["Schatz der Nibelungen", "Rhein", "Der Sage nach im Fluss versenkt."],
-       ["Percy Fawcett", "Mato Grosso", "Suchte eine Stadt, die er Z nannte."]]'::jsonb),
+       ["Percy Fawcett", "Mato Grosso", "Suchte eine Stadt, die er Z nannte."]]'::jsonb,
+     '[["Bermudadreieck", "Kein Fall auf diesem Brett verliert sich dort."],
+       ["Anden", "Kein Vermisster in dieser Liste verschwand im Hochgebirge."]]'::jsonb),
 
     ('geschichte', 'geschichtsmythen', 'Hartnäckige Geschichtsmythen',
      'Was ist daran falsch?',
@@ -47,7 +51,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gladiatoren starben fast immer", "Zu teuer ausgebildet", "Die meisten Kämpfe endeten ohne Tod."],
        ["Kolumbus wollte die Kugelgestalt beweisen", "Die war längst bekannt", "Umstritten war nur der Umfang der Erde."],
        ["Nero spielte Geige beim Brand", "Geigen gab es nicht", "Er war zudem nicht in der Stadt."],
-       ["Die Große Mauer ist vom Mond sichtbar", "Viel zu schmal", "Schon aus der Erdumlaufbahn kaum zu erkennen."]]'::jsonb),
+       ["Die Große Mauer ist vom Mond sichtbar", "Viel zu schmal", "Schon aus der Erdumlaufbahn kaum zu erkennen."]]'::jsonb,
+     '[["Es stimmt genau so", "Kein Satz auf diesem Brett ist wahr, das ist der Punkt."],
+       ["Von der Kirche verboten", "Auf keinen der Irrtümer hier trifft das zu."]]'::jsonb),
 
     ('geschichte', 'kuriose-steuern', 'Kuriose Steuern der Geschichte',
      'Wo wurde diese Steuer erhoben?',
@@ -61,7 +67,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ziegelsteuer", "Irland", "Man baute daraufhin größere Ziegel."],
        ["Kaminsteuer", "Schottland", "Erhoben nach der Zahl der Feuerstellen."],
        ["Junggesellensteuer", "Italien", "In den 1920er Jahren zur Förderung von Geburten."],
-       ["Schaumweinsteuer", "Deutsches Reich", "Sollte die Kriegsflotte finanzieren, gilt bis heute."]]'::jsonb),
+       ["Schaumweinsteuer", "Deutsches Reich", "Sollte die Kriegsflotte finanzieren, gilt bis heute."]]'::jsonb,
+     '[["Niederlande", "Die Steuer nach Hausbreite wurde dort erhoben, sie fehlt hier."],
+       ["Japan", "Keine Steuer auf diesem Brett wurde dort eingezogen."]]'::jsonb),
 
     ('geschichte', 'aufstaende-anfuehrer', 'Aufstände & ihre Anführer',
      'Wer führte den Aufstand an?',
@@ -75,7 +83,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Haitianische Revolution", "Toussaint Louverture", "Erster erfolgreicher Sklavenaufstand der Neuzeit."],
        ["Sklavenaufstand in Virginia", "Nat Turner", "Führte zu drastischen Verschärfungen der Gesetze."],
        ["Mexikanische Revolution", "Emiliano Zapata", "Land und Freiheit als Losung."],
-       ["Kubanische Guerilla", "Che Guevara", "Aus Argentinien, Arzt von Beruf."]]'::jsonb),
+       ["Kubanische Guerilla", "Che Guevara", "Aus Argentinien, Arzt von Beruf."]]'::jsonb,
+     '[["Pugatschow", "Er führte den Aufstand in Russland an, der hier fehlt."],
+       ["Simón Bolívar", "Er führte Unabhängigkeitskriege, keinen Aufstand auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'beruehmte-prozesse', 'Berühmte Prozesse',
      'Wo fand der Prozess statt?',
@@ -90,7 +100,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rivonia-Prozess", "Südafrika", "Nelson Mandela hielt seine berühmteste Rede."],
        ["Eichmann-Prozess", "Jerusalem", "Erstmals sagten viele Überlebende öffentlich aus."],
        ["Prozess gegen Thomas Morus", "London", "Er verweigerte den Eid auf den König als Kirchenoberhaupt."],
-       ["Reichstagsbrandprozess", "Leipzig", "Der Hauptangeklagte wurde freigesprochen."]]'::jsonb),
+       ["Reichstagsbrandprozess", "Leipzig", "Der Hauptangeklagte wurde freigesprochen."]]'::jsonb,
+     '[["Nürnberg", "Die Kriegsverbrecherprozesse fanden dort statt, sie fehlen hier."],
+       ["Den Haag", "Kein Prozess in dieser Liste wurde dort geführt."]]'::jsonb),
 
     ('geschichte', 'kalendersysteme', 'Kalender & ihr Ausgangspunkt',
      'Womit beginnt die Zählung?',
@@ -104,7 +116,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Maya-Kalender", "Lange Zählung", "Das Ende eines Zyklus fiel auf 2012."],
        ["Äthiopischer Kalender", "Abweichendes Christusjahr", "Er liegt rund sieben Jahre zurück."],
        ["Japanische Ärenrechnung", "Regierungsantritt des Kaisers", "Mit jedem Kaiser beginnt eine neue Ära."],
-       ["Buddhistischer Kalender", "Tod des Buddha", "In Thailand amtlich in Gebrauch."]]'::jsonb),
+       ["Buddhistischer Kalender", "Tod des Buddha", "In Thailand amtlich in Gebrauch."]]'::jsonb,
+     '[["Gründung Roms", "Die römische Zählung ab urbe condita fehlt auf diesem Brett."],
+       ["Beginn der Zeitrechnung mit dem Tod Caesars", "So hat nie jemand gezählt."]]'::jsonb),
 
     ('geschichte', 'nachrichtenwege', 'Nachrichten vor dem Telefon',
      'Wie wurden Nachrichten übermittelt?',
@@ -119,7 +133,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Flaschenpost", "Botschaft mit der Meeresströmung", "Auch zur Erforschung von Strömungen genutzt."],
        ["Postkutsche", "Feste Route mit Pferdewechsel", "Stationen im Abstand einer Tagesetappe."],
        ["Kerbholz", "Eingeritzte Zeichen als Beleg", "Daher stammt die Redensart vom Kerbholz."],
-       ["Feuerkette", "Signalfeuer auf Bergen", "Warnte vor herannahenden Schiffen."]]'::jsonb),
+       ["Feuerkette", "Signalfeuer auf Bergen", "Warnte vor herannahenden Schiffen."]]'::jsonb,
+     '[["Schrift auf Tontafeln", "Ein Schriftträger, aber kein Übermittlungsweg auf dem Brett."],
+       ["Funkspruch über Antennen", "Das kam erst nach dem Telefon."]]'::jsonb),
 
     ('geschichte', 'zufallserfindungen', 'Erfindungen aus Versehen',
      'Wie kam es zu der Entdeckung?',
@@ -134,7 +150,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Coca-Cola", "Als Medizin gemischt", "Sollte gegen Kopfschmerzen helfen."],
        ["Sekundenkleber", "Unbrauchbar klebrig", "Gesucht war ein durchsichtiges Zielfernrohr."],
        ["Kaugummi", "Ersatzstoff für Kautschuk", "Der Chicle klebte nicht, aber ließ sich kauen."],
-       ["Sildenafil", "Nebenwirkung im Herztest", "Die Probanden wollten die Tabletten behalten."]]'::jsonb),
+       ["Sildenafil", "Nebenwirkung im Herztest", "Die Probanden wollten die Tabletten behalten."]]'::jsonb,
+     '[["Vergessene Bakterienkultur", "So fand Fleming das Penicillin, das hier fehlt."],
+       ["Jahrelang gezielt entwickelt", "Auf keine Erfindung in dieser Liste trifft das zu."]]'::jsonb),
 
     ('geschichte', 'waehrungsreformen', 'Währungsreformen',
      'Wann geschah das?',
@@ -149,7 +167,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Euro-Bargeld", "2002", "Zwölf Länder tauschten gleichzeitig."],
        ["Redenominierung der türkischen Lira", "2005", "Sechs Nullen fielen weg."],
        ["Einführung des Bitcoin", "2009", "Erste dezentrale Währung ohne Zentralbank."],
-       ["Dezimalisierung des britischen Pfunds", "1971 in London", "240 Pence wurden zu hundert."]]'::jsonb),
+       ["Dezimalisierung des britischen Pfunds", "1971 in London", "240 Pence wurden zu hundert."]]'::jsonb,
+     '[["1922", "Die Sowjetunion wertete damals ab, das steht nicht auf dem Brett."],
+       ["2015", "Die Schweiz gab den Euro-Mindestkurs auf, hier fehlt das Ereignis."]]'::jsonb),
 
     ('geschichte', 'abolition', 'Das Ende der Sklaverei',
      'Wo wurde das beschlossen?',
@@ -163,7 +183,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Goldenes Gesetz 1888", "Brasilien", "Das letzte Land Amerikas, das sie abschaffte."],
        ["Abschaffung 1962", "Saudi-Arabien", "Auf internationalen Druck hin."],
        ["Verbot 1981", "Mauretanien", "Strafbar wurde es erst 2007."],
-       ["Sklavereiverbot in der Menschenrechtserklärung", "Vereinte Nationen", "1948 in Artikel vier festgehalten."]]'::jsonb),
+       ["Sklavereiverbot in der Menschenrechtserklärung", "Vereinte Nationen", "1948 in Artikel vier festgehalten."]]'::jsonb,
+     '[["Dänemark", "Es verbot den Handel schon 1803, das steht nicht auf dem Brett."],
+       ["Portugal", "Auch dort endete die Sklaverei, hier ist sie keine Antwort."]]'::jsonb),
 
     ('geschichte', 'antiker-alltag', 'Alltag im Römischen Reich',
      'Was war das?',
@@ -178,7 +200,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Circus", "Bahn für Wagenrennen", "Der Circus Maximus fasste über 150000 Zuschauer."],
        ["Amphitheater", "Ovale Arena für Kämpfe", "Anders als das halbrunde Theater."],
        ["Latrine", "Gemeinschaftstoilette", "Man saß nebeneinander und unterhielt sich."],
-       ["Cloaca Maxima", "Große Abwasserleitung", "Sie entwässerte das Forum, teils bis heute."]]'::jsonb),
+       ["Cloaca Maxima", "Große Abwasserleitung", "Sie entwässerte das Forum, teils bis heute."]]'::jsonb,
+     '[["Wohnturm für eine Familie", "So baute man in Italien erst im Mittelalter."],
+       ["Halle für Gerichtsverhandlungen", "Die Basilika fehlt auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'geschichte-des-geldes', 'Die Geschichte des Geldes',
      'Wo oder wann war das im Gebrauch?',
@@ -192,7 +216,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Goldstandard", "19. Jahrhundert", "Währungen waren an eine feste Goldmenge gebunden."],
        ["Erste Kreditkarte", "New York", "Angeblich nach einem vergessenen Portemonnaie erdacht."],
        ["Ende der Goldbindung des Dollars", "1971", "Seitdem sind Währungen reines Vertrauensgeld."],
-       ["Erste Kryptowährung", "Bitcoin", "2009 gestartet, ohne Notenbank dahinter."]]'::jsonb),
+       ["Erste Kryptowährung", "Bitcoin", "2009 gestartet, ohne Notenbank dahinter."]]'::jsonb,
+     '[["Salzbarren in Äthiopien", "Auch eine Währung, aber keine auf diesem Brett."],
+       ["Erste Geldautomaten", "London bekam sie 1967, hier stehen sie nicht."]]'::jsonb),
 
     ('geschichte', 'ddr-alltag', 'Wörter aus der DDR',
      'Was bedeutete das Wort?',
@@ -209,7 +235,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schwalbe", "Moped aus Suhl", "Kultfahrzeug für Jugendliche."],
        ["Kaufhalle", "Selbstbedienungsladen", "Das Wort Supermarkt war unüblich."],
        ["Feierabendheim", "Altenheim", "Amtliche Bezeichnung im Osten."],
-       ["Kollektiv", "Arbeitsgruppe im Betrieb", "Auch für Auszeichnungen die maßgebliche Einheit."]]'::jsonb),
+       ["Kollektiv", "Arbeitsgruppe im Betrieb", "Auch für Auszeichnungen die maßgebliche Einheit."]]'::jsonb,
+     '[["Bausparvertrag", "Ein westdeutsches Wort, das in dieser Liste nichts bedeutet."],
+       ["Rennpappe", "Ein Spottname für den Trabant, gefragt ist hier der Wagen selbst."]]'::jsonb),
 
     ('geschichte', 'historische-verkehrsmittel', 'Verkehrsmittel der Vergangenheit',
      'Was kennzeichnet es?',
@@ -224,7 +252,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zeppelin", "Starres Luftschiff mit Traggas", "Transatlantikverkehr bis 1937."],
        ["Ozeandampfer", "Linienschiff für Auswanderer", "Wochenlange Passagen in Klassen getrennt."],
        ["Rikscha", "Von einem Menschen gezogen", "In Asien im 19. Jahrhundert verbreitet."],
-       ["Kamelkarawane", "Lasttiere durch die Wüste", "Wasserstellen bestimmten die Route."]]'::jsonb),
+       ["Kamelkarawane", "Lasttiere durch die Wüste", "Wasserstellen bestimmten die Route."]]'::jsonb,
+     '[["Von einem Segel über Land gezogen", "So fuhr nichts in dieser Liste."],
+       ["Mit Dampf über Schienen", "Die Dampflok fehlt auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'historische-buendnisse', 'Historische Bündnisse',
      'Wer schloss sich zusammen?',
@@ -238,7 +268,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Dreibund", "Deutschland, Österreich und Italien", "Italien wechselte im Krieg die Seite."],
        ["Entente cordiale", "Frankreich und Großbritannien", "Beilegung kolonialer Streitpunkte."],
        ["Warschauer Pakt", "Sowjetunion und Ostblock", "1991 aufgelöst."],
-       ["Europäische Gemeinschaft für Kohle und Stahl", "Sechs Gründerstaaten", "Der erste Schritt zur EU."]]'::jsonb),
+       ["Europäische Gemeinschaft für Kohle und Stahl", "Sechs Gründerstaaten", "Der erste Schritt zur EU."]]'::jsonb,
+     '[["Die Eidgenossenschaft der Urkantone", "Ein Bündnis, das hier nicht steht."],
+       ["Vereinte Nationen", "Sie sind kein Bündnis auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'historische-mode', 'Mode & ihre Zeit',
      'In welche Zeit gehört das Kleidungsstück?',
@@ -254,7 +286,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["New Look", "1947", "Betonte Taille nach den Jahren des Mangels."],
        ["Minirock", "1960er Jahre", "In London zum Sinnbild einer Generation geworden."],
        ["Schlaghose", "1970er Jahre", "Unten weit ausgestellt."],
-       ["Schulterpolster", "1980er Jahre", "Die Silhouette wurde eckig."]]'::jsonb),
+       ["Schulterpolster", "1980er Jahre", "Die Silhouette wurde eckig."]]'::jsonb,
+     '[["Mittlere Bronzezeit", "Kein Kleidungsstück in dieser Liste gehört dorthin."],
+       ["Um 1900", "Die Wespentaille wäre das, und sie fehlt auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'alte-masseinheiten', 'Alte Maßeinheiten',
      'Woher stammt das Maß?',
@@ -271,7 +305,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Faden", "Ausgebreitete Armspanne beim Loten", "Für Wassertiefen genutzt."],
        ["Rute", "Länge einer Messlatte", "Grundmaß der Feldvermessung."],
        ["Unze", "Zwölftel eines Pfunds", "Der Name bedeutet Zwölftel."],
-       ["Pferdestärke", "Leistung eines Zugpferds", "Von James Watt zum Vergleich eingeführt."]]'::jsonb),
+       ["Pferdestärke", "Leistung eines Zugpferds", "Von James Watt zum Vergleich eingeführt."]]'::jsonb,
+     '[["Gewicht eines Wassertropfens", "So ist kein Maß in dieser Liste entstanden."],
+       ["Abstand zweier Wagenräder", "Auf kein Maß auf diesem Brett trifft das zu."]]'::jsonb),
 
     ('geschichte', 'stadtgruendungen', 'Städte & ihre Gründung',
      'Wann wurde die Stadt gegründet?',
@@ -287,7 +323,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sankt Petersburg", "1703", "Auf Sumpfland an der Ostsee erbaut."],
        ["Washington", "1790", "Auf neutralem Boden zwischen den Staaten."],
        ["Canberra", "1913", "Als Kompromiss zwischen zwei Rivalinnen geplant."],
-       ["Brasília", "1960", "In nur vier Jahren aus dem Boden gestampft."]]'::jsonb),
+       ["Brasília", "1960", "In nur vier Jahren aus dem Boden gestampft."]]'::jsonb,
+     '[["1703 im Winter", "Sankt Petersburg wurde im Mai gegründet, nicht im Winter."],
+       ["1867", "Kein Ort auf diesem Brett wurde in dem Jahr gegründet."]]'::jsonb),
 
     ('geschichte', 'hofaemter', 'Ämter bei Hofe',
      'Wofür war das Hofamt zuständig?',
@@ -303,7 +341,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Leibarzt", "Gesundheit des Herrschers", "Oft der einzige Gelehrte in seiner Nähe."],
        ["Falkner", "Betreuung der Jagdvögel", "Die Beizjagd war ein Vorrecht des Adels."],
        ["Hofastronom", "Deutung der Gestirne", "Kepler stand in solchen Diensten."],
-       ["Kapellmeister", "Musik am Hof", "Bach und Haydn hatten dieses Amt."]]'::jsonb)
+       ["Kapellmeister", "Musik am Hof", "Bach und Haydn hatten dieses Amt."]]'::jsonb,
+     '[["Bau und Erhalt der Schlösser", "Der Hofbaumeister fehlt auf diesem Brett."],
+       ["Erziehung der Kinder", "Der Hofmeister steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -328,15 +368,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

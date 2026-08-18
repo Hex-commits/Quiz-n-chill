@@ -1,0 +1,82 @@
+{
+  "leicht-baelle": [
+    ["Bowling", "Die Kugel dafür fehlt auf diesem Brett."],
+    ["Billard", "Die Kugeln stehen nicht in dieser Liste."]
+  ],
+  "leicht-sportarten-orte": [
+    ["In der Wüste", "Keine Sportart auf diesem Brett findet dort statt."],
+    ["Auf dem Dach", "Auch dort spielt in dieser Liste niemand."]
+  ],
+  "leicht-ausruestung": [
+    ["Zum Schutz der Hände beim Klettern", "Das Magnesia fehlt auf diesem Brett."],
+    ["Damit der Ball besser rollt", "Kein Ausrüstungsstück in dieser Liste tut das."]
+  ],
+  "leicht-regeln": [
+    ["Der Ball ist im Tor", "Das Tor ist keine Regel auf diesem Brett."],
+    ["Ein Spieler kommt neu ins Spiel", "Die Auswechslung steht nicht in dieser Liste."]
+  ],
+  "leicht-olympia": [
+    ["Das Maskottchen der Spiele", "Es gehört dazu, fehlt aber auf diesem Brett."],
+    ["Alle zwei Jahre", "Zwischen Sommer- und Winterspielen, gefragt ist hier ein anderer Abstand."]
+  ],
+  "leicht-fussball": [
+    ["Spieler, der im Mittelfeld verteilt", "Der Mittelfeldspieler fehlt auf diesem Brett."],
+    ["Der Platzwart, der den Rasen pflegt", "Er steht nicht in dieser Liste."]
+  ],
+  "leicht-schwimmen": [
+    ["Schwimmen ohne Arme, nur mit Brett", "Das Beinschlagtraining fehlt auf diesem Brett."],
+    ["Der Sprung mit Anlauf vom Turm", "Der Turmsprung steht nicht in dieser Liste."]
+  ],
+  "leicht-wintersport": [
+    ["Zu zweit rücklings auf dem Schlitten", "Der Doppelsitzer-Rodler fehlt auf diesem Brett."],
+    ["Mit Schneeschuhen durch den Tiefschnee", "Das steht nicht in dieser Liste."]
+  ],
+  "leicht-sportarten-erkennen": [
+    ["Einen Diskus möglichst weit werfen", "Der Diskuswurf fehlt auf diesem Brett."],
+    ["Auf dem Trampolin hoch springen", "Es steht nicht in dieser Liste."]
+  ],
+  "leicht-koerper-sport": [
+    ["Beim Sitzen auf der Bank", "Dabei passiert nichts, wonach dieses Brett fragt."],
+    ["Wenn man vor dem Sport viel isst", "Das kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-mannschaft-zahl": [
+    ["10", "Keine Sportart auf diesem Brett spielt mit so vielen auf dem Feld."],
+    ["12", "Auch diese Zahl passt zu keiner Zeile hier."]
+  ],
+  "leicht-turnier": [
+    ["Die Auslosung vor dem Turnier", "Sie gehört dazu, steht aber nicht auf diesem Brett."],
+    ["Das Spiel, das ausfällt", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-tiere-sport": [
+    ["Elefant", "Kein Sport auf diesem Brett wird mit ihm betrieben."],
+    ["Stier", "Der Stierkampf ist kein Sport in dieser Liste."]
+  ],
+  "leicht-sport-woerter": [
+    ["Absteiger", "Der Weg nach unten fehlt auf diesem Brett, nur der Aufstieg steht da."],
+    ["Sponsor", "Der Geldgeber kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-laufen": [
+    ["Über 800 Meter laufen", "Die Mittelstrecke fehlt auf diesem Brett."],
+    ["Eine Kugel möglichst weit stoßen", "Das Kugelstoßen steht nicht in dieser Liste."]
+  ],
+  "leicht-sport-zuhause": [
+    ["Ein Boot mit Motor", "Es braucht keine Sportart auf diesem Brett."],
+    ["Eine ganze Turnhalle", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-sportler-laender": [
+    ["Brasilien", "Pelé käme von dort, und der fehlt auf diesem Brett."],
+    ["Norwegen", "Kein Name in dieser Liste stammt von dort."]
+  ],
+  "leicht-vereine": [
+    ["Liverpool", "Der FC Liverpool spielt dort, und der fehlt auf diesem Brett."],
+    ["Mailand", "Weder Inter noch Milan stehen in dieser Liste."]
+  ],
+  "leicht-sport-jahreszeiten": [
+    ["Im Februar", "Kein Ereignis auf diesem Brett fällt allein in diesen Monat."],
+    ["Das ganze Jahr über", "Für keine Zeile in dieser Liste ist das die Antwort."]
+  ],
+  "leicht-fairness": [
+    ["Den Schiedsrichter anschreien", "Das ist das Gegenteil von fair."],
+    ["Absichtlich foulen, um Zeit zu gewinnen", "Auch das gehört nicht zum fairen Sport."]
+  ]
+}

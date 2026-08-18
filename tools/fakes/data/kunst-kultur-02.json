@@ -1,0 +1,82 @@
+{
+  "nordische-mythologie": [
+    ["Gott der Dichtkunst", "Das wäre Bragi, und der fehlt auf diesem Brett."],
+    ["Reich der Riesen", "Jotunheim steht nicht in dieser Liste."]
+  ],
+  "kirchen-staedte": [
+    ["Florenz", "Der Dom Santa Maria del Fiore stünde dort, er fehlt auf dem Brett."],
+    ["Jerusalem", "Die Grabeskirche steht nicht in dieser Liste."]
+  ],
+  "romanfiguren-werke": [
+    ["Der Steppenwolf", "Harry Haller stammt daher, und die Figur fehlt auf dem Brett."],
+    ["Krieg und Frieden", "Pierre Besuchow käme von dort, der Roman steht hier nicht."]
+  ],
+  "schriftarten": [
+    ["Nur Großbuchstaben ohne Kleinbuchstaben", "Auf keine Schrift in dieser Liste trifft das zu."],
+    ["Eigens für Bildschirme entworfen", "Verdana wäre das, und die fehlt auf dem Brett."]
+  ],
+  "kulturfeste-laender": [
+    ["China", "Das Frühlingsfest würde dorthin gehören, und es fehlt auf dem Brett."],
+    ["Schottland", "Hogmanay steht nicht in dieser Liste."]
+  ],
+  "kuenstler-stilrichtungen": [
+    ["Bauhaus", "Eine Schule und ein Stil, aber keiner Person auf dem Brett zugeordnet."],
+    ["Futurismus", "Marinetti stünde dafür, und der fehlt in dieser Liste."]
+  ],
+  "antike-autoren-werke": [
+    ["Odyssee", "Auch von Homer, doch auf dem Brett steht seine Ilias."],
+    ["Die Bekenntnisse", "Von Augustinus, und der fehlt in dieser Liste."]
+  ],
+  "pigmente-herkunft": [
+    ["Gemahlene Perlmuscheln", "Aus ihnen entsteht kein Pigment auf diesem Brett."],
+    ["Safranfäden", "Sie färben Speisen, sind hier aber keine Antwort."]
+  ],
+  "designklassiker": [
+    ["Arne Jacobsen", "Der Ameisenstuhl stammt von ihm, und der fehlt auf dem Brett."],
+    ["Alvar Aalto", "Der Hocker 60 steht nicht in dieser Liste."]
+  ],
+  "gaerten-parks": [
+    ["Wien", "Der Schlosspark Schönbrunn läge dort, er fehlt auf dem Brett."],
+    ["Suzhou", "Die Gelehrtengärten stehen nicht in dieser Liste."]
+  ],
+  "kleidung-laender": [
+    ["Griechenland", "Die Fustanella käme von dort, und sie fehlt auf dem Brett."],
+    ["Peru", "Der Chullo steht nicht in dieser Liste."]
+  ],
+  "heilige-buecher": [
+    ["Jainismus", "Die Agamas gehören dorthin, und sie fehlen auf dem Brett."],
+    ["Manichäismus", "Keine Schrift in dieser Liste gehört dazu."]
+  ],
+  "fotografen": [
+    ["Nan Goldin", "Ihre Bilder aus dem eigenen Umfeld fehlen auf diesem Brett."],
+    ["Erste Farbfotografie überhaupt", "Sie geht auf Maxwell zurück, der hier nicht steht."]
+  ],
+  "kunstbegriffe": [
+    ["Fälschung mit falscher Signatur", "Die Fälschung ist kein Begriff auf diesem Brett."],
+    ["Katalog zur Ausstellung", "Er steht nicht in dieser Liste."]
+  ],
+  "opernhaeuser-staedte": [
+    ["Sydney", "Das Opernhaus dort fehlt auf diesem Brett."],
+    ["Prag", "Das Ständetheater steht nicht in dieser Liste."]
+  ],
+  "pseudonyme": [
+    ["Aurore Dupin", "So hieß George Sand, die hier nicht steht."],
+    ["Erich Kästner", "Er schrieb unter eigenem Namen, deshalb fehlt er auf dem Brett."]
+  ],
+  "handschriften": [
+    ["Ägypten", "Die Papyri von Oxyrhynchos stammen von dort, sie fehlen hier."],
+    ["Island", "Die Handschriften der Edda liegen dort, sie stehen nicht auf dem Brett."]
+  ],
+  "mythen-helden": [
+    ["Flug zu nah an der Sonne", "Das wäre Ikarus, und der fehlt auf diesem Brett."],
+    ["Blick zurück verwandelt zu Stein", "Auf keine Gestalt in dieser Liste trifft das zu."]
+  ],
+  "sprachfamilien": [
+    ["Keltisch", "Irisch gehörte dazu, und die Sprache fehlt auf dem Brett."],
+    ["Uto-aztekisch", "Keine Sprache in dieser Liste gehört dazu."]
+  ],
+  "palaeste-laender": [
+    ["Japan", "Der Kaiserpalast in Tokio fehlt auf diesem Brett."],
+    ["Marokko", "Der Bahia-Palast steht nicht in dieser Liste."]
+  ]
+}

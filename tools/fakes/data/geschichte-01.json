@@ -1,0 +1,82 @@
+{
+  "antike-staetten-laender": [
+    ["Jordanien", "Petra läge dort, und die Stätte fehlt auf dem Brett."],
+    ["Peru", "Machu Picchu steht nicht in dieser Liste."]
+  ],
+  "vertraege-jahre": [
+    ["1815 im Herbst", "Der Wiener Kongress endete im Juni, nicht später im Jahr."],
+    ["1928", "Der Briand-Kellogg-Pakt wurde damals geschlossen, er fehlt auf dem Brett."]
+  ],
+  "entdecker-leistungen": [
+    ["Nordwestpassage zu Fuß", "Sie wurde erfahren, nicht erlaufen."],
+    ["Quelle des Nils", "John Hanning Speke wird sie zugeschrieben, und der fehlt hier."]
+  ],
+  "revolutionen-jahre": [
+    ["1830", "Die Julirevolution begann damals, sie steht nicht auf dem Brett."],
+    ["2011", "Der Arabische Frühling fällt in dieses Jahr, das hier fehlt."]
+  ],
+  "roemische-kaiser": [
+    ["Bau der Hagia Sophia", "Das war Justinian, ein oströmischer Kaiser, der hier fehlt."],
+    ["Teilung des Reiches unter vier Söhne", "So ist es keinem Kaiser auf diesem Brett zuzuordnen."]
+  ],
+  "pharaonen": [
+    ["Bau des Suezkanals der Antike", "Necho II. begann ihn, und der steht nicht auf dem Brett."],
+    ["Erste Pyramide aus Ziegeln", "So etwas gehört zu keinem Namen in dieser Liste."]
+  ],
+  "herrscherbeinamen": [
+    ["die Große", "Katharina II. trug ihn, und sie fehlt auf dem Brett."],
+    ["der Bekenner", "Eduard von England hieß so, und der steht nicht in dieser Liste."]
+  ],
+  "reiche-hauptstaedte": [
+    ["Xi'an", "Von dort regierten die Tang, und deren Reich fehlt auf dem Brett."],
+    ["Kyoto", "Der Kaisersitz Japans, und das Reich steht nicht in dieser Liste."]
+  ],
+  "deutsche-geschichte-orte": [
+    ["Worms", "Der Reichstag mit Luther fand dort statt, er fehlt auf dem Brett."],
+    ["Bonn", "Das Grundgesetz entstand dort, und das steht nicht in dieser Liste."]
+  ],
+  "schlachten-kriege": [
+    ["Krimkrieg", "Sewastopol gehörte dazu, und die Schlacht fehlt auf dem Brett."],
+    ["Spanischer Bürgerkrieg", "Guernica gehörte dazu, es steht nicht in dieser Liste."]
+  ],
+  "herrscherhaeuser-laender": [
+    ["Spanien", "Die Trastámara herrschten dort, und das Haus fehlt auf dem Brett."],
+    ["Dänemark", "Das Haus Oldenburg steht nicht in dieser Liste."]
+  ],
+  "schiffe-fahrten": [
+    ["Erste Nordpolfahrt unter Eis", "Das gelang der Nautilus, die hier nicht steht."],
+    ["Ferdinand Magellan selbst", "Er starb unterwegs; sein Schiff vollendete die Fahrt ohne ihn."]
+  ],
+  "erfindungen-kulturen": [
+    ["Azteken", "Keine Erfindung auf diesem Brett stammt von ihnen."],
+    ["Griechen der Antike", "Sie erfanden vieles, gefragt ist hier aber die Volksversammlung Athens."]
+  ],
+  "unabhaengigkeit-fuehrer": [
+    ["Simón Bolívar für Kolumbien", "Er steht hier für Venezuela, nicht für ein zweites Land."],
+    ["Josip Broz Tito", "Er führte Jugoslawien, und das fehlt auf dem Brett."]
+  ],
+  "burgen-schloesser-laender": [
+    ["Portugal", "Der Palast von Pena stünde dort, er fehlt auf dem Brett."],
+    ["Ungarn", "Die Budaer Burg steht nicht in dieser Liste."]
+  ],
+  "kolonien-kolonialmaechte": [
+    ["Osmanisches Reich", "Kein Gebiet auf diesem Brett war ihm unterstellt."],
+    ["Schweden", "Neuschweden in Amerika war schwedisch, es fehlt in dieser Liste."]
+  ],
+  "roemische-provinzen": [
+    ["Griechenland", "Achaea deckte es ab, und die Provinz fehlt auf dem Brett."],
+    ["Schweiz", "Raetia reichte dorthin, sie steht nicht in dieser Liste."]
+  ],
+  "historische-dokumente": [
+    ["Polen", "Die Verfassung vom 3. Mai 1791 entstand dort, sie fehlt auf dem Brett."],
+    ["Sowjetunion", "Kein Dokument in dieser Liste entstand dort."]
+  ],
+  "weltausstellungen-bauten": [
+    ["Wien 1873", "Die Rotunde entstand dafür, und sie fehlt auf dem Brett."],
+    ["Hannover 2000", "Kein Bau in dieser Liste stammt von dort."]
+  ],
+  "antike-gesetzgeber-staaten": [
+    ["Theben", "Keine Person auf diesem Brett wirkte dort."],
+    ["Syrakus", "Archimedes lebte dort, und der steht nicht in dieser Liste."]
+  ]
+}

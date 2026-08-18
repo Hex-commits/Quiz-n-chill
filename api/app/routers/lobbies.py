@@ -74,7 +74,11 @@ def start_game(code: str, payload: LobbyStart) -> LobbyView:
 @router.post("/{code}/turns", response_model=LobbyView)
 def submit_turn(code: str, payload: TurnSubmit) -> LobbyView:
     """Place one item and pass the turn on. A wrong placement also puts the
-    player out for the rest of the round."""
+    player out for the rest of the round.
+
+    A null `category_id` is the move that says the item is a fake, and is
+    graded like any other -- right if it was, out for the round if it was not.
+    """
     return service.submit_turn(code, payload.player_id, payload.item_id, payload.category_id)
 
 

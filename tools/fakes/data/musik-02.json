@@ -1,0 +1,82 @@
+{
+  "komponisten-laender": [
+    ["Österreich", "Mozart und Schubert stammten von dort, beide fehlen auf dem Brett."],
+    ["Griechenland", "Mikis Theodorakis käme von dort, und der steht hier nicht."]
+  ],
+  "dirigenten-orchester": [
+    ["Wiener Philharmoniker", "Kein Dirigent auf diesem Brett ist ihnen hier zugeordnet."],
+    ["Concertgebouworkest", "Bernard Haitink leitete es, und der fehlt in dieser Liste."]
+  ],
+  "popstars-laender": [
+    ["Irland", "Sinéad O'Connor käme von dort, und sie fehlt auf dem Brett."],
+    ["Nigeria", "Burna Boy steht nicht in dieser Liste."]
+  ],
+  "songs-interpreten": [
+    ["The Rolling Stones", "Satisfaction wäre der Song dazu, und der fehlt hier."],
+    ["Whitney Houston", "I Will Always Love You steht nicht auf diesem Brett."]
+  ],
+  "nationalhymnen": [
+    ["Spanien", "Die Marcha Real hat keinen Text, und sie fehlt auf dem Brett."],
+    ["Österreich", "Land der Berge steht nicht in dieser Liste."]
+  ],
+  "musikstaedte": [
+    ["Seattle", "Der Grunge kam von dort, und die Stadt fehlt auf diesem Brett."],
+    ["Manchester", "Die Hacienda stand dort, sie steht nicht in dieser Liste."]
+  ],
+  "spielweisen": [
+    ["Mit der flachen Hand aufs Instrument", "Keine Anweisung auf diesem Brett meint das."],
+    ["Auf zwei Instrumenten zugleich", "So etwas verlangt keine Zeile hier."]
+  ],
+  "kirchenmusik-formen": [
+    ["Stabat Mater", "Eine eigene Form, die auf diesem Brett fehlt."],
+    ["Weihnachtslied der Gemeinde", "Das Adventslied steht nicht in dieser Liste."]
+  ],
+  "elektronische-geraete": [
+    ["Verstärkt das Signal für die Box", "Der Verstärker ist keine Antwort auf diesem Brett."],
+    ["Nimmt den Schall über eine Membran auf", "Das Mikrofon fehlt in dieser Liste."]
+  ],
+  "instrumentenbauer": [
+    ["Fender", "Auch für E-Gitarren bekannt, aber nicht auf diesem Brett."],
+    ["Bösendorfer", "Die Wiener Flügel stehen nicht in dieser Liste."]
+  ],
+  "musikindustrie-begriffe": [
+    ["Aufnahme im Studio", "Die Session ist kein Begriff auf diesem Brett."],
+    ["Verkaufszahl in einer Woche", "Die Chartplatzierung fehlt in dieser Liste."]
+  ],
+  "musikalische-formen": [
+    ["Streichquartett", "Eine Besetzung und eine Form, die hier nicht steht."],
+    ["Serenade", "Ein Ständchen am Abend, und es fehlt auf diesem Brett."]
+  ],
+  "hiphop-begriffe": [
+    ["Sprühbild an der Wand", "Graffiti gehört dazu, steht aber nicht auf dem Brett."],
+    ["Party mit zwei Plattenspielern", "Der Block Party fehlt in dieser Liste."]
+  ],
+  "opernsaengerinnen": [
+    ["Frankreich", "Natalie Dessay käme von dort, und sie fehlt auf dem Brett."],
+    ["Norwegen", "Kirsten Flagstad steht nicht in dieser Liste."]
+  ],
+  "songwriter-duos": [
+    ["Abba", "Andersson und Ulvaeus schrieben dafür, das Gespann fehlt auf dem Brett."],
+    ["Pet Shop Boys", "Tennant und Lowe stehen nicht in dieser Liste."]
+  ],
+  "perkussion-herkunft": [
+    ["Ghana", "Die Djembé kommt aus Westafrika, Ghana steht hier aber nicht."],
+    ["Australien", "Die Klanghölzer der Aborigines fehlen auf diesem Brett."]
+  ],
+  "musikhochschulen": [
+    ["Wien", "Die Universität für Musik steht dort, und sie fehlt auf dem Brett."],
+    ["Tokio", "Die Geidai steht nicht in dieser Liste."]
+  ],
+  "elektronische-stile": [
+    ["Techno", "Der Ursprungsstil aus Detroit fehlt auf diesem Brett."],
+    ["Ganz ohne Schlagzeug und Bass", "Auf keinen Stil in dieser Liste trifft das zu."]
+  ],
+  "klavierstuecke": [
+    ["Franz Schubert", "Die Impromptus wären die Stücke dazu, und sie fehlen hier."],
+    ["Scott Joplin", "The Entertainer steht nicht auf diesem Brett."]
+  ],
+  "akustik-begriffe": [
+    ["Wie schnell der Schall reist", "Die Schallgeschwindigkeit fehlt auf diesem Brett."],
+    ["Zahl der Instrumente im Raum", "Das beschreibt kein Begriff in dieser Liste."]
+  ]
+}

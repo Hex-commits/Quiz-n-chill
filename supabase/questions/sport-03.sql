@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('sport', 'sportjargon', 'Sprüche & Sportarten',
@@ -19,7 +19,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Die Segel streichen", "Segeln", "Wer einholt, gibt die Fahrt auf."],
        ["Aus dem Rennen sein", "Pferderennen", "Wer zurückfällt, spielt keine Rolle mehr."],
        ["Volle Deckung", "Fechten", "Die Klinge schützt die Trefferfläche."],
-       ["Den Kürzeren ziehen", "Ringen", "Beim Losen um die Ausgangsposition."]]'::jsonb),
+       ["Den Kürzeren ziehen", "Ringen", "Beim Losen um die Ausgangsposition."]]'::jsonb,
+     '[["Tennis", "Auch daher stammen Redewendungen, auf diesem Brett aber keine."],
+       ["Rudern", "Aus dem Wasser stammt hier keine Wendung."]]'::jsonb),
 
     ('sport', 'trikotnummern', 'Trikotnummern & Bedeutung',
      'Wofür steht die Nummer traditionell?',
@@ -35,7 +37,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rosa Trikot", "Führung beim Giro", "Nach dem Papier der Gazzetta dello Sport."],
        ["Nummer 12 im Fußballstadion", "Die Fans", "Der zwölfte Mann auf den Rängen."],
        ["Nummer 7 bei Manchester United", "Vereinserbe", "Von Best über Cantona bis Ronaldo."],
-       ["Nummer 3 im Baseball", "First Baseman", "Die Positionen sind fest durchnummeriert."]]'::jsonb),
+       ["Nummer 3 im Baseball", "First Baseman", "Die Positionen sind fest durchnummeriert."]]'::jsonb,
+     '[["Nummer 8 im Fußball", "Sie steht für den zentralen Mittelfeldspieler und fehlt hier."],
+       ["Gepunktetes Trikot", "Es steht für die Bergwertung und ist auf diesem Brett keine Antwort."]]'::jsonb),
 
     ('sport', 'schiedsrichterzeichen', 'Schiedsrichter & Regeln',
      'Was zeigt der Schiedsrichter damit an?',
@@ -52,7 +56,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Weiße Fahne im American Football", "Regelverstoß", "Die Flagge fliegt auf das Feld."],
        ["Schwarze Karte im Fechten", "Ausschluss vom Turnier", "Die schärfste aller Strafen."],
        ["Grüne Karte im Hockey", "Zweiminutenstrafe", "Danach folgen Gelb und Rot."],
-       ["Ausgestreckter Finger im Cricket", "Der Schlagmann ist out", "Das gefürchtetste Zeichen im Spiel."]]'::jsonb),
+       ["Ausgestreckter Finger im Cricket", "Der Schlagmann ist out", "Das gefürchtetste Zeichen im Spiel."]]'::jsonb,
+     '[["Anstoß nach dem Wechsel", "Kein Zeichen auf diesem Brett meint das."],
+       ["Beide Arme über dem Kopf gekreuzt", "So etwas zeigt kein Schiedsrichter in dieser Liste."]]'::jsonb),
 
     ('sport', 'olympische-symbole', 'Olympische Bräuche',
      'Was hat es damit auf sich?',
@@ -67,7 +73,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Olympisches Dorf", "Unterkunft aller Athleten", "Seit 1932 fester Bestandteil."],
        ["Übergabe der Flagge", "Weitergabe der Gastgeberrolle", "Am Ende der Schlussfeier."],
        ["Medaillen aus Gold, Silber und Bronze", "Rang eins bis drei", "Gold ist tatsächlich vergoldetes Silber."],
-       ["Olympische Waffenruhe", "Antiker Gottesfrieden", "Ekecheiria erlaubte die sichere Anreise."]]'::jsonb),
+       ["Olympische Waffenruhe", "Antiker Gottesfrieden", "Ekecheiria erlaubte die sichere Anreise."]]'::jsonb,
+     '[["Das Maskottchen der Spiele", "Es gehört dazu, steht auf diesem Brett aber nicht."],
+       ["Die Eröffnungsfeier im Stadion", "Sie fehlt in dieser Liste."]]'::jsonb),
 
     ('sport', 'paralympics', 'Paralympischer Sport',
      'Was kennzeichnet die Disziplin?',
@@ -82,7 +90,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Para-Radsport", "Handbike und Tandem", "Sehbehinderte fahren mit Pilot."],
        ["Rollstuhlbasketball", "Zwei Schübe je Ballkontakt", "Danach muss geprellt oder gepasst werden."],
        ["Para-Biathlon", "Schießen auf Gehör", "Sehbehinderte zielen mit akustischem Signal."],
-       ["Klassifizierung", "Einteilung nach Beeinträchtigung", "Sie macht Ergebnisse überhaupt vergleichbar."]]'::jsonb),
+       ["Klassifizierung", "Einteilung nach Beeinträchtigung", "Sie macht Ergebnisse überhaupt vergleichbar."]]'::jsonb,
+     '[["Bogenschießen im Sitzen", "Es gehört zum Programm, fehlt aber auf diesem Brett."],
+       ["Rollstuhltanz", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'sportskandale', 'Wendepunkte des Sports',
      'Wofür steht das Ereignis?',
@@ -96,7 +106,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Boykott 1980", "Politisch bedingtes Fernbleiben", "Über sechzig Länder blieben Moskau fern."],
        ["Hand Gottes 1986", "Umstrittenes Tor im Viertelfinale", "Der Schiedsrichter sah das Handspiel nicht."],
        ["Wembley-Tor 1966", "Strittige Torentscheidung", "Bis heute nicht restlos geklärt."],
-       ["Einführung des VAR 2018", "Videobeweis bei der WM", "Erstmals bei einer Weltmeisterschaft im Einsatz."]]'::jsonb),
+       ["Einführung des VAR 2018", "Videobeweis bei der WM", "Erstmals bei einer Weltmeisterschaft im Einsatz."]]'::jsonb,
+     '[["Handschlag der Gegner nach dem Spiel", "Das ist kein Wendepunkt auf diesem Brett."],
+       ["München 1972", "Das Attentat auf die Spiele fehlt in dieser Liste."]]'::jsonb),
 
     ('sport', 'sportstaetten-begriffe', 'Orte des Sports',
      'Was bezeichnet der Begriff?',
@@ -112,7 +124,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Peloton-Zielgerade", "Letzte Meter eines Radrennens", "Oft nur wenige Zentimeter entscheiden."],
        ["Faceoff-Punkt", "Anspielpunkt im Eishockey", "Neun davon sind aufs Eis gemalt."],
        ["Boxengasse", "Bereich für Reifenwechsel", "Mit strikt begrenztem Tempo."],
-       ["Trockendock der Ruderer", "Bootshaus am Wasser", "Hier lagern die Achter zwischen den Trainings."]]'::jsonb),
+       ["Trockendock der Ruderer", "Bootshaus am Wasser", "Hier lagern die Achter zwischen den Trainings."]]'::jsonb,
+     '[["Zielhang beim Skirennen", "Kein Begriff auf diesem Brett meint das."],
+       ["Sprungturm im Schwimmbad", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'sport-mathematik', 'Zahlen des Sports',
      'Welche Zahl gehört dazu?',
@@ -126,7 +140,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Meter zur Dartscheibe", "2,37", "Gemessen von der Abwurflinie."],
        ["Punkte für einen Touchdown", "6", "Der Zusatzpunkt kommt danach."],
        ["Sätze für einen Grand-Slam-Sieg der Männer", "3", "Best of five, drei Gewinnsätze."],
-              ["Minuten Strafzeit im Eishockey", "2", "Bei schweren Vergehen fünf."]]'::jsonb),
+              ["Minuten Strafzeit im Eishockey", "2", "Bei schweren Vergehen fünf."]]'::jsonb,
+     '[["11", "Die Spielerzahl im Fußball, nach der hier keine Zeile fragt."],
+       ["26", "Keine Zahl auf diesem Brett meint das."]]'::jsonb),
 
     ('sport', 'sportarten-laender-dominanz', 'Länder & ihre Sportarten',
      'Welches Land prägt diese Sportart?',
@@ -142,7 +158,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Capoeira", "Brasilien", "Kampf, Tanz und Musik zugleich."],
        ["Bandy", "Schweden", "Eishockey auf Fußballfeldgröße."],
        ["Kabaddi", "Bangladesch", "Angreifer müssen ohne Luftholen zurückkommen."],
-       ["Rugby Union", "Neuseeland", "Der Haka vor jedem Länderspiel."]]'::jsonb),
+       ["Rugby Union", "Neuseeland", "Der Haka vor jedem Länderspiel."]]'::jsonb,
+     '[["Kenia", "Der Langstreckenlauf wäre die Sportart dazu, und die fehlt hier."],
+       ["Ungarn", "Der Wasserball steht nicht auf diesem Brett."]]'::jsonb),
 
     ('sport', 'trainerlegenden', 'Trainer & ihre Handschrift',
      'Wofür steht dieser Name an der Seitenlinie?',
@@ -156,7 +174,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Vince Lombardi", "Disziplin im Football", "Die Trophäe des Super Bowl trägt seinen Namen."],
        ["Bill Belichick", "Anpassung an jeden Gegner", "Jede Woche ein neuer Spielplan."],
        ["Sepp Herberger", "Der Ball ist rund", "Sein Satz überlebte das Wunder von Bern."],
-       ["Anatoli Tarassow", "Sowjetische Eishockeyschule", "Ballett und Schach als Training."]]'::jsonb),
+       ["Anatoli Tarassow", "Sowjetische Eishockeyschule", "Ballett und Schach als Training."]]'::jsonb,
+     '[["Ottmar Hitzfeld", "Der Doppelsieger der Champions League fehlt auf diesem Brett."],
+       ["Alex Ferguson", "Die lange Ära in Manchester steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'sportmedien', 'Sport & Medien',
      'Was verbirgt sich dahinter?',
@@ -170,7 +190,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Spidercam", "Seilkamera über dem Feld", "Bewegt sich frei über der Spielfläche."],
        ["Photofinish", "Zielbild in Tausendstelsekunden", "Ein Schlitzverschluss belichtet die Ziellinie."],
        ["Kommentatorenkabine", "Arbeitsplatz über der Tribüne", "Mit Blick auf das ganze Feld."],
-       ["Rechtepaket", "Übertragungslizenz einer Liga", "Größte Einnahmequelle des Profisports."]]'::jsonb),
+       ["Rechtepaket", "Übertragungslizenz einer Liga", "Größte Einnahmequelle des Profisports."]]'::jsonb,
+     '[["Radioreportage vom Spielfeldrand", "Sie fehlt auf diesem Brett."],
+       ["Livestream über das Internet", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'wintersport-orte', 'Wintersportorte & Länder',
      'In welchem Land liegt der Ort?',
@@ -186,7 +208,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Planica", "Slowenien", "Hier fielen viele Skiflugrekorde."],
        ["Whistler", "Kanada", "Alpinort der Spiele von 2010."],
        ["Sapporo", "Japan", "Erste Winterspiele in Asien, 1972."],
-       ["Zakopane", "Polen", "Skisprungfeste vor riesigem Publikum."]]'::jsonb),
+       ["Zakopane", "Polen", "Skisprungfeste vor riesigem Publikum."]]'::jsonb,
+     '[["Tschechien", "Špindlerův Mlýn läge dort, und der Ort fehlt auf dem Brett."],
+       ["USA", "Aspen steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'ballsport-varianten', 'Verwandte Ballsportarten',
      'Was unterscheidet die Sportart?',
@@ -203,7 +227,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gaelic Football", "Fangen und Fußspiel gemischt", "Alle vier Schritte muss geprellt werden."],
        ["Wasserball", "Spiel ohne Bodenkontakt", "Nur der Torwart darf mit beiden Händen fassen."],
        ["Ultimate Frisbee", "Wurfscheibe ohne Schiedsrichter", "Die Spieler regeln Fouls selbst."],
-       ["Rollhockey", "Hockey auf Rollschuhen", "Vor allem in Portugal und Spanien beliebt."]]'::jsonb),
+       ["Rollhockey", "Hockey auf Rollschuhen", "Vor allem in Portugal und Spanien beliebt."]]'::jsonb,
+     '[["Fußball auf Kunstrasen statt Naturrasen", "Der Belag macht keine eigene Sportart."],
+       ["Basketball mit drei gegen drei", "Das 3x3 fehlt auf diesem Brett."]]'::jsonb),
 
     ('sport', 'sportbegriffe-herkunft', 'Woher der Name kommt',
      'Woher stammt die Bezeichnung?',
@@ -219,7 +245,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Badminton", "Englischer Landsitz", "Dort wurde das indische Spiel gespielt."],
        ["Volleyball", "Flugball", "Der Ball wird geschlagen, bevor er aufkommt."],
        ["Curling", "Schottisches Verb", "Von der kurvigen Bahn des Steins."],
-       ["Biathlon", "Zweikampf", "Griechisch für zwei Wettkämpfe."]]'::jsonb),
+       ["Biathlon", "Zweikampf", "Griechisch für zwei Wettkämpfe."]]'::jsonb,
+     '[["Griechisch für Wettlauf", "Kein Name auf diesem Brett kommt daher."],
+       ["Nach einem Erfinder benannt", "Keine Bezeichnung in dieser Liste geht so zurück."]]'::jsonb),
 
     ('sport', 'sportverbaende-sitze', 'Verbände & ihre Sitze',
      'Wo hat der Verband seinen Sitz?',
@@ -234,7 +262,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Internationaler Tennisverband", "London", "Sitz im Stadtteil Roehampton."],
        ["Welt-Anti-Doping-Agentur", "Montreal", "Gegründet 1999 nach der Festina-Affäre."],
        ["Internationaler Radsportverband", "Aigle", "Mit eigenem Weltradsportzentrum."],
-       ["Deutscher Olympischer Sportbund", "Frankfurt", "Dachverband des deutschen Sports."]]'::jsonb),
+       ["Deutscher Olympischer Sportbund", "Frankfurt", "Dachverband des deutschen Sports."]]'::jsonb,
+     '[["Genf", "Kein Verband auf diesem Brett sitzt dort."],
+       ["Brüssel", "Auch dort hat keiner in dieser Liste seinen Sitz."]]'::jsonb),
 
     ('sport', 'sport-koerper', 'Körper & Leistung',
      'Was beschreibt der Begriff?',
@@ -248,7 +278,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schnellkraft", "Kraft in kürzester Zeit", "Entscheidend bei Sprung und Wurf."],
        ["Ausdauerschwelle", "Tempo über lange Strecken", "Grundlage jedes Marathonplans."],
        ["Runner''s High", "Euphorie bei langer Belastung", "Körpereigene Botenstoffe sind beteiligt."],
-       ["Übertraining", "Leistungsabfall trotz Mehrarbeit", "Der Körper kommt nicht mehr hinterher."]]'::jsonb),
+       ["Übertraining", "Leistungsabfall trotz Mehrarbeit", "Der Körper kommt nicht mehr hinterher."]]'::jsonb,
+     '[["Ruhepuls", "Ein Maß für die Fitness, aber keine Antwort auf diesem Brett."],
+       ["Körperfettanteil", "Er steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'olympische-sportarten-wandel', 'Olympia im Wandel',
      'Was gilt für diese Sportart bei Olympia?',
@@ -263,7 +295,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kunstwettbewerbe", "Bis 1948 medaillenwürdig", "Es gab Gold für Malerei und Dichtung."],
        ["Snowboard", "Seit 1998 olympisch", "In Nagano erstmals im Programm."],
        ["Trampolinturnen", "Seit 2000 dabei", "In Sydney aufgenommen."],
-       ["Softball", "Nur zeitweise im Programm", "Zwischen 1996 und 2008, dann wieder 2021."]]'::jsonb),
+       ["Softball", "Nur zeitweise im Programm", "Zwischen 1996 und 2008, dann wieder 2021."]]'::jsonb,
+     '[["Squash", "Es wurde lange abgelehnt und fehlt auf diesem Brett."],
+       ["Cricket", "Die Rückkehr 2028 steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'rekordjagd', 'Rekorde & ihre Geschichte',
      'Was zeichnet den Rekord aus?',
@@ -278,7 +312,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sieben Tour-Siege gestrichen", "Titel nachträglich aberkannt", "Die Jahre bleiben ohne Sieger."],
        ["Höhenrekord im Fallschirmsprung", "Sprung aus der Stratosphäre", "Mit Überschallgeschwindigkeit im freien Fall."],
        ["Schnellster Torhüter-Treffer", "Treffer über das Feld", "Wind und ein weit vorgerückter Kollege."],
-       ["Längste Ungeschlagen-Serie", "Saison ohne Niederlage", "In England zuletzt 2004 gelungen."]]'::jsonb),
+       ["Längste Ungeschlagen-Serie", "Saison ohne Niederlage", "In England zuletzt 2004 gelungen."]]'::jsonb,
+     '[["Der erste Weltrekord überhaupt", "Kein Rekord auf diesem Brett ist so beschrieben."],
+       ["Rekord, der nie anerkannt wurde", "So etwas steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'sportkleidung', 'Ausrüstung & Vorschrift',
      'Warum trägt man das?',
@@ -293,7 +329,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kompressionsstrümpfe", "Unterstützung der Venen", "Sollen die Erholung beschleunigen."],
        ["Magnesia", "Trockene Hände am Gerät", "Im Turnen und beim Klettern üblich."],
        ["Steigfelle", "Halt beim Aufstieg", "Gleiten vorwärts, greifen rückwärts."],
-       ["Bindung beim Ski", "Auslösen bei Sturz", "Der Wert wird nach Gewicht eingestellt."]]'::jsonb),
+       ["Bindung beim Ski", "Auslösen bei Sturz", "Der Wert wird nach Gewicht eingestellt."]]'::jsonb,
+     '[["Trikot mit Rückennummer", "Es dient der Erkennbarkeit, danach fragt hier keine Zeile."],
+       ["Schienbeinschoner", "Sie schützen das Bein, stehen aber nicht auf diesem Brett."]]'::jsonb),
 
     ('sport', 'sportarten-zaehlweise', 'Wie gewonnen wird',
      'Wie entscheidet sich der Sieg?',
@@ -309,7 +347,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Golf", "Wenigste Schläge gewinnen", "Im Lochspiel zählen dagegen gewonnene Löcher."],
        ["Skispringen", "Weite und Haltungsnoten", "Wind und Anlauflänge werden verrechnet."],
        ["Formel 1", "Punkte über die Saison", "Der Sieger eines Rennens bekommt fünfundzwanzig."],
-       ["Ringen", "Schultersieg oder Punkte", "Beide Schultern eine Sekunde am Boden."]]'::jsonb)
+       ["Ringen", "Schultersieg oder Punkte", "Beide Schultern eine Sekunde am Boden."]]'::jsonb,
+     '[["Höchste Punktzahl aus drei Versuchen", "Keine Sportart auf diesem Brett zählt so."],
+       ["Das Los entscheidet", "So wird in dieser Liste nirgends gewonnen."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -334,15 +374,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

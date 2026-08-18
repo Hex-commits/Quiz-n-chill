@@ -1,0 +1,82 @@
+{
+  "zelda-teile": [
+    ["Gesteuert per Dampflok", "Das wäre Spirit Tracks, und der Teil steht nicht auf dem Brett."],
+    ["Link wird zum Wandbild", "Das kann nur A Link Between Worlds, hier fehlt es."]
+  ],
+  "mario-ableger": [
+    ["Basketball", "Mario Hoops 3 on 3 gibt es wirklich, auf diesem Brett steht es nicht."],
+    ["Schreibmaschinenkurs", "Mario Teaches Typing war ein Lernspiel und gehört zu keinem Eintrag hier."]
+  ],
+  "pokemon-regionen": [
+    ["Orre", "Die Region der Colosseum-Ableger, kein Hauptspiel auf diesem Brett."],
+    ["Fiore", "Schauplatz der Ranger-Spiele, die hier nicht vorkommen."]
+  ],
+  "final-fantasy-helden": [
+    ["Bartz", "Hauptfigur von Final Fantasy V, und der Teil fehlt auf dem Brett."],
+    ["Y’shtola", "Aus dem Onlineteil XIV, und dort ohnehin nicht die Hauptfigur."]
+  ],
+  "assassins-creed-epochen": [
+    ["Kolonialindien", "Schauplatz von Chronicles: India, das hier nicht steht."],
+    ["Russische Revolution", "Auch ein Chronicles-Ableger, kein Teil auf diesem Brett."]
+  ],
+  "elder-scrolls-provinzen": [
+    ["Elsweyr", "Die Heimat der Khajiit ist eine Erweiterung, kein Teil hier."],
+    ["Schwarzmarsch", "Die Provinz der Argonier war noch nie Schauplatz eines Hauptteils."]
+  ],
+  "fallout-schauplaetze": [
+    ["Van Buren", "Der dritte Teil, den Black Isle nie fertigstellte."],
+    ["Stimpak", "Das Heilmittel der Reihe, aber keine Antwort auf dem Brett."]
+  ],
+  "resident-evil-teile": [
+    ["Rein auf Mehrspieler ausgelegt", "Das trifft auf Outbreak und Resistance zu, die hier fehlen."],
+    ["Ein Ableger mit Lichtpistole", "Die Chronicles-Spiele auf der Wii stehen nicht auf dem Brett."]
+  ],
+  "souls-reihe": [
+    ["Von Team Cherry entwickelt", "Das wäre Hollow Knight, das zu keiner Zeile hier gehört."],
+    ["Ein Ableger als Kartenspiel", "So etwas hat die Reihe nie hervorgebracht."]
+  ],
+  "gta-teile": [
+    ["Zwei Städte in Japan", "Kein Teil der Reihe spielt dort."],
+    ["Mit rundenbasierten Kämpfen", "Die Reihe hat so etwas nie gehabt."]
+  ],
+  "untertitel-reihen": [
+    ["Gears of War", "Auch eine Reihe mit Untertiteln, nur keinem von diesen."],
+    ["Metroid", "Prime und Dread sind Untertitel, stehen hier aber nicht."]
+  ],
+  "gegenstaende-reihen": [
+    ["Doom", "Die BFG wäre der Gegenstand dazu, und sie fehlt auf dem Brett."],
+    ["BioShock", "Die Plasmide gehören dorthin, sind hier aber nicht aufgeführt."]
+  ],
+  "spielorte-reihen": [
+    ["Mass Effect", "Die Zitadelle wäre der Ort dazu, sie steht nicht auf dem Brett."],
+    ["Kingdom Hearts", "Kein Ort in dieser Liste stammt aus der Reihe."]
+  ],
+  "pruegelspiel-reihen": [
+    ["Konami", "Auch Konami hat Prügelspiele gemacht, keines davon steht hier."],
+    ["Square Enix", "Ehrgeiz erschien unter diesem Namen, gehört aber zu keiner Zeile."]
+  ],
+  "metal-gear-reihe": [
+    ["Zuerst für den Game Boy Color", "Das war Ghost Babel, und der Teil fehlt hier."],
+    ["Ein Rennspiel mit Snake", "So einen Ableger hat es nie gegeben."]
+  ],
+  "valve-spiele": [
+    ["Ein Kartenspiel um Dota", "Artifact erschien 2018 und wurde rasch aufgegeben."],
+    ["Ein eigenes Rollenspiel", "Valve hat so etwas nie veröffentlicht."]
+  ],
+  "blizzard-universen": [
+    ["The Lost Vikings", "Ein frühes Spiel der Firma, aber kein Universum auf diesem Brett."],
+    ["Ein Rennspiel in Azeroth", "Angekündigt wurde so etwas nie."]
+  ],
+  "rennspiel-reihen": [
+    ["Lastwagen quer durch Europa", "Das beschreibt den Euro Truck Simulator."],
+    ["Rennen mit lizenzierten Motorrädern", "Das trifft auf MotoGP zu, auf keine Reihe hier."]
+  ],
+  "survival-sandbox": [
+    ["Eine Raumstation am Leben halten", "Das ist Space Station 13, das hier nicht steht."],
+    ["Eine Kolonie von oben verwalten", "So spielt sich RimWorld, kein Eintrag auf dem Brett."]
+  ],
+  "japanische-reihen": [
+    ["Trommeln im Takt der Musik", "Das wäre Taiko no Tatsujin, das hier fehlt."],
+    ["Eine Idolgruppe verwalten", "Ein eigenes Genre, aber keine Reihe auf diesem Brett."]
+  ]
+}

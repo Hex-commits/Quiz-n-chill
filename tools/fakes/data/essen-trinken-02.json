@@ -1,0 +1,82 @@
+{
+  "klassische-saucen": [
+    ["Sahne und Meerrettich", "Das wäre eine Meerrettichsauce, sie fehlt auf dem Brett."],
+    ["Joghurt und Gurke", "So entsteht Tzatziki, das hier nicht steht."]
+  ],
+  "biersorten": [
+    ["Ohne Alkohol vergoren", "Alkoholfreies Bier steht nicht auf diesem Brett."],
+    ["Mit Kirschen nachvergoren", "Das wäre ein Kriek, und der fehlt hier."]
+  ],
+  "kaffeezubereitung": [
+    ["Espresso mit heißem Wasser gestreckt", "Das ist ein Americano, er fehlt auf dem Brett."],
+    ["Durch Unterdruck im Glaskolben", "Der Syphon steht nicht in dieser Liste."]
+  ],
+  "teesorten": [
+    ["Nachträglich mit Jasmin beduftet", "Das wäre Jasmintee, der hier nicht steht."],
+    ["Über Jahre nachgereift", "So entsteht Pu-Erh, und der fehlt auf diesem Brett."]
+  ],
+  "meeresfruechte": [
+    ["Panzer wird zur Brühe ausgekocht", "Das täte man mit dem Flusskrebs, der hier fehlt."],
+    ["Wächst festgewachsen im Gezeitenbereich", "Das wäre die Entenmuschel, sie steht nicht auf dem Brett."]
+  ],
+  "oele-fette": [
+    ["Aus Oliventrester gewonnen", "Das ist Tresteröl, es steht nicht auf dem Brett."],
+    ["Fest durch gehärtetes Pflanzenöl", "Das beschreibt Margarine, die hier fehlt."]
+  ],
+  "maerkte-staedte": [
+    ["Budapest", "Dort steht die Große Markthalle, auf dem Brett fehlt sie."],
+    ["Lissabon", "Der Mercado da Ribeira ist hier nicht aufgeführt."]
+  ],
+  "weinbegriffe": [
+    ["Zweite Gärung in der Flasche", "Das ist die Méthode traditionnelle, sie steht nicht auf dem Brett."],
+    ["Alkoholzugabe stoppt die Gärung", "So entsteht ein Likörwein, der hier fehlt."]
+  ],
+  "konservierung": [
+    ["Rauch legt sich auf die Oberfläche", "Räuchern steht nicht auf diesem Brett."],
+    ["Bestrahlung tötet die Keime ab", "Ein zugelassenes Verfahren, das hier fehlt."]
+  ],
+  "ueberraschende-herkunft": [
+    ["Mexiko", "Der Caesar Salad entstand dort, er steht nicht auf dem Brett."],
+    ["Neuseeland", "Die Pavlova wird dort beansprucht, hier fehlt sie."]
+  ],
+  "suesswaren-marken": [
+    ["Frankreich", "Carambar käme von dort, die Marke fehlt auf dem Brett."],
+    ["Niederlande", "Venco und sein Lakritz stehen hier nicht."]
+  ],
+  "deutsche-spezialitaeten": [
+    ["Sachsen", "Der Dresdner Christstollen käme von dort, er fehlt hier."],
+    ["Saarland", "Der Dibbelabbes steht nicht auf dem Brett."]
+  ],
+  "suppen-laender": [
+    ["Griechenland", "Avgolemono wäre die Suppe dazu, sie fehlt hier."],
+    ["China", "Die scharf-saure Suppe steht nicht auf dem Brett."]
+  ],
+  "reissorten": [
+    ["Iran", "Der Sadri-Reis käme von dort, er steht nicht auf dem Brett."],
+    ["Rot durch die Schale", "Das wäre roter Camargue-Reis, und der fehlt hier."]
+  ],
+  "ernaehrungsformen": [
+    ["Nur in festen Zeitfenstern essen", "Das ist Intervallfasten, es steht nicht auf dem Brett."],
+    ["Ohne Klebereiweiß", "Nötig bei Zöliakie, aber keine Zeile auf diesem Brett."]
+  ],
+  "kuechenchemie": [
+    ["Alkohol verdampft vor dem Wasser", "Stimmt, ist hier aber keine Antwort."],
+    ["Backpulver setzt Kohlendioxid frei", "Das treibt den Teig, steht auf diesem Brett aber nicht."]
+  ],
+  "gewuerzmischungen": [
+    ["Mexiko", "Die Adobo-Paste käme von dort, sie fehlt auf dem Brett."],
+    ["Ungarn", "Edelsüßes Paprikapulver steht hier nicht."]
+  ],
+  "botanik-obst": [
+    ["Zwiebelgewächs", "Auf keinen Eintrag dieser Liste trifft das zu."],
+    ["Wurzelknolle", "Das wäre die Süßkartoffel, und die steht nicht auf dem Brett."]
+  ],
+  "trinkgefaesse": [
+    ["Portwein", "Das Portweinglas fehlt auf diesem Brett."],
+    ["Grüner Tee", "Die japanische Teeschale steht hier nicht."]
+  ],
+  "kuechensprache": [
+    ["Fleisch vor dem Garen einlegen", "Das ist Marinieren, es steht nicht auf dem Brett."],
+    ["Durch ein feines Sieb streichen", "Das heißt Passieren, und es fehlt hier."]
+  ]
+}

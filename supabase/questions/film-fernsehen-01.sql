@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('film-fernsehen', 'filmzitate', 'Berühmte Filmsätze',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wir sind nicht mehr in Kansas", "Der Zauberer von Oz", "Der Moment, in dem der Film farbig wird."],
        ["Sag Hallo zu meinem kleinen Freund", "Scarface", "Der Schlussakt eines Aufstiegs."],
        ["Freiheit", "Braveheart", "Der letzte Ruf des schottischen Rebellen."],
-       ["Hasta la vista, Baby", "Terminator 2", "Spanisch, gelernt von einem Kind."]]'::jsonb),
+       ["Hasta la vista, Baby", "Terminator 2", "Spanisch, gelernt von einem Kind."]]'::jsonb,
+     '[["Apocalypse Now", "Der Satz über den Napalmgeruch stammt daher, der Film fehlt hier."],
+       ["Casablanca", "Ich sehe dir in die Augen, Kleines -- auf diesem Brett steht der Film nicht."]]'::jsonb),
 
     ('film-fernsehen', 'drehorte', 'Filme & ihre Drehorte',
      'Wo wurde der Film überwiegend gedreht?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der englische Patient", "Tunesien", "Die Wüstenszenen entstanden nahe Tozeur."],
        ["Gladiator", "Malta", "Rom wurde im Fort Ricasoli nachgebaut."],
        ["Titanic", "Baja California", "Ein eigenes Studio mit Wassertank wurde gebaut."],
-       ["Harry Potter und der Stein der Weisen", "Alnwick Castle", "Die Burg diente als Hogwarts von außen."]]'::jsonb),
+       ["Harry Potter und der Stein der Weisen", "Alnwick Castle", "Die Burg diente als Hogwarts von außen."]]'::jsonb,
+     '[["Island", "Interstellar entstand dort, und der Film fehlt auf dem Brett."],
+       ["Prag", "Amadeus wurde dort gedreht, er steht nicht in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'serien-laender', 'Serienhits & ihre Länder',
      'Aus welchem Land stammt die Serie?',
@@ -53,7 +57,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Narcos", "Kolumbien", "Zweisprachig gedreht, in Medellín angesiedelt."],
        ["Die Brücke", "Schweden", "Eine Leiche genau auf der Grenze zu Dänemark."],
        ["Trapped", "Island", "Ein Schneesturm sperrt den Ort ab."],
-       ["Sacred Games", "Indien", "Erste indische Netflix-Eigenproduktion."]]'::jsonb),
+       ["Sacred Games", "Indien", "Erste indische Netflix-Eigenproduktion."]]'::jsonb,
+     '[["Norwegen", "Skam käme von dort, die Serie fehlt hier."],
+       ["Japan", "Keine Serie auf diesem Brett stammt von dort."]]'::jsonb),
 
     ('film-fernsehen', 'regie-handschrift', 'Regisseure & ihre Handschrift',
      'Woran erkennt man die Regie?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hayao Miyazaki", "Fliegende Maschinen", "Und Heldinnen, die keine Rettung brauchen."],
        ["David Fincher", "Dunkle, kühle Bilder", "Szenen werden bis zur Erschöpfung wiederholt."],
        ["Werner Herzog", "Dreharbeiten als Grenzerfahrung", "Ein Schiff wurde tatsächlich über den Berg gezogen."],
-       ["Greta Gerwig", "Erwachsenwerden aus weiblicher Sicht", "Dialoge, die einander überlappen."]]'::jsonb),
+       ["Greta Gerwig", "Erwachsenwerden aus weiblicher Sicht", "Dialoge, die einander überlappen."]]'::jsonb,
+     '[["Handkamera ganz ohne Stativ", "Das wäre Lars von Trier, der hier nicht steht."],
+       ["Filme ganz ohne Musik", "Auf keine Regie in dieser Liste trifft das zu."]]'::jsonb),
 
     ('film-fernsehen', 'festivals-trophaeen', 'Festivals & ihre Trophäen',
      'Welchen Preis vergibt das Festival?',
@@ -85,7 +93,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sundance", "Grand Jury Prize", "Sprungbrett des unabhängigen US-Kinos."],
        ["Annecy", "Cristal", "Das größte Festival für Animationsfilm."],
        ["Toronto", "Publikumspreis", "Gilt als Vorzeichen für die Oscar-Saison."],
-       ["Shanghai", "Goldener Pokal", "Größtes Festival Ostasiens."]]'::jsonb),
+       ["Shanghai", "Goldener Pokal", "Größtes Festival Ostasiens."]]'::jsonb,
+     '[["Goldene Himbeere", "Ein Negativpreis, der zu keinem Festival auf dem Brett gehört."],
+       ["Goldener Delfin", "Diesen Preis vergibt keines der Festivals hier."]]'::jsonb),
 
     ('film-fernsehen', 'animationsstudios', 'Animationsstudios & Filme',
      'Welches Studio steckt dahinter?',
@@ -100,7 +110,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wolfwalkers", "Cartoon Saloon", "Irische Sagenwelt in flächiger Grafik."],
        ["Spider-Man: A New Universe", "Sony Pictures Animation", "Comicraster als bewusster Bildstil."],
        ["Ice Age", "Blue Sky Studios", "Ein Eichhörnchen jagt eine Eichel durch alle Teile."],
-       ["Dragon Ball", "Toei Animation", "Prägte Generationen von Fernsehanime."]]'::jsonb),
+       ["Dragon Ball", "Toei Animation", "Prägte Generationen von Fernsehanime."]]'::jsonb,
+     '[["Warner Bros. Animation", "Auch ein großes Studio, nur steht kein Film davon hier."],
+       ["Nickelodeon Animation", "Kein Werk auf diesem Brett stammt daher."]]'::jsonb),
 
     ('film-fernsehen', 'filmtechnik', 'Handwerk des Films',
      'Was bezeichnet der Begriff?',
@@ -116,7 +128,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Voice-over", "Stimme aus dem Off", "Kommentiert, ohne im Bild zu sein."],
        ["Greenscreen", "Hintergrund wird ersetzt", "Grün, weil es selten in Hauttönen vorkommt."],
        ["Match Cut", "Schnitt auf ähnliche Form", "Verbindet zwei Orte über ein Bildmotiv."],
-       ["Kamerafahrt", "Kamera bewegt sich mit", "Auf Schienen oder mit dem Kran."]]'::jsonb),
+       ["Kamerafahrt", "Kamera bewegt sich mit", "Auf Schienen oder mit dem Kran."]]'::jsonb,
+     '[["Das Bild wird zum Standbild angehalten", "Der Freeze Frame steht nicht auf dem Brett."],
+       ["Zwei Bilder übereinander geblendet", "Die Doppelbelichtung fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'durchbruchsrollen', 'Schauspieler & Durchbruchsrollen',
      'Mit welchem Film gelang der Durchbruch?',
@@ -132,7 +146,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Florence Pugh", "Midsommar", "Horror bei strahlendem Tageslicht."],
        ["Anya Taylor-Joy", "Das Damengambit", "Schach wurde plötzlich Fernsehunterhaltung."],
        ["Song Kang-ho", "The Host", "Lange vor dem internationalen Erfolg ein Star in Korea."],
-       ["Jodie Comer", "Killing Eve", "Eine Auftragsmörderin mit ständig neuen Akzenten."]]'::jsonb),
+       ["Jodie Comer", "Killing Eve", "Eine Auftragsmörderin mit ständig neuen Akzenten."]]'::jsonb,
+     '[["Good Will Hunting", "Damit kam Matt Damon heraus, und der steht hier nicht."],
+       ["Der Pianist", "Adrien Brody wurde damit bekannt, er fehlt auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'filmfiguren-darsteller', 'Filmfiguren & Darsteller',
      'Wer spielte die Figur?',
@@ -149,7 +165,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["T-800", "Arnold Schwarzenegger", "Wenige Sätze, alle davon berühmt."],
        ["Miranda Priestly", "Meryl Streep", "Die Bosheit klingt hier nur geflüstert."],
        ["Joker", "Joaquin Phoenix", "Für die Rolle stark abgemagert."],
-       ["Katniss Everdeen", "Jennifer Lawrence", "Bogenschießen extra gelernt."]]'::jsonb),
+       ["Katniss Everdeen", "Jennifer Lawrence", "Bogenschießen extra gelernt."]]'::jsonb,
+     '[["Kate Winslet", "Sie spielte Rose, und die Figur steht nicht auf dem Brett."],
+       ["Ian McKellen", "Als Gandalf, der hier fehlt."]]'::jsonb),
 
     ('film-fernsehen', 'deutscher-film', 'Deutsche Filme & Regie',
      'Wer führte Regie?',
@@ -166,7 +184,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Untergang", "Oliver Hirschbiegel", "Die letzten Tage im Führerbunker."],
        ["Nirgendwo in Afrika", "Caroline Link", "Eine Familie flieht nach Kenia."],
        ["Toni Erdmann", "Maren Ade", "Ein Vater als Störfaktor mit falschem Gebiss."],
-       ["Im Westen nichts Neues", "Edward Berger", "Vier Oscars für die Neuverfilmung."]]'::jsonb),
+       ["Im Westen nichts Neues", "Edward Berger", "Vier Oscars für die Neuverfilmung."]]'::jsonb,
+     '[["Rainer Werner Fassbinder", "Die Ehe der Maria Braun stammt von ihm, der Film fehlt hier."],
+       ["Doris Dörrie", "Männer wäre ihr Film, und der steht nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'sitcom-schauplaetze', 'Sitcoms & Schauplätze',
      'Wo spielt die Serie?',
@@ -182,7 +202,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Stromberg", "Finsdorf", "Ein Büroleiter, der sich für witzig hält."],
        ["Türkisch für Anfänger", "Berlin", "Patchworkfamilie zwischen zwei Kulturen."],
        ["Fawlty Towers", "Torquay", "Ein Hotelier, der Gäste als Störung empfindet."],
-       ["Ted Lasso", "London", "Ein amerikanischer Trainer im englischen Fußball."]]'::jsonb),
+       ["Ted Lasso", "London", "Ein amerikanischer Trainer im englischen Fußball."]]'::jsonb,
+     '[["Chicago", "Keine Serie auf diesem Brett spielt dort."],
+       ["San Francisco", "Full House spielte dort, die Serie fehlt hier."]]'::jsonb),
 
     ('film-fernsehen', 'fiktive-welten', 'Fiktive Welten & ihre Filme',
      'Zu welchem Werk gehört der Ort?',
@@ -199,7 +221,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hogwarts", "Harry Potter", "Erreichbar von Gleis neundreiviertel."],
        ["Wakanda", "Black Panther", "Hochtechnologie hinter einem Tarnschild."],
        ["Zion", "Matrix", "Die letzte menschliche Stadt tief im Erdinneren."],
-       ["Rapture", "BioShock", "Eine Stadt am Meeresgrund, gescheiterte Utopie."]]'::jsonb),
+       ["Rapture", "BioShock", "Eine Stadt am Meeresgrund, gescheiterte Utopie."]]'::jsonb,
+     '[["Narnia", "Die Chroniken von Narnia stehen nicht auf dem Brett."],
+       ["Oz", "Der Zauberer von Oz fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'filmberufe', 'Berufe am Filmset',
      'Wofür ist die Person zuständig?',
@@ -215,7 +239,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ton", "Aufnahme am Set", "Die Angel bleibt knapp außerhalb des Bildes."],
        ["Casting", "Besetzung der Rollen", "Sucht auch die kleinen Rollen aus."],
        ["Stuntkoordination", "Gefährliche Szenen", "Plant Sicherheit und Ablauf."],
-       ["Continuity", "Anschlüsse zwischen Einstellungen", "Achtet darauf, dass das Glas gleich voll bleibt."]]'::jsonb),
+       ["Continuity", "Anschlüsse zwischen Einstellungen", "Achtet darauf, dass das Glas gleich voll bleibt."]]'::jsonb,
+     '[["Musik für den Film schreiben", "Die Filmmusik steht nicht auf diesem Brett."],
+       ["Kinostart und Werbung planen", "Der Verleih kommt hier nicht vor."]]'::jsonb),
 
     ('film-fernsehen', 'fernsehgeschichte', 'Meilensteine des Fernsehens',
      'In welchem Jahr geschah das?',
@@ -230,7 +256,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erste Folge der Simpsons", "1989", "Aus kurzen Einspielern wurde eine eigene Serie."],
        ["Erste Staffel von Big Brother", "1999", "In den Niederlanden erfunden."],
        ["Gründung von YouTube", "2005", "Das erste Video zeigte einen Zoobesuch."],
-       ["Netflix beginnt mit Streaming", "2007", "Zuvor verschickte die Firma DVDs per Post."]]'::jsonb),
+       ["Netflix beginnt mit Streaming", "2007", "Zuvor verschickte die Firma DVDs per Post."]]'::jsonb,
+     '[["1994", "Kein Meilenstein auf diesem Brett fällt in dieses Jahr."],
+       ["2013", "House of Cards startete damals, das steht hier nicht."]]'::jsonb),
 
     ('film-fernsehen', 'stummfilm-stars', 'Stummfilmstars',
      'Wofür steht der Name?',
@@ -244,7 +272,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Louise Brooks", "Der Bubikopf", "Ihr Haarschnitt prägte ein Jahrzehnt."],
        ["Douglas Fairbanks", "Mantel-und-Degen-Held", "Machte seine Sprünge meist selbst."],
        ["Asta Nielsen", "Der erste europäische Filmstar", "Aus Dänemark, in Deutschland gefeiert."],
-       ["Fatty Arbuckle", "Der frühe Slapstick-Komiker", "Ein Skandal beendete seine Karriere."]]'::jsonb),
+       ["Fatty Arbuckle", "Der frühe Slapstick-Komiker", "Ein Skandal beendete seine Karriere."]]'::jsonb,
+     '[["Der Vampir aus Nosferatu", "Das wäre Max Schreck, und der steht nicht auf dem Brett."],
+       ["Die Erfinderin des Farbfilms", "Auf niemanden in dieser Liste trifft das zu."]]'::jsonb),
 
     ('film-fernsehen', 'untergenres', 'Untergenres des Films',
      'Was macht das Genre aus?',
@@ -260,7 +290,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Road Movie", "Reise als Handlung", "Das Ziel zählt weniger als der Weg."],
        ["Neo-Noir", "Film noir in Farbe", "Regen, Neon und moralische Grauzonen."],
        ["Kammerspiel", "Wenige Figuren, ein Raum", "Der Druck entsteht durch Enge."],
-       ["Katastrophenfilm", "Ereignis bedroht alle", "Ein Ensemble kämpft gegen die Naturgewalt."]]'::jsonb),
+       ["Katastrophenfilm", "Ereignis bedroht alle", "Ein Ensemble kämpft gegen die Naturgewalt."]]'::jsonb,
+     '[["Gesungene Dialoge statt gesprochener", "Das Musical fehlt auf diesem Brett."],
+       ["Verhandlung im Gerichtssaal", "Ein Genre, das hier nicht vorkommt."]]'::jsonb),
 
     ('film-fernsehen', 'anime-regisseure', 'Anime & ihre Macher',
      'Wer steht hinter dem Werk?',
@@ -274,7 +306,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Die letzten Glühwürmchen", "Isao Takahata", "Zwei Kinder im Krieg, ohne jeden Trost."],
        ["Cowboy Bebop", "Shinichirō Watanabe", "Kopfgeldjäger zu Jazzmusik."],
        ["Wolfskinder", "Mamoru Hosoda", "Eine Mutter zieht Kinder groß, die Wölfe sein können."],
-       ["Devilman Crybaby", "Masaaki Yuasa", "Ausgesprochen eigenwilliger Zeichenstil."]]'::jsonb),
+       ["Devilman Crybaby", "Masaaki Yuasa", "Ausgesprochen eigenwilliger Zeichenstil."]]'::jsonb,
+     '[["Osamu Tezuka", "Astro Boy stammt von ihm, das Werk fehlt hier."],
+       ["Gorō Miyazaki", "Er führte bei Die Chroniken von Erdsee Regie, die nicht auf dem Brett steht."]]'::jsonb),
 
     ('film-fernsehen', 'kultfilme-jahre', 'Kultfilme & Erscheinungsjahre',
      'Wann kam der Film ins Kino?',
@@ -291,7 +325,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Herr der Ringe: Die Gefährten", "2001", "Alle drei Teile wurden am Stück gedreht."],
        ["Avatar", "2009", "Machte 3D-Kino für Jahre zum Standard."],
        ["Parasite", "2019", "Erster nicht englischsprachiger Film mit dem Hauptoscar."],
-       ["Barbie", "2023", "Der Filmdreh ließ weltweit rosa Farbe knapp werden."]]'::jsonb),
+       ["Barbie", "2023", "Der Filmdreh ließ weltweit rosa Farbe knapp werden."]]'::jsonb,
+     '[["1968", "2001: Odyssee im Weltraum kam damals, der Film fehlt hier."],
+       ["2008", "The Dark Knight startete in dem Jahr, er steht nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'serienfiguren-berufe', 'Serienfiguren & ihre Berufe',
      'Was macht die Figur beruflich?',
@@ -308,7 +344,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ted Mosby", "Architekt", "Erzählt seinen Kindern eine sehr lange Geschichte."],
        ["Rick Grimes", "Sheriff", "Wacht im Krankenhaus in eine andere Welt auf."],
        ["Jack Bauer", "Antiterror-Agent", "Jede Staffel umfasst 24 Stunden."],
-       ["Leslie Knope", "Beamtin im Stadtpark-Amt", "Bürokratie mit ungebremstem Idealismus."]]'::jsonb),
+       ["Leslie Knope", "Beamtin im Stadtpark-Amt", "Bürokratie mit ungebremstem Idealismus."]]'::jsonb,
+     '[["Chemielehrer", "Walter White wäre das, und die Figur fehlt auf dem Brett."],
+       ["Werbefachmann", "Don Draper steht nicht in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'filmpreise-laender', 'Nationale Filmpreise',
      'In welchem Land wird der Preis vergeben?',
@@ -323,7 +361,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Genie Award", "Kanada", "Heute unter dem Namen Canadian Screen Award."],
        ["Filmfare Award", "Indien", "Wichtigster Preis des Hindi-Kinos."],
        ["Japan Academy Film Prize", "Japan", "Seit 1978 vergeben."],
-       ["Ariel", "Mexiko", "Ältester Filmpreis Lateinamerikas."]]'::jsonb)
+       ["Ariel", "Mexiko", "Ältester Filmpreis Lateinamerikas."]]'::jsonb,
+     '[["Österreich", "Der Österreichische Filmpreis fehlt auf dem Brett."],
+       ["Südkorea", "Die Blue Dragon Awards stehen hier nicht."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -348,15 +388,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

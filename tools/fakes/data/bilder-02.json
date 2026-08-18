@@ -1,0 +1,50 @@
+{
+  "bild-flaggen-hauptstaedte": [
+    ["Bangkok", "Die Hauptstadt Thailands, dessen Flagge hier fehlt."],
+    ["Rio de Janeiro", "Bis 1960 Hauptstadt Brasiliens, heute ist es Brasília."]
+  ],
+  "bild-flaggen-waehrungen": [
+    ["Forint", "Damit zahlt man in Ungarn, dessen Flagge auf dem Brett fehlt."],
+    ["Euro", "Kein Land in dieser Liste bezahlt damit."]
+  ],
+  "bild-umrisse-groesste-staedte": [
+    ["Melbourne", "Die zweitgrößte Stadt Australiens, nicht die größte."],
+    ["Rio de Janeiro", "Nach São Paulo die zweitgrößte Stadt Brasiliens."]
+  ],
+  "bild-wappen-landeshauptstaedte": [
+    ["Düsseldorf", "Die Landeshauptstadt Nordrhein-Westfalens, dessen Wappen hier fehlt."],
+    ["Bremen", "Ein Stadtstaat, und er steht nicht auf diesem Brett."]
+  ],
+  "bild-elemente-symbole": [
+    ["Sn", "Das Symbol für Zinn, und das Element fehlt auf diesem Brett."],
+    ["Na", "Natrium trägt es, und das steht nicht in dieser Liste."]
+  ],
+  "bild-persoenlichkeiten-wirken": [
+    ["Erste Frau im Weltall", "Walentina Tereschkowa steht dafür, und die fehlt hier."],
+    ["Penicillin", "Alexander Fleming ist auf diesem Brett nicht abgebildet."]
+  ],
+  "bild-sakralbauten-religionen": [
+    ["Zoroastrismus", "Kein Bau auf diesem Brett gehört dazu."],
+    ["Konfuzianismus", "Auch dafür steht in dieser Liste kein Bauwerk."]
+  ],
+  "bild-katzenrassen-herkunft": [
+    ["Ägypten", "Die Ägyptische Mau käme von dort, und die fehlt auf dem Brett."],
+    ["Kanada", "Die Sphynx stammt von dort, sie steht nicht in dieser Liste."]
+  ],
+  "bild-wasserfaelle-laender": [
+    ["Simbabwe", "Die Victoriafälle stürzten dort, und die fehlen auf dem Brett."],
+    ["Argentinien", "Die Iguazú-Fälle stehen nicht in dieser Liste."]
+  ],
+  "bild-autos-marken": [
+    ["Renault", "Die R4 käme von dort, und sie fehlt auf diesem Brett."],
+    ["Mini", "Der klassische Mini steht nicht in dieser Liste."]
+  ],
+  "bild-kaese-laender": [
+    ["Italien", "Der Gorgonzola käme von dort, und der fehlt auf dem Brett."],
+    ["Österreich", "Der Tiroler Bergkäse steht nicht in dieser Liste."]
+  ],
+  "bild-instrumente-herkunft": [
+    ["Australien", "Das Didgeridoo käme von dort, und das fehlt auf dem Brett."],
+    ["Argentinien", "Das Bandoneon steht nicht in dieser Liste."]
+  ]
+}

@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('film-fernsehen', 'leicht-trickfilmfiguren', 'Trickfilmfiguren',
@@ -24,7 +24,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bart", "Die Simpsons", "Er schreibt zur Strafe an die Tafel."],
        ["Spongebob", "Spongebob Schwammkopf", "Er wohnt in einer Ananas."],
        ["Pikachu", "Pokémon", "Gelb, mit Blitzschwanz."],
-       ["Olaf", "Frozen-Filme", "Ein Schneemann, der Sommer mag."]]'::jsonb),
+       ["Olaf", "Frozen-Filme", "Ein Schneemann, der Sommer mag."]]'::jsonb,
+     '[["Cinderella", "Der Film steht nicht auf diesem Brett."],
+       ["Bambi", "Auch ein Zeichentrickfilm, aber keine Figur hier stammt daraus."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-berufe-film', 'Wer macht was beim Film?',
      'Wer ist dafür zuständig?',
@@ -40,7 +42,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bezahlt den Film", "Produzent", "Ohne ihn wird nicht gedreht."],
        ["Springt bei gefährlichen Szenen ein", "Stuntman", "Er trainiert jede Bewegung."],
        ["Spricht die deutsche Fassung", "Synchronsprecher", "Er sieht dabei das Bild mit."],
-       ["Schreibt die Musik", "Filmkomponist", "Sie erzählt ohne Worte mit."]]'::jsonb),
+       ["Schreibt die Musik", "Filmkomponist", "Sie erzählt ohne Worte mit."]]'::jsonb,
+     '[["Beleuchter", "Er stellt das Licht, und danach wird hier nicht gefragt."],
+       ["Requisiteur", "Er sorgt für die Gegenstände, die auf dem Brett nicht vorkommen."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-genres', 'Filmarten',
      'Welche Filmart ist das?',
@@ -56,7 +60,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mit einem Kriminalfall", "Krimi", "Am Ende wird aufgeklärt."],
        ["Für die ganze Familie", "Familienfilm", "Auch Erwachsene langweilen sich nicht."],
        ["Gezeichnet statt gefilmt", "Zeichentrickfilm", "Früher Bild für Bild gemalt."],
-       ["Mit Gesang und Tanz", "Musicalfilm", "Die Handlung geht im Lied weiter."]]'::jsonb),
+       ["Mit Gesang und Tanz", "Musicalfilm", "Die Handlung geht im Lied weiter."]]'::jsonb,
+     '[["Kriegsfilm", "Eine eigene Filmart, die hier nicht beschrieben wird."],
+       ["Stummfilm", "Ganz ohne gesprochenes Wort, auf dem Brett steht das nicht."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-kino', 'Im Kino',
      'Was ist das?',
@@ -70,7 +76,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Text unten im Bild", "Untertitel", "Für fremdsprachige Filme."],
        ["Brille für räumliches Sehen", "3D-Brille", "Jedes Auge sieht ein anderes Bild."],
        ["Der erste Tag eines Films", "Premiere", "Oft mit den Schauspielern vor Ort."],
-       ["Kino unter freiem Himmel", "Open-Air-Kino", "Im Sommer nach Sonnenuntergang."]]'::jsonb),
+       ["Kino unter freiem Himmel", "Open-Air-Kino", "Im Sommer nach Sonnenuntergang."]]'::jsonb,
+     '[["Kinoorgel", "Sie begleitete früher Stummfilme, hier ist sie keine Antwort."],
+       ["Garderobe", "Für die Mäntel, danach fragt auf dem Brett niemand."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-fernsehformate', 'Sendungen im Fernsehen',
      'Was für eine Sendung ist das?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Geschichte in vielen Folgen", "Serie", "Eine Staffel hat mehrere Folgen."],
        ["Zeigt Tiere und Natur", "Tierdokumentation", "Oft mit ruhiger Erzählstimme."],
        ["Gespräche mit Gästen im Studio", "Talkshow", "Meist am späten Abend."],
-       ["Wirbt für Produkte", "Werbung", "Sie unterbricht das Programm."]]'::jsonb),
+       ["Wirbt für Produkte", "Werbung", "Sie unterbricht das Programm."]]'::jsonb,
+     '[["Hörspiel", "Das läuft im Radio, nicht im Fernsehen."],
+       ["Livekonzert", "Eine Übertragung, die auf diesem Brett fehlt."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-superhelden', 'Superhelden',
      'Welche Fähigkeit oder welches Zeichen gehört dazu?',
@@ -98,7 +108,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Thor", "Hammer aus dem Norden", "Nur Würdige können ihn heben."],
        ["Flash", "Rennt unglaublich schnell", "Schneller als das Auge sieht."],
        ["Captain America", "Runder Schild", "Er wirft ihn wie ein Wurfgeschoss."],
-       ["Black Panther", "König von Wakanda", "Sein Anzug speichert Energie."]]'::jsonb),
+       ["Black Panther", "König von Wakanda", "Sein Anzug speichert Energie."]]'::jsonb,
+     '[["Kann sich unsichtbar machen", "Das kann die Unsichtbare, und die steht hier nicht."],
+       ["Spricht mit Fischen", "Aquaman wäre das, und der fehlt auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-kinderfilme', 'Kinderfilme',
      'Worum geht es?',
@@ -112,7 +124,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kevin allein zu Haus", "Ein Kind bleibt zurück", "Es verteidigt das Haus mit Fallen."],
        ["Paddington", "Bär in London", "Er trägt Dufflecoat und Hut."],
        ["Die Kinder von Bullerbü", "Sommer auf dem Land", "Nach einem Buch von Astrid Lindgren."],
-       ["Findet Dorie", "Fisch ohne Gedächtnis", "Sie sucht ihre Eltern."]]'::jsonb),
+       ["Findet Dorie", "Fisch ohne Gedächtnis", "Sie sucht ihre Eltern."]]'::jsonb,
+     '[["Ein Haus fliegt an Luftballons davon", "Das ist Oben, der Film fehlt hier."],
+       ["Ein Mädchen fällt in ein Kaninchenloch", "Alice steht nicht auf diesem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-serienfiguren', 'Figuren aus Serien',
      'Aus welcher Serie stammt die Figur?',
@@ -128,7 +142,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Amerikanischer Trainer in London", "Ted Lasso", "Er kennt die Fußballregeln kaum."],
        ["Kobold in der Schreinerei", "Pumuckl", "Nur Meister Eder kann ihn sehen."],
        ["Mann mit dem grünen Mini", "Mr. Bean", "Er kommt fast ohne Worte aus."],
-       ["Sprechender Elefant aus Neustadt", "Benjamin Blümchen", "Sein Ruf klingt wie Törööö."]]'::jsonb),
+       ["Sprechender Elefant aus Neustadt", "Benjamin Blümchen", "Sein Ruf klingt wie Törööö."]]'::jsonb,
+     '[["Raumschiff Enterprise", "Captain Kirk käme daher, die Serie fehlt hier."],
+       ["Wickie und die starken Männer", "Keine Figur auf diesem Brett stammt daraus."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-filmtiere', 'Tiere im Film',
      'Welches Tier ist das?',
@@ -144,7 +160,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Nemo", "Clownfisch", "Er lebt in einer Anemone."],
        ["Balu", "Bär", "Er singt vom Nötigsten im Leben."],
        ["Shere Khan", "Tiger", "Der Gegner im Dschungelbuch."],
-       ["Hachiko", "Akita", "Er wartete jahrelang am Bahnhof."]]'::jsonb),
+       ["Hachiko", "Akita", "Er wartete jahrelang am Bahnhof."]]'::jsonb,
+     '[["Pferd", "Kein Filmtier auf diesem Brett ist ein Pferd."],
+       ["Papagei", "Kein Tier in dieser Liste ist ein Vogel."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-filmsprache', 'Wörter vom Filmset',
      'Was bedeutet das?',
@@ -158,7 +176,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Double", "Ersatz für den Schauspieler", "Bei gefährlichen Szenen."],
        ["Greenscreen", "Grüner Hintergrund", "Er wird später ersetzt."],
        ["Drehtag", "Ein Tag am Set", "Meist zwölf Stunden lang."],
-       ["Premiere", "Erste Vorführung", "Mit rotem Teppich."]]'::jsonb),
+       ["Premiere", "Erste Vorführung", "Mit rotem Teppich."]]'::jsonb,
+     '[["Die Pause zum Essen am Set", "Die Drehpause steht nicht auf dem Brett."],
+       ["Der Plan für den Drehtag", "Der Drehplan kommt hier nicht vor."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-maerchenfilme', 'Märchen im Film',
      'Welches Märchen wird erzählt?',
@@ -173,7 +193,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ein Frosch am Brunnen", "Der Froschkönig", "Eine goldene Kugel fällt hinein."],
        ["Ein Männlein mit geheimem Namen", "Rumpelstilzchen", "Es kann Stroh zu Gold spinnen."],
        ["Vier alte Tiere auf dem Weg", "Die Bremer Stadtmusikanten", "Sie vertreiben Räuber."],
-       ["Sieben auf einen Streich", "Das tapfere Schneiderlein", "Gemeint sind Fliegen."]]'::jsonb),
+       ["Sieben auf einen Streich", "Das tapfere Schneiderlein", "Gemeint sind Fliegen."]]'::jsonb,
+     '[["Ein Esel, der Gold spuckt", "Tischlein deck dich steht nicht auf dem Brett."],
+       ["Ein Mädchen mit Zündhölzern", "Das Märchen fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-filmreihen', 'Filmreihen',
      'Worum geht es in der Reihe?',
@@ -187,7 +209,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ice Age", "Tiere in der Eiszeit", "Ein Eichhörnchen jagt eine Eichel."],
        ["Die Tribute von Panem", "Ein tödlicher Wettkampf", "Nach einer Jugendbuchreihe."],
        ["Findet Nemo und Findet Dorie", "Zwei Fische suchen jemanden", "Beide spielen im Meer."],
-       ["Minions", "Kleine gelbe Helfer", "Sie sprechen eine erfundene Sprache."]]'::jsonb),
+       ["Minions", "Kleine gelbe Helfer", "Sie sprechen eine erfundene Sprache."]]'::jsonb,
+     '[["Autos, die sprechen können", "Das wäre Cars, und die Reihe fehlt hier."],
+       ["Ein Boxer aus Philadelphia", "Rocky steht nicht auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-filmlaender', 'Filme & Länder',
      'Aus welchem Land kommt das?',
@@ -201,7 +225,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Pippi Langstrumpf", "Schweden", "Nach den Büchern von Astrid Lindgren."],
        ["Wallace & Gromit", "Vereinigtes Königreich", "Knetfiguren aus Bristol."],
        ["Squid Game", "Südkorea", "Eine Serie, die weltweit lief."],
-       ["Tim und Struppi", "Belgien", "Ein Reporter mit weißem Hund."]]'::jsonb),
+       ["Tim und Struppi", "Belgien", "Ein Reporter mit weißem Hund."]]'::jsonb,
+     '[["Spanien", "Keine Zeile auf diesem Brett führt dorthin."],
+       ["Australien", "Auch von dort kommen Filme, hier steht keiner."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-geraeusche', 'Ton & Musik im Film',
      'Wozu dient das?',
@@ -215,7 +241,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Stimme aus dem Off", "Erklärt oder erzählt", "Die Person ist nicht im Bild."],
        ["Lautes Krachen", "Schreckt auf", "Der Klassiker im Horrorfilm."],
        ["Musik einer Figur", "Kennzeichnet sie", "Sie erklingt, wenn die Figur kommt."],
-       ["Originalton am Drehort", "Klingt natürlich", "Wind und Vögel inklusive."]]'::jsonb),
+       ["Originalton am Drehort", "Klingt natürlich", "Wind und Vögel inklusive."]]'::jsonb,
+     '[["Verrät, wo die Kamera steht", "Kein Ton auf diesem Brett tut das."],
+       ["Ersetzt die Untertitel", "Dafür ist keine Zeile hier gedacht."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-fernsehgeraet', 'Fernsehen zu Hause',
      'Was ist das?',
@@ -229,7 +257,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zahl der Zuschauer", "Einschaltquote", "Sie entscheidet über Fortsetzungen."],
        ["Sendung, die gerade läuft", "Livesendung", "Fehler sind sofort zu sehen."],
        ["Wiederholung einer alten Folge", "Wiederholung", "Beliebt am Nachmittag."],
-       ["Dienst mit Serien im Netz", "Streamingdienst", "Ohne festen Sendeplan."]]'::jsonb),
+       ["Dienst mit Serien im Netz", "Streamingdienst", "Ohne festen Sendeplan."]]'::jsonb,
+     '[["Satellitenschüssel", "Sie holt das Signal, danach fragt hier niemand."],
+       ["Videorekorder", "Ein Gerät von früher, das auf dem Brett nicht vorkommt."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-schauspieler-bekannt', 'Bekannte Gesichter',
      'Wofür ist die Person bekannt?',
@@ -244,7 +274,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Til Schweiger", "Deutsche Kinokomödien", "Regie und Hauptrolle in einem."],
        ["Mr. Bean", "Komik fast ohne Worte", "Gespielt von Rowan Atkinson."],
        ["Jackie Chan", "Kampfszenen mit Humor", "Er macht viele Stunts selbst."],
-       ["Emma Watson", "Hermine Granger", "Sie studierte nebenbei."]]'::jsonb),
+       ["Emma Watson", "Hermine Granger", "Sie studierte nebenbei."]]'::jsonb,
+     '[["Bud Spencer", "Bekannt für Prügelkomödien, er steht nicht auf dem Brett."],
+       ["Louis de Funès", "Der französische Komiker fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-orte-film', 'Orte im Film',
      'Wo spielt das?',
@@ -258,7 +290,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jurassic Park", "Insel mit Dinosauriern", "Vor der Küste Costa Ricas."],
        ["Gotham City", "Stadt von Batman", "Immer dunkel und regnerisch."],
        ["Hundertmorgenwald", "Zuhause von Winnie Puuh", "Mit Ferkel und I-Aah."],
-       ["Lummerland", "Insel mit zwei Bergen", "Dort wohnt Jim Knopf."]]'::jsonb),
+       ["Lummerland", "Insel mit zwei Bergen", "Dort wohnt Jim Knopf."]]'::jsonb,
+     '[["Narnia", "Die Welt hinter dem Schrank steht nicht auf dem Brett."],
+       ["Atlantis", "Die versunkene Stadt fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-filmtechnik-einfach', 'Wie Filme gemacht werden',
      'Wie nennt man das?',
@@ -272,7 +306,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rückblick in die Vergangenheit", "Rückblende", "Oft anders eingefärbt."],
        ["Ende mit offenem Ausgang", "Cliffhanger", "Man wartet auf die nächste Folge."],
        ["Szene ganz ohne Schnitt", "Plansequenz", "Alles muss auf Anhieb sitzen."],
-       ["Schauspieler in dicker Maske", "Maskenbild", "Stunden im Stuhl vor dem Dreh."]]'::jsonb),
+       ["Schauspieler in dicker Maske", "Maskenbild", "Stunden im Stuhl vor dem Dreh."]]'::jsonb,
+     '[["Zwei Bilder nebeneinander", "Der geteilte Bildschirm steht nicht auf dem Brett."],
+       ["Das Bild wird langsam dunkel", "Die Abblende kommt hier nicht vor."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-preise-film', 'Preise & Erfolg',
      'Was ist das?',
@@ -286,7 +322,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bewertung durch Fachleute", "Filmkritik", "Sie erscheint zum Kinostart."],
        ["Feierliche Verleihung", "Gala", "Mit rotem Teppich davor."],
        ["Nominierung", "Vorschlag für den Preis", "Gewonnen hat man damit noch nicht."],
-       ["Fortsetzung eines Erfolgs", "Zweiter Teil", "Selten so gut wie der erste."]]'::jsonb),
+       ["Fortsetzung eines Erfolgs", "Zweiter Teil", "Selten so gut wie der erste."]]'::jsonb,
+     '[["Der Publikumspreis", "Eine Auszeichnung, die hier nicht beschrieben wird."],
+       ["Die Goldene Himbeere", "Der Preis für den schlechtesten Film fehlt auf dem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'leicht-comicverfilmung', 'Von Papier auf die Leinwand',
      'Woher stammt die Figur ursprünglich?',
@@ -300,7 +338,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Die Simpsons", "Kurze Zeichentrickfilme", "Zuerst als Einspieler im Fernsehen."],
        ["Werner", "Deutscher Comic", "Von Rötger Feldmann."],
        ["Mangas wie Naruto", "Japanischer Comic", "Von rechts nach links gelesen."],
-       ["Der kleine Maulwurf", "Tschechischer Zeichentrick", "Fast ohne Worte."]]'::jsonb)
+       ["Der kleine Maulwurf", "Tschechischer Zeichentrick", "Fast ohne Worte."]]'::jsonb,
+     '[["Britischer Comic", "Keine Figur auf diesem Brett stammt von dort."],
+       ["Amerikanischer Zeitungsstrip", "Garfield käme daher, und der steht hier nicht."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -325,15 +365,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

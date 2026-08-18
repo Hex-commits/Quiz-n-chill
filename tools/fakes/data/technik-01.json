@@ -1,0 +1,82 @@
+{
+  "dateiformate": [
+    ["Tabelle mit Formeln und Formatierung", "Das wäre XLSX, und das fehlt auf diesem Brett."],
+    ["Schriftart für den Rechner", "Die Datei TTF steht nicht in dieser Liste."]
+  ],
+  "netzwerk-ports": [
+    ["3306", "Der Port von MySQL, und die Datenbank fehlt auf diesem Brett."],
+    ["8080", "Ein häufiger Ausweichport für HTTP, hier aber keine Antwort."]
+  ],
+  "it-abkuerzungen": [
+    ["Nur-Lese-Speicher", "Das wäre ROM, und das fehlt auf diesem Brett."],
+    ["Adresse eines Geräts im Netz", "Die IP-Adresse steht nicht in dieser Liste."]
+  ],
+  "betriebssysteme-hersteller": [
+    ["Oracle", "Oracle Linux käme von dort, und das fehlt auf diesem Brett."],
+    ["Nokia", "Symbian stammte von dort, es steht nicht in dieser Liste."]
+  ],
+  "computerpioniere": [
+    ["Erste Programmiererin der Geschichte", "Das wäre Ada Lovelace, und die fehlt hier."],
+    ["Objektorientierung mit Smalltalk", "Alan Kay steht nicht auf diesem Brett."]
+  ],
+  "elektronik-bauteile": [
+    ["Wandelt Schall in Spannung", "Das Mikrofon ist kein Bauteil auf diesem Brett."],
+    ["Erzeugt eine feste Ausgangsspannung", "Der Spannungsregler fehlt in dieser Liste."]
+  ],
+  "automarken-konzerne": [
+    ["Ford", "Lincoln gehörte dazu, und die Marke fehlt auf diesem Brett."],
+    ["Mercedes-Benz Group", "Smart gehört dorthin, es steht nicht in dieser Liste."]
+  ],
+  "smartphone-technik": [
+    ["Funk der fünften Generation", "Das wäre 5G, und das fehlt auf diesem Brett."],
+    ["Entsperren per Fingerabdruck", "Der Sensor steht nicht in dieser Liste."]
+  ],
+  "flugzeuge-hersteller": [
+    ["Lockheed", "Die SR-71 käme von dort, und sie fehlt auf diesem Brett."],
+    ["Tupolew", "Die Tu-144 steht nicht in dieser Liste."]
+  ],
+  "raketen-laender": [
+    ["Nordkorea", "Die Unha stammt von dort, und sie fehlt auf diesem Brett."],
+    ["Ukraine", "Die Zenit steht nicht in dieser Liste."]
+  ],
+  "top-level-domains": [
+    ["Italien", "Die Endung .it gehört dorthin, und sie fehlt auf dem Brett."],
+    ["Schweden", "Die Endung .se steht nicht in dieser Liste."]
+  ],
+  "werkzeuge-verwendung": [
+    ["Löcher in Wände bohren", "Die Bohrmaschine fehlt auf diesem Brett."],
+    ["Nägel einschlagen", "Der Hammer steht nicht in dieser Liste."]
+  ],
+  "autotechnik-bauteile": [
+    ["Kühlt den Motor mit Flüssigkeit", "Der Kühler fehlt auf diesem Brett."],
+    ["Filtert Ruß aus den Abgasen", "Der Partikelfilter steht nicht in dieser Liste."]
+  ],
+  "software-zweck": [
+    ["Präsentationen erstellen", "PowerPoint fehlt auf diesem Brett."],
+    ["Videos schneiden", "Ein Schnittprogramm steht nicht in dieser Liste."]
+  ],
+  "messgeraete": [
+    ["Temperatur", "Das Thermometer fehlt auf diesem Brett."],
+    ["Höhe über dem Meer", "Der Höhenmesser steht nicht in dieser Liste."]
+  ],
+  "it-sicherheit": [
+    ["Kopie der Daten für den Notfall", "Das Backup fehlt auf diesem Brett."],
+    ["Programm, das sich selbst verbreitet", "Der Wurm steht nicht in dieser Liste."]
+  ],
+  "marken-branchen": [
+    ["Möbel", "Ikea wäre die Marke dazu, und die fehlt auf diesem Brett."],
+    ["Fluggesellschaften", "Keine Marke in dieser Liste gehört dorthin."]
+  ],
+  "bahntechnik": [
+    ["Rad, das auf der Schiene läuft", "Der Radsatz fehlt auf diesem Brett."],
+    ["Bremsen mit Druckluft", "Die Druckluftbremse steht nicht in dieser Liste."]
+  ],
+  "ki-begriffe": [
+    ["Zahl der Bilder pro Sekunde", "Das hat mit künstlicher Intelligenz nichts zu tun."],
+    ["Modell ohne jedes Training", "Kein Begriff auf diesem Brett meint das."]
+  ],
+  "fototechnik": [
+    ["Bildgröße in Megapixeln", "Sie lässt sich nicht einstellen und fehlt hier."],
+    ["Selbstauslöser mit Verzögerung", "Er steht nicht auf diesem Brett."]
+  ]
+}

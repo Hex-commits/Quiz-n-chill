@@ -6,7 +6,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('technik', 'leicht-haushaltsgeraete', 'Geräte im Haushalt',
@@ -24,7 +24,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kleidung glatt machen", "Bügeleisen", "Dampf hilft gegen hartnäckige Falten."],
        ["Kaffee aufbrühen", "Kaffeemaschine", "Heißes Wasser läuft durch den Filter."],
        ["Haare trocknen", "Föhn", "Ein Gebläse bläst über eine Heizspirale."],
-       ["Zeit beim Kochen messen", "Küchenwecker", "Er klingelt, wenn die Zeit um ist."]]'::jsonb),
+       ["Zeit beim Kochen messen", "Küchenwecker", "Er klingelt, wenn die Zeit um ist."]]'::jsonb,
+     '[["Nähmaschine", "Sie näht Stoff, danach fragt auf diesem Brett keine Zeile."],
+       ["Ventilator", "Er bewegt Luft, und das kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('technik', 'leicht-werkzeuge', 'Werkzeuge',
      'Wofür braucht man das?',
@@ -40,7 +42,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schraubstock", "Werkstück einspannen", "So bleiben beide Hände frei."],
        ["Pinsel", "Farbe auftragen", "Danach gut auswaschen."],
        ["Schleifpapier", "Oberflächen glätten", "Je höher die Zahl, desto feiner."],
-       ["Leiter", "Höhe erreichen", "Immer im richtigen Winkel anstellen."]]'::jsonb),
+       ["Leiter", "Höhe erreichen", "Immer im richtigen Winkel anstellen."]]'::jsonb,
+     '[["Schrauben mit Kraft festziehen", "Der Akkuschrauber fehlt auf diesem Brett."],
+       ["Draht durchtrennen", "Der Seitenschneider steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-fahrzeuge', 'Fahrzeuge',
      'Wozu dient das Fahrzeug?',
@@ -56,7 +60,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Schulbus", "Kinder befördern", "Er hält an festen Haltestellen."],
        ["Rettungshubschrauber", "Schnell zum Unfallort", "Er landet auch auf der Autobahn."],
        ["Straßenbahn", "Nahverkehr auf Schienen", "Sie fährt auf Schienen im Straßenraum."],
-       ["Gabelstapler", "Paletten heben", "Das Gegengewicht sitzt hinten."]]'::jsonb),
+       ["Gabelstapler", "Paletten heben", "Das Gegengewicht sitzt hinten."]]'::jsonb,
+     '[["Post austragen", "Das Postauto fehlt auf diesem Brett."],
+       ["Straßen kehren", "Die Kehrmaschine steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-verkehrszeichen', 'Verkehrszeichen',
      'Was bedeutet das Schild?',
@@ -71,7 +77,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Roter Kreis, weiß gefüllt, roter Balken", "Durchfahrt verboten", "Für alle Fahrzeuge."],
        ["Rotes Dreieck mit spielenden Kindern", "Kinder in der Nähe", "Oft vor Schulen."],
        ["Blaues Schild mit weißem Pfeil", "Vorgeschriebene Fahrtrichtung", "Man muss dorthin abbiegen."],
-       ["Weiße Zickzacklinie am Rand", "Halteverbot", "Meist an Haltestellen."]]'::jsonb),
+       ["Weiße Zickzacklinie am Rand", "Halteverbot", "Meist an Haltestellen."]]'::jsonb,
+     '[["Grüner Pfeil neben der Ampel", "Er erlaubt Rechtsabbiegen und fehlt auf diesem Brett."],
+       ["Blaues Schild mit weißem P", "Das Parkschild steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-computer', 'Am Computer',
      'Wie heißt das Teil?',
@@ -87,7 +95,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kleiner Stecker zum Mitnehmen von Dateien", "USB-Stick", "Passt in jede Hosentasche."],
        ["Damit spricht man in Videokonferenzen", "Mikrofon", "Es wandelt Schall in Spannung."],
        ["Ein tragbarer Computer", "Laptop", "Bildschirm und Tastatur klappen zusammen."],
-       ["Das Bild, das man aufhebt", "Screenshot", "Ein Foto vom eigenen Bildschirm."]]'::jsonb),
+       ["Das Bild, das man aufhebt", "Screenshot", "Ein Foto vom eigenen Bildschirm."]]'::jsonb,
+     '[["Damit liest man Papier ein", "Der Scanner fehlt auf diesem Brett."],
+       ["Damit sichert man Daten außerhalb", "Die externe Festplatte steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-fahrrad', 'Am Fahrrad',
      'Wie heißt der Teil?',
@@ -103,7 +113,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hält das Rad im Stand aufrecht", "Ständer", "Meist am Rahmen unten."],
        ["Schützt vor Spritzwasser", "Schutzblech", "Rennräder verzichten darauf."],
        ["Erzeugt Strom beim Fahren", "Dynamo", "Am Reifen oder in der Nabe."],
-       ["Trägt Gepäck über dem Hinterrad", "Gepäckträger", "Mit Spanngurten gesichert."]]'::jsonb),
+       ["Trägt Gepäck über dem Hinterrad", "Gepäckträger", "Mit Spanngurten gesichert."]]'::jsonb,
+     '[["Wechselt zwischen den Gängen", "Die Schaltung fehlt auf diesem Brett."],
+       ["Sichert das Rad beim Abstellen", "Das Schloss steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-erfindungen-alltag', 'Erfindungen des Alltags',
      'Wozu wurde das erfunden?',
@@ -119,7 +131,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Brille", "Schärfer sehen", "Linsen gleichen den Augenfehler aus."],
        ["Kompass", "Die Richtung finden", "Die Nadel zeigt nach Norden."],
        ["Batterie", "Strom mitnehmen", "Chemische Energie wird elektrisch."],
-       ["Streichholz", "Feuer schnell entzünden", "Der Kopf entzündet sich durch Reibung."]]'::jsonb),
+       ["Streichholz", "Feuer schnell entzünden", "Der Kopf entzündet sich durch Reibung."]]'::jsonb,
+     '[["Nachrichten über weite Strecken funken", "Das Radio fehlt auf diesem Brett."],
+       ["Wäsche ohne Hand waschen", "Die Waschmaschine steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-energie', 'Woher der Strom kommt',
      'Was liefert hier die Energie?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Erdwärmekraftwerk", "Wärme aus der Tiefe", "Heißes Wasser treibt eine Turbine."],
        ["Gezeitenkraftwerk", "Ebbe und Flut", "Der Wechsel treibt die Turbine an."],
        ["Batterie im Handy", "Gespeicherte Chemie", "Sie wird beim Laden wieder aufgefüllt."],
-       ["Fahrraddynamo", "Muskelkraft", "Der Widerstand ist beim Treten zu spüren."]]'::jsonb),
+       ["Fahrraddynamo", "Muskelkraft", "Der Widerstand ist beim Treten zu spüren."]]'::jsonb,
+     '[["Verbrennung von Erdgas", "Das Gaskraftwerk fehlt auf diesem Brett."],
+       ["Bewegung der Wellen im Meer", "Das Wellenkraftwerk steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-kueche-technik', 'Technik in der Küche',
      'Was passiert dabei?',
@@ -147,7 +163,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Brot bleibt offen liegen", "Es wird hart", "Es verliert Feuchtigkeit."],
        ["Salat mit Salz bestreut", "Er zieht Wasser", "Das Salz entzieht es den Zellen."],
        ["Kaltes Glas an einem warmen Tag", "Es beschlägt", "Luftfeuchtigkeit schlägt sich nieder."],
-       ["Öl wird zu heiß", "Es raucht", "Dann sollte man es nicht mehr verwenden."]]'::jsonb),
+       ["Öl wird zu heiß", "Es raucht", "Dann sollte man es nicht mehr verwenden."]]'::jsonb,
+     '[["Wasser bei minus fünf Grad", "Es gefriert, und das steht nicht auf diesem Brett."],
+       ["Mehl in kaltes Wasser gerührt", "Davon ist in dieser Liste nicht die Rede."]]'::jsonb),
 
     ('technik', 'leicht-telefon', 'Telefon & Handy',
      'Was bedeutet das?',
@@ -163,7 +181,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mailbox", "Anrufbeantworter im Netz", "Sie springt nach einigen Sekunden an."],
        ["Vorwahl", "Kennzahl für einen Ort", "Bei Auslandsgesprächen mit zwei Nullen."],
        ["Kontakte", "Gespeicherte Rufnummern", "Früher stand alles im Telefonbuch."],
-       ["Notruf 112", "Feuerwehr und Rettungsdienst", "In ganz Europa dieselbe Nummer."]]'::jsonb),
+       ["Notruf 112", "Feuerwehr und Rettungsdienst", "In ganz Europa dieselbe Nummer."]]'::jsonb,
+     '[["Speicherplatz im Netz", "Die Cloud fehlt auf diesem Brett."],
+       ["Schutzhülle für das Gerät", "Sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-material', 'Woraus ist das gemacht?',
      'Aus welchem Material besteht es meistens?',
@@ -179,7 +199,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Plastiktüte", "Kunststoff", "Aus Erdöl hergestellt."],
        ["Gehweg vor dem Haus", "Beton", "Druckfest, aber ohne Stahl zugschwach."],
        ["Dachziegel", "Gebrannter Ton", "Hält Jahrzehnte."],
-       ["Löffel im Besteckkasten", "Metall", "Meist rostfreier Stahl."]]'::jsonb),
+       ["Löffel im Besteckkasten", "Metall", "Meist rostfreier Stahl."]]'::jsonb,
+     '[["Leder", "Kein Gegenstand auf diesem Brett besteht daraus."],
+       ["Papier", "Es kommt in dieser Liste nicht vor."]]'::jsonb),
 
     ('technik', 'leicht-sicherheit', 'Sicherheit im Alltag',
      'Wozu dient das?',
@@ -193,7 +215,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Verbandskasten", "Erste Hilfe leisten", "Das Verfallsdatum sollte stimmen."],
        ["Notausgangsschild", "Zeigt den Fluchtweg", "Grün mit weißer Figur."],
        ["Kindersicherung an der Steckdose", "Schützt vor Stromschlag", "Kleine Klappen im Inneren."],
-       ["Blitzableiter", "Leitet den Blitz ab", "Über einen Draht ins Erdreich."]]'::jsonb),
+       ["Blitzableiter", "Leitet den Blitz ab", "Über einen Draht ins Erdreich."]]'::jsonb,
+     '[["Zeigt die Uhrzeit an", "Das dient keiner Sicherheit auf diesem Brett."],
+       ["Türspion in der Wohnungstür", "Er fehlt in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-messen', 'Messen im Alltag',
      'Womit misst man das?',
@@ -207,7 +231,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Strom im Haushalt", "Stromzähler", "Er läuft, solange etwas eingeschaltet ist."],
        ["Mehl beim Backen", "Küchenwaage", "Genauer als jeder Messbecher."],
        ["Blutdruck", "Blutdruckmessgerät", "Zwei Werte, oberer und unterer."],
-       ["Regenmenge im Garten", "Regenmesser", "Angegeben in Millimetern."]]'::jsonb),
+       ["Regenmenge im Garten", "Regenmesser", "Angegeben in Millimetern."]]'::jsonb,
+     '[["Lautstärke im Raum", "Das Schallpegelmessgerät fehlt auf diesem Brett."],
+       ["Windgeschwindigkeit", "Das Anemometer steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-internet', 'Im Internet',
      'Was ist das?',
@@ -223,7 +249,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Betrugsmail, die Daten abgreifen will", "Phishing", "Sie sieht echten Mails täuschend ähnlich."],
        ["Videos ansehen ohne Herunterladen", "Streaming", "Die Daten kommen laufend an."],
        ["Regelmäßige Aktualisierung eines Programms", "Update", "Es schließt oft Sicherheitslücken."],
-       ["Sicherungskopie der eigenen Daten", "Backup", "Erst die Rücksicherung beweist, dass es funktioniert."]]'::jsonb),
+       ["Sicherungskopie der eigenen Daten", "Backup", "Erst die Rücksicherung beweist, dass es funktioniert."]]'::jsonb,
+     '[["Datenmenge, die man im Monat verbraucht", "Das Datenvolumen fehlt auf diesem Brett."],
+       ["Programm, das Schaden anrichtet", "Der Virus steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-bauen', 'Auf der Baustelle',
      'Wer oder was macht das?',
@@ -237,7 +265,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Plant das Haus vorher", "Architekt", "Ohne Plan keine Baugenehmigung."],
        ["Hebt Erde für den Keller aus", "Bagger", "Der Aushub wird abgefahren."],
        ["Hebt schwere Teile nach oben", "Kran", "Er wächst mit dem Gebäude."],
-       ["Gerüst an der Fassade", "Gerüstbauer", "Es muss geprüft und freigegeben werden."]]'::jsonb),
+       ["Gerüst an der Fassade", "Gerüstbauer", "Es muss geprüft und freigegeben werden."]]'::jsonb,
+     '[["Betoniert das Fundament", "Der Betonbauer fehlt auf diesem Brett."],
+       ["Setzt die Fenster ein", "Der Fensterbauer steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-flugzeug-schiff', 'Flugzeug & Schiff',
      'Wie heißt der Teil oder die Person?',
@@ -253,7 +283,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rettet bei Seenot", "Rettungsring", "Er ist auffällig orange."],
        ["Startbahn für Flugzeuge", "Landebahn", "Ihre Nummer zeigt die Himmelsrichtung."],
        ["Ort, an dem Schiffe anlegen", "Hafen", "Kräne heben die Container."],
-       ["Kleines Boot an Bord", "Rettungsboot", "Es hängt an Davits an der Seite."]]'::jsonb),
+       ["Kleines Boot an Bord", "Rettungsboot", "Es hängt an Davits an der Seite."]]'::jsonb,
+     '[["Weist dem Flugzeug den Weg am Boden", "Der Lotse fehlt auf diesem Brett."],
+       ["Treibt das Schiff durch das Wasser", "Die Schiffsschraube steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-zeichen', 'Symbole an Geräten',
      'Was bedeutet das Zeichen?',
@@ -269,7 +301,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Diskette", "Speichern", "Ein Gerät, das kaum jemand mehr kennt."],
        ["Batteriesymbol mit Blitz", "Wird geladen", "Es füllt sich langsam auf."],
        ["Drei waagerechte Striche", "Menü", "Es heißt scherzhaft Hamburger."],
-       ["Wolke", "Speicher im Netz", "Die Daten liegen auf fremden Servern."]]'::jsonb),
+       ["Wolke", "Speicher im Netz", "Die Daten liegen auf fremden Servern."]]'::jsonb,
+     '[["Pfeil im Kreis", "Er steht für Wiederholen und fehlt auf diesem Brett."],
+       ["Glocke", "Sie steht für Benachrichtigungen und fehlt in dieser Liste."]]'::jsonb),
 
     ('technik', 'leicht-strom-sparen', 'Strom & Wasser sparen',
      'Was hilft dabei?',
@@ -283,7 +317,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Beim Heizen im Winter", "Stoßlüften statt Kipplüften", "Kurz und weit öffnen."],
        ["Kühlschranktür", "Nicht lange offen lassen", "Die kalte Luft fällt heraus."],
        ["Beim Duschen statt Baden", "Weniger Warmwasser", "Eine Wanne fasst ein Vielfaches."],
-       ["Beim Wasserkocher", "Nur nötige Menge erhitzen", "Überschüssiges Wasser wird umsonst erhitzt."]]'::jsonb),
+       ["Beim Wasserkocher", "Nur nötige Menge erhitzen", "Überschüssiges Wasser wird umsonst erhitzt."]]'::jsonb,
+     '[["Alle Fenster den ganzen Tag kippen", "Das verschwendet Wärme, statt zu sparen."],
+       ["Die Heizung im Sommer laufen lassen", "Auch das spart nichts."]]'::jsonb),
 
     ('technik', 'leicht-medien-geraete', 'Geräte für Bild & Ton',
      'Wofür ist das Gerät da?',
@@ -298,7 +334,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Plattenspieler", "Schallplatten abspielen", "Die Nadel folgt der Rille."],
        ["Fernbedienung", "Aus der Ferne steuern", "Meist über Infrarot."],
        ["Spielkonsole", "Videospiele spielen", "Anschluss an den Fernseher."],
-       ["Bluetooth-Box", "Musik drahtlos abspielen", "Verbindung über kurze Distanz."]]'::jsonb),
+       ["Bluetooth-Box", "Musik drahtlos abspielen", "Verbindung über kurze Distanz."]]'::jsonb,
+     '[["Musik auf einer Kassette abspielen", "Der Kassettenrekorder fehlt auf diesem Brett."],
+       ["Das Bild größer machen", "Kein Gerät in dieser Liste ist dafür da."]]'::jsonb),
 
     ('technik', 'leicht-berufe-technik', 'Technische Berufe',
      'Wer macht das?',
@@ -314,7 +352,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kümmert sich um kranke Tiere", "Tierarzt", "Auch nachts im Einsatz."],
        ["Baut und wartet Heizungen", "Anlagenmechaniker", "Zunehmend mit Wärmepumpen."],
        ["Verlegt Fliesen", "Fliesenleger", "Die Fugen kommen ganz zum Schluss."],
-       ["Steuert einen Zug", "Lokführer", "Er kennt die Strecke auswendig."]]'::jsonb)
+       ["Steuert einen Zug", "Lokführer", "Er kennt die Strecke auswendig."]]'::jsonb,
+     '[["Baut Straßen und Wege", "Der Straßenbauer fehlt auf diesem Brett."],
+       ["Repariert Uhren", "Der Uhrmacher steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -339,15 +379,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

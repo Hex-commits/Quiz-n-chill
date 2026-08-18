@@ -23,7 +23,7 @@ import pytest
 
 from app.schemas import Category, CategoryKind, ImagePublic, ItemSolution, LobbyStatus
 from app.services import lobbies
-from app.services.lobbies import BOARD_PAIRS, deal_board
+from app.services.lobbies import BOARD_FAKES, BOARD_PAIRS, deal_board
 
 from tests.test_lobbies import clean_store  # noqa: F401  -- the autouse fixture
 
@@ -253,7 +253,7 @@ def test_the_review_shows_each_photograph_beside_its_answer(picture_game):
 
 
 
-def big_round(pairs: int):
+def big_round(pairs: int, fakes: int = 0):
     cats = [Category(id=uuid4(), label=f"Bild {n}", position=n) for n in range(pairs)]
     return lobbies.Round(
         quiz_id=uuid4(), slug="s", title="T", description=None, difficulty="medium",
@@ -261,6 +261,10 @@ def big_round(pairs: int):
         items=[
             ItemSolution(id=uuid4(), label=f"Land {n}", position=n, category_id=c.id)
             for n, c in enumerate(cats)
+        ] + [
+            ItemSolution(id=uuid4(), label=f"Falsch {n}", position=pairs + n,
+                         category_id=None)
+            for n in range(fakes)
         ],
     )
 
@@ -301,3 +305,39 @@ def test_a_dealt_board_keeps_the_written_order():
     dealt = deal_board(big_round(3), random.Random(3))
     positions = [c.position for c in dealt.categories]
     assert positions == sorted(positions)
+
+
+def test_a_dealt_board_keeps_its_fakes():
+    """Cutting the pairs down to a board must not cut the fakes away with them:
+    they have no category to be sampled along with, so the filter that trims
+    the pairs would drop every one."""
+    dealt = deal_board(big_round(30, fakes=2), random.Random(1))
+
+    assert len(dealt.categories) == BOARD_PAIRS
+    assert sum(1 for i in dealt.items if i.category_id is None) == 2
+    assert len(dealt.items) == BOARD_PAIRS + 2
+
+
+def test_a_board_never_carries_more_fakes_than_it_should():
+    """Otherwise a question written with six of them would be the one board in
+    the game where a third of the pool belongs nowhere."""
+    dealt = deal_board(big_round(30, fakes=6), random.Random(1))
+
+    assert sum(1 for i in dealt.items if i.category_id is None) == BOARD_FAKES
+
+
+def test_a_small_question_with_extra_fakes_is_still_trimmed():
+    """The early return for a question that fits is about the pairs. A board
+    small enough to deal whole can still be carrying too many fakes."""
+    stored = big_round(6, fakes=5)
+
+    dealt = deal_board(stored, random.Random(0))
+
+    assert len(dealt.categories) == 6
+    assert sum(1 for i in dealt.items if i.category_id is None) == BOARD_FAKES
+    assert len(stored.items) == 11
+
+
+def test_a_question_without_fakes_deals_exactly_as_before():
+    stored = big_round(6)
+    assert deal_board(stored, random.Random(0)) is stored

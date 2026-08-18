@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('musik', 'komponisten-laender', 'Komponisten & Herkunftsländer',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Edward Elgar", "England", "Bekannt für Pomp and Circumstance."],
        ["Modest Mussorgski", "Russland", "Bilder einer Ausstellung stammen von ihm."],
        ["Manuel de Falla", "Spanien", "Verband andalusische Volksmusik mit der Moderne."],
-       ["Heitor Villa-Lobos", "Brasilien", "Verband Bach mit brasilianischer Folklore."]]'::jsonb),
+       ["Heitor Villa-Lobos", "Brasilien", "Verband Bach mit brasilianischer Folklore."]]'::jsonb,
+     '[["Österreich", "Mozart und Schubert stammten von dort, beide fehlen auf dem Brett."],
+       ["Griechenland", "Mikis Theodorakis käme von dort, und der steht hier nicht."]]'::jsonb),
 
     ('musik', 'dirigenten-orchester', 'Dirigenten & ihre Orchester',
      'Welches Ensemble leitete die Person prägend?',
@@ -36,7 +38,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Valery Gergiev", "Mariinski-Theater", "Dirigiert oft ohne Taktstock."],
        ["Iván Fischer", "Budapest Festival Orchestra", "Von ihm mitgegründet."],
        ["Andris Nelsons", "Gewandhausorchester", "Verbindet Leipzig und Boston."],
-       ["Claudio Abbado", "Lucerne Festival Orchestra", "Stellte es aus befreundeten Solisten zusammen."]]'::jsonb),
+       ["Claudio Abbado", "Lucerne Festival Orchestra", "Stellte es aus befreundeten Solisten zusammen."]]'::jsonb,
+     '[["Wiener Philharmoniker", "Kein Dirigent auf diesem Brett ist ihnen hier zugeordnet."],
+       ["Concertgebouworkest", "Bernard Haitink leitete es, und der fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'popstars-laender', 'Popstars & Herkunftsländer',
      'Aus welchem Land kommt die Person?',
@@ -52,7 +56,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zaz", "Frankreich", "Aus Straßenmusik zur internationalen Bühne."],
        ["Nena", "Deutschland", "Ihr Neunundneunzig-Luftballons-Lied lief weltweit."],
        ["Robyn", "Schweden", "Prägte den melancholischen Elektropop."],
-       ["Bad Bunny", "Puerto Rico", "Machte spanischsprachigen Trap weltweit populär."]]'::jsonb),
+       ["Bad Bunny", "Puerto Rico", "Machte spanischsprachigen Trap weltweit populär."]]'::jsonb,
+     '[["Irland", "Sinéad O''Connor käme von dort, und sie fehlt auf dem Brett."],
+       ["Nigeria", "Burna Boy steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'songs-interpreten', 'Songs & Interpreten',
      'Wer hat den Song aufgenommen?',
@@ -68,7 +74,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["What''s Going On", "Marvin Gaye", "Sein Label wollte es zunächst nicht veröffentlichen."],
        ["Lose Yourself", "Eminem", "Erster Rap-Song mit einem Oscar."],
        ["Rolling in the Deep", "Adele", "Im Wohnzimmer entstanden, sagt sie selbst."],
-       ["Purple Haze", "Jimi Hendrix", "Bekannt für den überraschenden Akkord."]]'::jsonb),
+       ["Purple Haze", "Jimi Hendrix", "Bekannt für den überraschenden Akkord."]]'::jsonb,
+     '[["The Rolling Stones", "Satisfaction wäre der Song dazu, und der fehlt hier."],
+       ["Whitney Houston", "I Will Always Love You steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'nationalhymnen', 'Nationalhymnen & Länder',
      'Zu welchem Land gehört die Hymne?',
@@ -84,7 +92,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Nkosi Sikelel’ iAfrika", "Südafrika", "Vereint fünf Sprachen in einem Lied."],
        ["Hatikwa", "Israel", "Der Titel bedeutet die Hoffnung."],
        ["Mazurek Dąbrowskiego", "Polen", "Im Rhythmus eines Volkstanzes."],
-       ["Ode an die Freude", "Europäische Union", "Ohne Text, um keine Sprache zu bevorzugen."]]'::jsonb),
+       ["Ode an die Freude", "Europäische Union", "Ohne Text, um keine Sprache zu bevorzugen."]]'::jsonb,
+     '[["Spanien", "Die Marcha Real hat keinen Text, und sie fehlt auf dem Brett."],
+       ["Österreich", "Land der Berge steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'musikstaedte', 'Städte & ihre Musik',
      'Wofür steht die Stadt in der Musik?',
@@ -100,7 +110,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["New Orleans", "Preservation Hall", "Traditioneller Jazz, jeden Abend live."],
        ["Berlin", "Technoclubs", "Nach 1989 zogen Clubs in leerstehende Gebäude."],
        ["Bayreuth", "Wagner-Festspiele", "Nur Werke eines einzigen Komponisten."],
-       ["Rio de Janeiro", "Samba-Schulen", "Ganzjährige Vorbereitung auf den Karneval."]]'::jsonb),
+       ["Rio de Janeiro", "Samba-Schulen", "Ganzjährige Vorbereitung auf den Karneval."]]'::jsonb,
+     '[["Seattle", "Der Grunge kam von dort, und die Stadt fehlt auf diesem Brett."],
+       ["Manchester", "Die Hacienda stand dort, sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'spielweisen', 'Spielanweisungen für Streicher',
      'Wie wird gespielt?',
@@ -117,7 +129,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Col legno", "Mit dem Bogenholz", "Erzeugt ein trockenes Klopfen."],
        ["Sul ponticello", "Dicht am Steg", "Klingt gläsern und obertonreich."],
        ["Sul tasto", "Über dem Griffbrett", "Weich und flötenartig."],
-       ["Bartók-Pizzicato", "Saite schlägt aufs Griffbrett", "Ein hörbarer Knall."]]'::jsonb),
+       ["Bartók-Pizzicato", "Saite schlägt aufs Griffbrett", "Ein hörbarer Knall."]]'::jsonb,
+     '[["Mit der flachen Hand aufs Instrument", "Keine Anweisung auf diesem Brett meint das."],
+       ["Auf zwei Instrumenten zugleich", "So etwas verlangt keine Zeile hier."]]'::jsonb),
 
     ('musik', 'kirchenmusik-formen', 'Formen der Kirchenmusik',
      'Was bezeichnet die Form?',
@@ -133,7 +147,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Magnificat", "Lobgesang Marias", "Text aus dem Lukasevangelium."],
        ["Gregorianischer Gesang", "Einstimmiger lateinischer Gesang", "Ohne Begleitung und ohne Taktordnung."],
        ["Choralvorspiel", "Orgelstück vor dem Lied", "Führt die Gemeinde in die Melodie ein."],
-       ["Halleluja", "Jubelruf im Gottesdienst", "In der Fastenzeit ausgelassen."]]'::jsonb),
+       ["Halleluja", "Jubelruf im Gottesdienst", "In der Fastenzeit ausgelassen."]]'::jsonb,
+     '[["Stabat Mater", "Eine eigene Form, die auf diesem Brett fehlt."],
+       ["Weihnachtslied der Gemeinde", "Das Adventslied steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'elektronische-geraete', 'Geräte der elektronischen Musik',
      'Was macht das Gerät?',
@@ -148,7 +164,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sequenzer", "Spielt Tonfolgen automatisch", "Ursprünglich ein Schrittprogramm."],
        ["MIDI", "Steuerdaten statt Klang", "Geräte verschiedener Hersteller verstehen einander."],
        ["Digital Audio Workstation", "Studio als Software", "Aufnehmen, schneiden und mischen im Rechner."],
-       ["Effektpedal", "Verändert das Signal", "Verzerrung, Hall oder Verzögerung."]]'::jsonb),
+       ["Effektpedal", "Verändert das Signal", "Verzerrung, Hall oder Verzögerung."]]'::jsonb,
+     '[["Verstärkt das Signal für die Box", "Der Verstärker ist keine Antwort auf diesem Brett."],
+       ["Nimmt den Schall über eine Membran auf", "Das Mikrofon fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'instrumentenbauer', 'Instrumentenbauer',
      'Wofür ist der Name bekannt?',
@@ -163,7 +181,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ludwig", "Schlagzeuge", "Ringo Starrs Set machte die Marke bekannt."],
        ["Hammond", "Elektrische Orgeln", "Der Klang entsteht durch rotierende Zahnräder."],
        ["Silbermann", "Barockorgeln in Sachsen", "Bach schätzte und kritisierte sie zugleich."],
-       ["Sabian", "Becken", "Aus einer kanadischen Familienwerkstatt hervorgegangen."]]'::jsonb),
+       ["Sabian", "Becken", "Aus einer kanadischen Familienwerkstatt hervorgegangen."]]'::jsonb,
+     '[["Fender", "Auch für E-Gitarren bekannt, aber nicht auf diesem Brett."],
+       ["Bösendorfer", "Die Wiener Flügel stehen nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'musikindustrie-begriffe', 'Begriffe der Musikbranche',
      'Was bedeutet der Begriff?',
@@ -180,7 +200,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["GEMA", "Verwertungsgesellschaft", "Zieht Gebühren ein und schüttet sie aus."],
        ["Goldene Schallplatte", "Auszeichnung ab einer Verkaufsschwelle", "Die Grenze ist je Land verschieden."],
        ["Booking", "Vermittlung von Auftritten", "Regelt Termine, Gage und Ablauf."],
-       ["Mastering", "Letzter Schliff der Aufnahme", "Sorgt für einheitlichen Klang über alle Titel."]]'::jsonb),
+       ["Mastering", "Letzter Schliff der Aufnahme", "Sorgt für einheitlichen Klang über alle Titel."]]'::jsonb,
+     '[["Aufnahme im Studio", "Die Session ist kein Begriff auf diesem Brett."],
+       ["Verkaufszahl in einer Woche", "Die Chartplatzierung fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'musikalische-formen', 'Musikalische Formen',
      'Was kennzeichnet die Form?',
@@ -197,7 +219,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Etüde", "Übungsstück mit einer Schwierigkeit", "Bei Chopin zugleich Konzertmusik."],
        ["Präludium", "Vorspiel zu einem Werk", "Oft frei und improvisatorisch."],
        ["Ouvertüre", "Eröffnung einer Oper", "Nimmt Themen des Abends vorweg."],
-       ["Nocturne", "Ruhiges Nachtstück", "Meist für Klavier, sangliche Oberstimme."]]'::jsonb),
+       ["Nocturne", "Ruhiges Nachtstück", "Meist für Klavier, sangliche Oberstimme."]]'::jsonb,
+     '[["Streichquartett", "Eine Besetzung und eine Form, die hier nicht steht."],
+       ["Serenade", "Ein Ständchen am Abend, und es fehlt auf diesem Brett."]]'::jsonb),
 
     ('musik', 'hiphop-begriffe', 'Begriffe des Hip-Hop',
      'Was bezeichnet der Begriff?',
@@ -213,7 +237,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Breakdance", "Tanz zu den Breaks", "Aus den Blockpartys der Bronx."],
        ["Crew", "Feste Gruppe", "Rapper, DJs, Tänzer und Sprüher zusammen."],
        ["Hook", "Wiederkehrender Refrain", "Bleibt im Ohr, oft gesungen."],
-       ["Beat", "Instrumentales Grundgerüst", "Wird von Produzenten geliefert."]]'::jsonb),
+       ["Beat", "Instrumentales Grundgerüst", "Wird von Produzenten geliefert."]]'::jsonb,
+     '[["Sprühbild an der Wand", "Graffiti gehört dazu, steht aber nicht auf dem Brett."],
+       ["Party mit zwei Plattenspielern", "Der Block Party fehlt in dieser Liste."]]'::jsonb),
 
     ('musik', 'opernsaengerinnen', 'Opernsängerinnen & Länder',
      'Aus welchem Land stammt die Sängerin?',
@@ -229,7 +255,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Janet Baker", "England", "Vor allem im Konzertfach und bei Händel geschätzt."],
        ["Anne Sofie von Otter", "Schweden", "Vom Barock bis zum Chanson zu Hause."],
        ["Sonya Yoncheva", "Bulgarien", "Aus dem Barock ins große italienische Fach gewechselt."],
-       ["Sumi Jo", "Südkorea", "Koloratursopran mit Karriere in ganz Europa."]]'::jsonb),
+       ["Sumi Jo", "Südkorea", "Koloratursopran mit Karriere in ganz Europa."]]'::jsonb,
+     '[["Frankreich", "Natalie Dessay käme von dort, und sie fehlt auf dem Brett."],
+       ["Norwegen", "Kirsten Flagstad steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'songwriter-duos', 'Songwriter-Duos',
      'Wofür steht das Gespann?',
@@ -243,7 +271,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Bacharach und David", "Eleganter Sixties-Pop", "Ungewöhnliche Takte in Radiohits."],
        ["Gilbert und Sullivan", "Englische Operette", "Text und Musik im viktorianischen England."],
        ["Simon und Garfunkel", "Folk-Duo der 1960er", "Bridge over Troubled Water als Höhepunkt."],
-       ["Ashford und Simpson", "Soul-Klassiker", "Ein Ehepaar mit langer Erfolgsliste."]]'::jsonb),
+       ["Ashford und Simpson", "Soul-Klassiker", "Ein Ehepaar mit langer Erfolgsliste."]]'::jsonb,
+     '[["Abba", "Andersson und Ulvaeus schrieben dafür, das Gespann fehlt auf dem Brett."],
+       ["Pet Shop Boys", "Tennant und Lowe stehen nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'perkussion-herkunft', 'Trommeln & ihre Herkunft',
      'Woher stammt das Schlaginstrument?',
@@ -260,7 +290,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Congas", "Kuba", "Aus afrokubanischen Zeremonien in die Tanzmusik."],
        ["Bendir", "Nordafrika", "Rahmentrommel mit Schnarrsaite."],
        ["Doira", "Zentralasien", "Rahmentrommel mit klingenden Ringen."],
-       ["Pauke", "Europäisches Orchester", "Über ein Pedal auf feste Töne stimmbar."]]'::jsonb),
+       ["Pauke", "Europäisches Orchester", "Über ein Pedal auf feste Töne stimmbar."]]'::jsonb,
+     '[["Ghana", "Die Djembé kommt aus Westafrika, Ghana steht hier aber nicht."],
+       ["Australien", "Die Klanghölzer der Aborigines fehlen auf diesem Brett."]]'::jsonb),
 
     ('musik', 'musikhochschulen', 'Musikhochschulen & Städte',
      'In welcher Stadt steht das Haus?',
@@ -275,7 +307,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sibelius-Akademie", "Helsinki", "Größte Musikhochschule Nordeuropas."],
        ["Accademia di Santa Cecilia", "Rom", "Aus einer Musikergilde des 16. Jahrhunderts."],
        ["Hochschule für Musik Hanns Eisler", "Berlin", "Im Osten der Stadt gegründet."],
-       ["Berklee College of Music", "Boston", "Schwerpunkt auf Jazz und populärer Musik."]]'::jsonb),
+       ["Berklee College of Music", "Boston", "Schwerpunkt auf Jazz und populärer Musik."]]'::jsonb,
+     '[["Wien", "Die Universität für Musik steht dort, und sie fehlt auf dem Brett."],
+       ["Tokio", "Die Geidai steht nicht in dieser Liste."]]'::jsonb),
 
     ('musik', 'elektronische-stile', 'Stile der elektronischen Tanzmusik',
      'Was kennzeichnet den Stil?',
@@ -290,7 +324,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Electro", "Roboterhafte Beats", "Angelehnt an die frühe Kraftwerk-Ästhetik."],
        ["Minimal", "Wenige Elemente, kleine Veränderungen", "Wirkung entsteht durch Geduld."],
        ["Downtempo", "Langsame elektronische Musik", "Für Lounge und Chill-out."],
-       ["Hardstyle", "Verzerrte Kick mit Melodie", "Große Festivalbühnen prägen den Stil."]]'::jsonb),
+       ["Hardstyle", "Verzerrte Kick mit Melodie", "Große Festivalbühnen prägen den Stil."]]'::jsonb,
+     '[["Techno", "Der Ursprungsstil aus Detroit fehlt auf diesem Brett."],
+       ["Ganz ohne Schlagzeug und Bass", "Auf keinen Stil in dieser Liste trifft das zu."]]'::jsonb),
 
     ('musik', 'klavierstuecke', 'Klavierstücke & Komponisten',
      'Wer schrieb das Klavierstück?',
@@ -304,7 +340,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Träumerei", "Robert Schumann", "Aus den Kinderszenen."],
        ["Goldberg-Variationen", "Johann Sebastian Bach", "Aria mit dreißig Variationen."],
        ["Prélude cis-Moll", "Sergei Rachmaninow", "Machte ihn mit neunzehn Jahren berühmt."],
-       ["Für Alina", "Arvo Pärt", "Nur wenige Töne, in großer Ruhe gesetzt."]]'::jsonb),
+       ["Für Alina", "Arvo Pärt", "Nur wenige Töne, in großer Ruhe gesetzt."]]'::jsonb,
+     '[["Franz Schubert", "Die Impromptus wären die Stücke dazu, und sie fehlen hier."],
+       ["Scott Joplin", "The Entertainer steht nicht auf diesem Brett."]]'::jsonb),
 
     ('musik', 'akustik-begriffe', 'Musik & Akustik',
      'Was beschreibt der Begriff?',
@@ -318,7 +356,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Dissonanz", "Als spannungsreich empfunden", "Verlangt in der Tonalität eine Auflösung."],
        ["Kammerton", "Bezugston zum Stimmen", "Heute meist 440 Hertz."],
        ["Nachhallzeit", "Wie lange nachklingt", "Für Konzertsäle sorgfältig geplant."],
-       ["Absolutes Gehör", "Tonhöhe ohne Vergleich erkennen", "Selten und meist früh erworben."]]'::jsonb)
+       ["Absolutes Gehör", "Tonhöhe ohne Vergleich erkennen", "Selten und meist früh erworben."]]'::jsonb,
+     '[["Wie schnell der Schall reist", "Die Schallgeschwindigkeit fehlt auf diesem Brett."],
+       ["Zahl der Instrumente im Raum", "Das beschreibt kein Begriff in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -343,15 +383,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

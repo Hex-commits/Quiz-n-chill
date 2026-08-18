@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('naturwissenschaft', 'elemente-verwendung', 'Elemente & ihre Verwendung',
@@ -21,7 +21,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Iod", "Schilddrüsenhormone", "Ohne Zufuhr wächst die Drüse zum Kropf."],
        ["Argon", "Schutzgas beim Schweißen", "Reagiert mit nichts und hält Luft von der Naht fern."],
        ["Fluor", "Zahnpasta", "Härtet den Zahnschmelz gegen Säure."],
-       ["Platin", "Autokatalysator", "Wandelt Abgase um, ohne selbst verbraucht zu werden."]]'::jsonb),
+       ["Platin", "Autokatalysator", "Wandelt Abgase um, ohne selbst verbraucht zu werden."]]'::jsonb,
+     '[["Bleistiftminen", "Dafür braucht es Graphit, und Kohlenstoff steht nicht auf dem Brett."],
+       ["Fieberthermometer von früher", "Das war Quecksilber, und das fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'planeten-merkmale', 'Planeten & ihre Besonderheiten',
      'Welcher Himmelskörper ist gemeint?',
@@ -35,7 +37,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Liegende Rotationsachse", "Uranus", "Rollt praktisch auf seiner Bahn um die Sonne."],
        ["Stärkste Winde", "Neptun", "Bis zu 2000 Kilometer pro Stunde."],
        ["2006 zum Zwergplaneten erklärt", "Pluto", "Er räumt seine Bahn nicht frei."],
-       ["Größter Körper im Asteroidengürtel", "Ceres", "Rund ein Viertel der Masse des ganzen Gürtels."]]'::jsonb),
+       ["Größter Körper im Asteroidengürtel", "Ceres", "Rund ein Viertel der Masse des ganzen Gürtels."]]'::jsonb,
+     '[["Größter Mond des Sonnensystems", "Das ist Ganymed, und der fehlt auf diesem Brett."],
+       ["Schweif aus Staub und Gas", "Das trifft auf Kometen zu, die hier nicht stehen."]]'::jsonb),
 
     ('naturwissenschaft', 'knochen-namen', 'Knochen & ihre deutschen Namen',
      'Welcher Knochen ist das?',
@@ -51,7 +55,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sternum", "Brustbein", "An ihm setzen die Rippenknorpel an."],
        ["Patella", "Kniescheibe", "Größter Knochen, der in einer Sehne liegt."],
        ["Mandibula", "Unterkiefer", "Einziger frei beweglicher Schädelknochen."],
-       ["Calcaneus", "Fersenbein", "Größter Knochen des Fußes."]]'::jsonb),
+       ["Calcaneus", "Fersenbein", "Größter Knochen des Fußes."]]'::jsonb,
+     '[["Wirbel", "Vertebra wäre der Name dazu, und der fehlt auf diesem Brett."],
+       ["Steißbein", "Das Os coccygis steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'hormone-wirkungen', 'Hormone & ihre Wirkung',
      'Was bewirkt das Hormon?',
@@ -67,7 +73,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Oxytocin", "Wehen und Bindung", "Löst Kontraktionen aus und stärkt die Bindung."],
        ["Somatropin", "Längenwachstum", "Wachstumshormon aus der Hirnanhangdrüse."],
        ["Prolaktin", "Milchbildung", "Steigt nach der Geburt stark an."],
-       ["Vasopressin", "Hält Wasser zurück", "Die Niere gibt weniger Harn ab."]]'::jsonb),
+       ["Vasopressin", "Hält Wasser zurück", "Die Niere gibt weniger Harn ab."]]'::jsonb,
+     '[["Bindet Sauerstoff im Blut", "Das leistet Hämoglobin, und das ist kein Hormon."],
+       ["Löst Niesreiz aus", "Kein Hormon auf diesem Brett tut das."]]'::jsonb),
 
     ('naturwissenschaft', 'vitamine-mangel', 'Vitamine & Mangelkrankheiten',
      'Welcher Mangel ruft die Krankheit hervor?',
@@ -83,7 +91,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Eingerissene Mundwinkel", "Vitamin B2", "Auch Haut und Schleimhäute werden empfindlich."],
        ["Kropf", "Iod", "Die Schilddrüse wächst, um den Mangel auszugleichen."],
        ["Blutarmut mit Blässe", "Eisen", "Ohne es fehlt der rote Blutfarbstoff."],
-       ["Osteoporose", "Calcium", "Die Knochendichte nimmt ab, Brüche häufen sich."]]'::jsonb),
+       ["Osteoporose", "Calcium", "Die Knochendichte nimmt ab, Brüche häufen sich."]]'::jsonb,
+     '[["Vitamin E", "Sein Mangel ruft keine Krankheit auf diesem Brett hervor."],
+       ["Magnesium", "Ein Mangel führt zu Krämpfen, die hier nicht stehen."]]'::jsonb),
 
     ('naturwissenschaft', 'wissenschaftler-theorien', 'Forscher & ihre Theorien',
      'Wer steht hinter dieser Erkenntnis?',
@@ -100,7 +110,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Keime als Krankheitsursache", "Louis Pasteur", "Erhitzen tötet die Erreger in Milch und Wein."],
        ["Kontinentaldrift", "Alfred Wegener", "Die Kontinente passen wie Puzzleteile zusammen."],
        ["Radioaktivität", "Marie Curie", "Sie fand Polonium und Radium in der Pechblende."],
-       ["Bau der DNA-Doppelhelix", "Rosalind Franklin", "Ihr Röntgenbild 51 zeigte die Schraubenform."]]'::jsonb),
+       ["Bau der DNA-Doppelhelix", "Rosalind Franklin", "Ihr Röntgenbild 51 zeigte die Schraubenform."]]'::jsonb,
+     '[["Periodensystem der Elemente", "Das geht auf Mendelejew zurück, der hier fehlt."],
+       ["Nikolaus Kopernikus", "Das heliozentrische Weltbild steht nicht auf diesem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'tiere-rekorde', 'Tiere & ihre Rekorde',
      'Welches Tier hält diesen Rekord?',
@@ -116,7 +128,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ältestes Wirbeltier", "Grönlandhai", "Wird über 250 Jahre alt."],
        ["Überlebt selbst im Vakuum", "Bärtierchen", "Übersteht Kälte, Hitze und Strahlung im Trockenstarre-Zustand."],
        ["Stärkstes Gift im Tierreich", "Seewespe", "Eine Würfelqualle, deren Nesselgift binnen Minuten tötet."],
-       ["Lauteste Rufe", "Pistolenkrebs", "Der Knall seiner Schere übertönt ein Schiffsmotorengeräusch."]]'::jsonb),
+       ["Lauteste Rufe", "Pistolenkrebs", "Der Knall seiner Schere übertönt ein Schiffsmotorengeräusch."]]'::jsonb,
+     '[["Längstes Tier der Erde", "Das ist der Nesseltier-Staat, der hier nicht steht."],
+       ["Kleinstes Säugetier", "Die Schweinsnasenfledermaus fehlt auf diesem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'mohs-haerteskala', 'Mohssche Härteskala',
      'Welche Härte hat das Mineral auf der Skala?',
@@ -130,7 +144,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Quarz", "7", "Ritzt Glas; als Sandkorn überall vorhanden."],
        ["Topas", "8", "Ritzt Quarz, wird selbst von Korund geritzt."],
        ["Korund", "9", "Als Rubin und Saphir ein Schmuckstein."],
-       ["Diamant", "10", "Härtestes natürliches Mineral, nur von sich selbst ritzbar."]]'::jsonb),
+       ["Diamant", "10", "Härtestes natürliches Mineral, nur von sich selbst ritzbar."]]'::jsonb,
+     '[["0", "Die Skala beginnt bei eins, eine Null gibt es nicht."],
+       ["11", "Die Skala endet beim Diamanten mit zehn."]]'::jsonb),
 
     ('naturwissenschaft', 'verbindungen-alltagsnamen', 'Chemische Namen & Alltagsnamen',
      'Wie heißt der Stoff im Alltag?',
@@ -147,7 +163,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ammoniak in Wasser", "Salmiakgeist", "Stechend riechender Haushaltsreiniger."],
        ["Schwefelsäure", "Batteriesäure", "Im Bleiakku des Autos enthalten."],
        ["Wasserstoffperoxid", "Bleichmittel", "Zerfällt zu Wasser und Sauerstoff."],
-       ["Distickstoffmonoxid", "Lachgas", "Früher als Narkosemittel beim Zahnarzt."]]'::jsonb),
+       ["Distickstoffmonoxid", "Lachgas", "Früher als Narkosemittel beim Zahnarzt."]]'::jsonb,
+     '[["Zitronensäure", "Sie steckt in Entkalkern, ihr chemischer Name fehlt hier."],
+       ["Trockeneis", "Das ist festes Kohlendioxid, und das steht nicht auf dem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'erreger-krankheiten', 'Erreger & Krankheiten',
      'Welche Krankheit löst der Erreger aus?',
@@ -164,7 +182,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Borrelia burgdorferi", "Borreliose", "Von Zecken übertragen, oft mit Wanderröte."],
        ["Clostridium tetani", "Wundstarrkrampf", "Sein Gift lässt die Muskeln verkrampfen."],
        ["Rabiesvirus", "Tollwut", "Wandert entlang der Nerven ins Gehirn."],
-       ["Salmonella", "Salmonellose", "Häufig über rohe Eier oder Geflügel übertragen."]]'::jsonb),
+       ["Salmonella", "Salmonellose", "Häufig über rohe Eier oder Geflügel übertragen."]]'::jsonb,
+     '[["Masern", "Das Masernvirus wäre der Erreger dazu, und der fehlt hier."],
+       ["Fußpilz", "Er wird von Pilzen verursacht, die in dieser Liste nicht stehen."]]'::jsonb),
 
     ('naturwissenschaft', 'sterne-sternbilder', 'Sterne & Sternbilder',
      'In welchem Sternbild steht der Stern?',
@@ -180,7 +200,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Spica", "Jungfrau", "Der Name bedeutet Kornähre."],
        ["Capella", "Fuhrmann", "In Mitteleuropa das ganze Jahr über sichtbar."],
        ["Prokyon", "Kleiner Hund", "Geht kurz vor Sirius auf, daher der Name."],
-       ["Arktur", "Bärenhüter", "Zu finden, indem man die Deichsel des Wagens verlängert."]]'::jsonb),
+       ["Arktur", "Bärenhüter", "Zu finden, indem man die Deichsel des Wagens verlängert."]]'::jsonb,
+     '[["Kassiopeia", "Kein Stern auf diesem Brett steht in diesem Sternbild."],
+       ["Großer Wagen", "Das ist kein eigenes Sternbild, sondern Teil des Großen Bären."]]'::jsonb),
 
     ('naturwissenschaft', 'erdzeitalter', 'Erdzeitalter & ihre Kennzeichen',
      'Wofür steht diese Periode der Erdgeschichte?',
@@ -197,7 +219,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kreide", "Ende der Dinosaurier", "Ein Einschlag auf Yucatán beendet die Epoche."],
        ["Paläogen", "Aufstieg der Säugetiere", "Die frei gewordenen Lebensräume werden neu besetzt."],
        ["Neogen", "Erste Menschenaffen", "In Afrika entstehen die Vorfahren des Menschen."],
-       ["Quartär", "Eiszeiten", "Gletscher reichen mehrfach bis nach Norddeutschland."]]'::jsonb),
+       ["Quartär", "Eiszeiten", "Gletscher reichen mehrfach bis nach Norddeutschland."]]'::jsonb,
+     '[["Erste Vielzeller im Wasser", "Das gehört ins Ediacarium, das hier fehlt."],
+       ["Bildung der ersten Kontinente", "Das war im Präkambrium, und das steht nicht auf dem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'baumarten-merkmale', 'Bäume & ihre Merkmale',
      'Woran ist der Baum zu erkennen?',
@@ -213,7 +237,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Weide", "Kätzchen im Frühjahr", "Blüht, bevor die Blätter kommen."],
        ["Linde", "Herzförmige Blätter", "Der Fruchtstand hängt an einem Flugblatt."],
        ["Esche", "Schwarze Knospen", "Im Winter das sicherste Erkennungszeichen."],
-       ["Eibe", "Roter Samenmantel", "Alle übrigen Teile des Baums sind giftig."]]'::jsonb),
+       ["Eibe", "Roter Samenmantel", "Alle übrigen Teile des Baums sind giftig."]]'::jsonb,
+     '[["Stachelige Blätter und rote Beeren", "Das wäre die Stechpalme, und die fehlt hier."],
+       ["Rinde löst sich in Platten ab", "Die Platane steht nicht auf diesem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'gesteine-entstehung', 'Gesteine & ihre Entstehung',
      'Woraus ist das Gestein entstanden?',
@@ -229,7 +255,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Konglomerat", "Verkittete Kiesel", "Runde Gerölle in feiner Grundmasse."],
        ["Marmor", "Umgewandelter Kalkstein", "Hitze und Druck ließen den Kalk neu kristallisieren."],
        ["Gneis", "Umgewandelter Granit", "Zeigt eine deutliche Bänderung."],
-       ["Tonschiefer", "Umgewandelter Ton", "Spaltet sich in dünne Platten, früher für Dächer."]]'::jsonb),
+       ["Tonschiefer", "Umgewandelter Ton", "Spaltet sich in dünne Platten, früher für Dächer."]]'::jsonb,
+     '[["Zusammengepresster Meeresschlamm", "Der Tonstein fehlt auf diesem Brett."],
+       ["Eingeschlagener Meteorit", "Impaktgestein steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'raumsonden-ziele', 'Raumsonden & ihre Ziele',
      'Wohin flog die Mission?',
@@ -245,7 +273,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hayabusa2", "Asteroid Ryugu", "Brachte Bodenproben zur Erde zurück."],
        ["Venera 7", "Venus", "Erste weiche Landung auf einem anderen Planeten."],
        ["Messenger", "Merkur", "Erste Sonde im Orbit des sonnennächsten Planeten."],
-       ["James-Webb-Teleskop", "Frühes Universum", "Beobachtet im Infraroten von einem Punkt hinter der Erde aus."]]'::jsonb),
+       ["James-Webb-Teleskop", "Frühes Universum", "Beobachtet im Infraroten von einem Punkt hinter der Erde aus."]]'::jsonb,
+     '[["Uranus", "Nur Voyager 2 flog dorthin, und die Sonde fehlt auf dem Brett."],
+       ["Titan", "Die Landesonde Huygens erreichte ihn, sie steht hier nicht."]]'::jsonb),
 
     ('naturwissenschaft', 'einheiten-praefixe', 'Vorsätze der Maßeinheiten',
      'Für welchen Faktor steht der Vorsatz?',
@@ -262,7 +292,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mikro", "Millionstel", "Geschrieben mit dem griechischen my."],
        ["Nano", "Milliardstel", "Vom griechischen nanos, Zwerg."],
        ["Piko", "Billionstel", "Gebräuchlich bei Kondensatoren."],
-       ["Femto", "Billiardstel", "In dieser Größenordnung dauern chemische Reaktionsschritte."]]'::jsonb),
+       ["Femto", "Billiardstel", "In dieser Größenordnung dauern chemische Reaktionsschritte."]]'::jsonb,
+     '[["Milliardstel eines Milliardstels", "Kein Vorsatz auf diesem Brett meint das."],
+       ["Zehn", "Deka wäre der Vorsatz dazu, und der fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'genetik-begriffe', 'Begriffe der Genetik',
      'Was bezeichnet der Begriff?',
@@ -278,7 +310,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Meiose", "Halbierung des Chromosomensatzes", "Führt zu Ei- und Samenzellen."],
        ["Phänotyp", "Äußeres Erscheinungsbild", "Ergebnis von Erbgut und Umwelt."],
        ["Genotyp", "Genetische Ausstattung", "Die Anlagen selbst, unabhängig vom Aussehen."],
-       ["Rezessiv", "Nur doppelt sichtbar", "Zeigt sich erst, wenn beide Allele gleich sind."]]'::jsonb),
+       ["Rezessiv", "Nur doppelt sichtbar", "Zeigt sich erst, wenn beide Allele gleich sind."]]'::jsonb,
+     '[["Zelle ohne Zellkern", "Das beschreibt Prokaryoten, kein Begriff auf dem Brett."],
+       ["Übertragung durch Viren", "Die Transduktion steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'nobelpreise-entdeckungen', 'Nobelpreise & Entdeckungen',
      'Wer wurde dafür ausgezeichnet?',
@@ -294,7 +328,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Genschere CRISPR", "Emmanuelle Charpentier", "Erlaubt gezielte Schnitte im Erbgut."],
        ["Blaue Leuchtdiode", "Shuji Nakamura", "Machte weißes LED-Licht überhaupt erst möglich."],
        ["Struktur des Insulins", "Frederick Sanger", "Erste vollständig entschlüsselte Proteinsequenz."],
-       ["Gravitationswellen", "Rainer Weiss", "2015 erstmals direkt gemessen, von LIGO."]]'::jsonb),
+       ["Gravitationswellen", "Rainer Weiss", "2015 erstmals direkt gemessen, von LIGO."]]'::jsonb,
+     '[["Entdeckung des Penicillins", "Alexander Fleming wurde dafür geehrt, er fehlt hier."],
+       ["Niels Bohr", "Sein Atommodell steht nicht auf diesem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'experimente-personen', 'Berühmte Experimente',
      'Wer führte den Versuch durch?',
@@ -310,7 +346,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Magdeburger Halbkugeln", "Otto von Guericke", "Sechzehn Pferde bekamen die leergepumpten Kugeln nicht auseinander."],
        ["Wärmeäquivalent", "James Prescott Joule", "Rührwerk im Wasser: Arbeit lässt sich in Wärme umrechnen."],
        ["Nachweis der Radiowellen", "Heinrich Hertz", "Bestätigte die Vorhersage von Maxwell."],
-       ["Ursuppen-Experiment", "Stanley Miller", "Aus einfachen Gasen entstanden Aminosäuren."]]'::jsonb),
+       ["Ursuppen-Experiment", "Stanley Miller", "Aus einfachen Gasen entstanden Aminosäuren."]]'::jsonb,
+     '[["Nachweis der Erdrotation im Labor", "Das leistete Foucaults Pendel, und das steht schon da."],
+       ["Kartoffelversuche zur Vererbung", "Mendel arbeitete mit Erbsen, und er fehlt auf dem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'mathematische-konstanten', 'Mathematische Konstanten',
      'Wofür steht diese Zahl?',
@@ -325,7 +363,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Eins", "Neutrales Element der Multiplikation", "Jede Zahl bleibt bei Multiplikation sie selbst."],
        ["Unendlich", "Größer als jede Zahl", "Kein Zahlenwert, sondern ein Grenzverhalten."],
        ["Feigenbaum-Konstante", "Weg ins Chaos", "Taucht bei Periodenverdopplungen immer wieder auf."],
-       ["Eulersche Identität", "Verknüpft fünf Grundzahlen", "Verbindet e, i, Pi, Eins und Null in einer Gleichung."]]'::jsonb)
+       ["Eulersche Identität", "Verknüpft fünf Grundzahlen", "Verbindet e, i, Pi, Eins und Null in einer Gleichung."]]'::jsonb,
+     '[["Verhältnis von Fläche zu Umfang", "Keine Konstante auf diesem Brett steht dafür."],
+       ["Kleinste Primzahl", "Die Zwei ist es, und danach fragt hier keine Zeile."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -350,15 +390,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

@@ -2,16 +2,18 @@
 --
 -- Content is German; identifiers stay English.
 --
--- **Every question is a one-to-one pairing.** One category, one answer, and
--- every answer belongs to exactly one category. There are no extra answers and
--- no category holds two -- the database enforces both, with a NOT NULL on
--- items.category_id and a unique (quiz_id, category_id).
+-- **Every question is a one-to-one pairing, plus two fakes.** One category,
+-- one answer, and no category holds two -- `unique (quiz_id, category_id)`
+-- enforces that. What it does not enforce is that every answer has a category:
+-- the two fakes per board belong to none, and spotting them is part of the
+-- game. See supabase/migrations/20260818120000_fake_answers.sql.
 --
 -- Each question is one row of the `spec` table below:
 --
 --   subject, slug, title, description,
 --   difficulty, source_title, source_url,
---   '[["Kategorie", "Antwort", "Begründung"], ...]'
+--   '[["Kategorie", "Antwort", "Begründung"], ...]',
+--   '[["Falsche Antwort", "Warum sie nirgends passt"], ...]'
 --
 -- The third element is shown to the player *after* the round, underneath the
 -- answer it belongs to, so a lost round still teaches something. It gives the
@@ -54,7 +56,7 @@ insert into subjects (slug, name, description, position) values
 
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     -- === Geografie =========================================================
@@ -68,7 +70,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Portugal", "Lissabon", "Hauptstadt seit 1255, davor Coimbra."],
        ["Österreich", "Wien", "Hauptstadt und zugleich eigenes Bundesland."],
        ["Polen", "Warschau", "Hauptstadt seit 1596, davor Krakau."],
-       ["Griechenland", "Athen", "Hauptstadt seit 1834, kurz nach der Unabhängigkeit."]]'::jsonb),
+       ["Griechenland", "Athen", "Hauptstadt seit 1834, kurz nach der Unabhängigkeit."]]'::jsonb,
+     '[["Amsterdam", "Die Hauptstadt der Niederlande, und das Land fehlt auf dem Brett."],
+       ["Zürich", "Die größte Stadt der Schweiz, aber nicht deren Hauptstadt."]]'::jsonb),
 
     ('geografie', 'fluesse-hauptstaedte', 'Flüsse & Hauptstädte',
      'An welchem Fluss liegt die Stadt?',
@@ -80,7 +84,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tiber", "Rom", "Die Stadt wuchs auf den Hügeln über dem Tiber."],
        ["Spree", "Berlin", "Die Spree durchfließt die Stadt und mündet dort in die Havel."],
        ["Moldau", "Prag", "Die Moldau teilt die Stadt, überspannt von der Karlsbrücke."],
-       ["Weichsel", "Warschau", "Die Weichsel trennt die Innenstadt vom Stadtteil Praga."]]'::jsonb),
+       ["Weichsel", "Warschau", "Die Weichsel trennt die Innenstadt vom Stadtteil Praga."]]'::jsonb,
+     '[["Hamburg", "Es liegt an der Elbe, und die fehlt auf diesem Brett."],
+       ["Lissabon", "Es liegt am Tejo, der hier nicht steht."]]'::jsonb),
 
     ('geografie', 'laender-waehrungen', 'Länder & Währungen',
      'Welche Währung gehört zu welchem Land?',
@@ -92,7 +98,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Russland", "Rubel", "Eine der ältesten noch genutzten Währungen Europas."],
        ["Dänemark", "Dänische Krone", "Das Land behielt sie und trat dem Euro nicht bei."],
        ["Vereinigtes Königreich", "Pfund Sterling", "Älteste durchgehend genutzte Währung der Welt."],
-       ["Südafrika", "Rand", "Benannt nach dem Goldgebiet Witwatersrand."]]'::jsonb),
+       ["Südafrika", "Rand", "Benannt nach dem Goldgebiet Witwatersrand."]]'::jsonb,
+     '[["Forint", "Damit zahlt man in Ungarn, das auf diesem Brett fehlt."],
+       ["Real", "Die Währung Brasiliens, und das steht nicht in dieser Liste."]]'::jsonb),
 
     -- === Geschichte ========================================================
     ('geschichte', 'beruehmte-herrscher', 'Berühmte Herrscher',
@@ -104,7 +112,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Makedonien", "Alexander der Große", "Zog bis nach Indien und gründete Alexandria."],
        ["Mongolei", "Dschingis Khan", "Einte die Stämme und gründete das Mongolenreich."],
        ["England", "Elisabeth I.", "Regierte 1558 bis 1603, das elisabethanische Zeitalter."],
-       ["Preußen", "Friedrich der Große", "König von 1740 bis 1786, genannt der Alte Fritz."]]'::jsonb),
+       ["Preußen", "Friedrich der Große", "König von 1740 bis 1786, genannt der Alte Fritz."]]'::jsonb,
+     '[["Sultan Süleyman", "Er herrschte über das Osmanische Reich, das hier fehlt."],
+       ["Qin Shihuangdi", "Der erste Kaiser Chinas, und China steht nicht auf dem Brett."]]'::jsonb),
 
     ('geschichte', 'ereignisse-jahrhunderte', 'Ereignisse & Jahrhunderte',
      'In welches Jahrhundert gehört das Ereignis?',
@@ -115,7 +125,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["18. Jahrhundert", "Französische Revolution", "Der Sturm auf die Bastille war 1789."],
        ["19. Jahrhundert", "Deutsche Reichsgründung", "Kaiserproklamation in Versailles 1871."],
        ["20. Jahrhundert", "Mondlandung", "Apollo 11 landete 1969 auf dem Mond."],
-       ["21. Jahrhundert", "Euro-Bargeld", "Scheine und Münzen kamen 2002 in Umlauf."]]'::jsonb),
+       ["21. Jahrhundert", "Euro-Bargeld", "Scheine und Münzen kamen 2002 in Umlauf."]]'::jsonb,
+     '[["Krönung Karls des Großen", "Sie fällt ins 9. Jahrhundert, das hier fehlt."],
+       ["Untergang des Weströmischen Reiches", "Das 5. Jahrhundert steht nicht auf diesem Brett."]]'::jsonb),
 
     ('geschichte', 'historische-bauwerke', 'Historische Bauwerke',
      'In welchem Land steht das Bauwerk?',
@@ -126,7 +138,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Indien", "Taj Mahal", "Grabmal in Agra, erbaut für die Frau von Shah Jahan."],
        ["Peru", "Machu Picchu", "Inkastadt in den Anden, 1911 weltweit bekannt gemacht."],
        ["Jordanien", "Petra", "Nabatäerstadt, in roten Sandstein geschlagen."],
-       ["Griechenland", "Akropolis", "Tempelberg über Athen mit dem Parthenon."]]'::jsonb),
+       ["Griechenland", "Akropolis", "Tempelberg über Athen mit dem Parthenon."]]'::jsonb,
+     '[["Stonehenge", "Es steht in England, und das fehlt auf diesem Brett."],
+       ["Angkor Wat", "Es steht in Kambodscha, das hier nicht vorkommt."]]'::jsonb),
 
     -- === Naturwissenschaft =================================================
     ('naturwissenschaft', 'chemische-elemente', 'Chemische Elemente',
@@ -139,7 +153,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Silber", "Ag", "Vom lateinischen argentum."],
        ["Kupfer", "Cu", "Vom lateinischen cuprum, nach der Insel Zypern."],
        ["Natrium", "Na", "Vom lateinischen natrium, englisch sodium."],
-       ["Kalium", "K", "Vom lateinischen kalium, englisch potassium."]]'::jsonb),
+       ["Kalium", "K", "Vom lateinischen kalium, englisch potassium."]]'::jsonb,
+     '[["N", "Das Symbol für Stickstoff, und das Element fehlt auf dem Brett."],
+       ["Pb", "Blei trägt es, und das steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'planeten-monde', 'Planeten & Monde',
      'Welchen Planeten umkreist der Mond?',
@@ -149,7 +165,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Jupiter", "Ganymed", "Größter Mond des Sonnensystems, größer als Merkur."],
        ["Saturn", "Titan", "Einziger Mond mit dichter Atmosphäre."],
        ["Neptun", "Triton", "Läuft rückläufig um, vermutlich eingefangen."],
-       ["Uranus", "Titania", "Größter Uranusmond, benannt nach Shakespeare."]]'::jsonb),
+       ["Uranus", "Titania", "Größter Uranusmond, benannt nach Shakespeare."]]'::jsonb,
+     '[["Charon", "Der Begleiter Plutos, und Pluto fehlt auf diesem Brett."],
+       ["Ceres", "Ein Zwergplanet im Asteroidengürtel, gar kein Mond."]]'::jsonb),
 
     ('naturwissenschaft', 'organe-systeme', 'Organe & Organsysteme',
      'Zu welchem Organsystem gehört das Organ?',
@@ -160,7 +178,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Niere", "Harnsystem", "Filtert das Blut und bildet den Harn."],
        ["Gehirn", "Nervensystem", "Steuerzentrale aller Nervenbahnen."],
        ["Schilddrüse", "Hormonsystem", "Bildet die Hormone Thyroxin und Trijodthyronin."],
-       ["Milz", "Immunsystem", "Filtert Krankheitserreger aus dem Blut."]]'::jsonb),
+       ["Milz", "Immunsystem", "Filtert Krankheitserreger aus dem Blut."]]'::jsonb,
+     '[["Skelettsystem", "Kein Organ auf diesem Brett gehört dazu."],
+       ["Muskelsystem", "Auch dafür steht in dieser Liste kein Organ."]]'::jsonb),
 
     -- === Kunst & Kultur ====================================================
     ('kunst-kultur', 'gemaelde-maler', 'Gemälde & Maler',
@@ -172,7 +192,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Schrei", "Edvard Munch", "1893, Sinnbild existenzieller Angst."],
        ["Die Geburt der Venus", "Sandro Botticelli", "Um 1485, Hauptwerk der Florentiner Renaissance."],
        ["Der Kuss", "Gustav Klimt", "1908, Höhepunkt seiner Goldenen Periode."],
-       ["Das Nebelmeer", "Caspar David Friedrich", "Um 1818, Ikone der deutschen Romantik."]]'::jsonb),
+       ["Das Nebelmeer", "Caspar David Friedrich", "Um 1818, Ikone der deutschen Romantik."]]'::jsonb,
+     '[["Rembrandt", "Die Nachtwache wäre das Bild dazu, und die fehlt hier."],
+       ["Salvador Dalí", "Seine zerfließenden Uhren stehen nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'werke-autoren', 'Werke & Autoren',
      'Wer hat das Werk geschrieben?',
@@ -183,7 +205,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Krieg und Frieden", "Tolstoi", "Russland zur Zeit der Napoleonischen Kriege."],
        ["Die Verwandlung", "Kafka", "1915, Gregor Samsa erwacht als Ungeziefer."],
        ["Madame Bovary", "Flaubert", "1857, Skandalroman um Emma Bovary."],
-       ["Die Göttliche Komödie", "Dante", "Reise durch Hölle, Läuterungsberg und Paradies."]]'::jsonb),
+       ["Die Göttliche Komödie", "Dante", "Reise durch Hölle, Läuterungsberg und Paradies."]]'::jsonb,
+     '[["Dostojewski", "Schuld und Sühne wäre das Werk dazu, und das fehlt hier."],
+       ["Homer", "Die Ilias steht nicht auf diesem Brett."]]'::jsonb),
 
     ('kunst-kultur', 'bauwerke-baustile', 'Bauwerke & Baustile',
      'In welchem Baustil wurde das Bauwerk errichtet?',
@@ -194,7 +218,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kolosseum", "Römische Antike", "Rundbögen und Travertin, um 80 n. Chr."],
        ["Hagia Sophia", "Byzantinisch", "Riesenkuppel über Pendentifs, 537 geweiht."],
        ["Alhambra", "Maurisch", "Stuckornamente und Muqarnas in Granada."],
-       ["Petersdom", "Renaissance", "Kuppel nach dem Entwurf Michelangelos."]]'::jsonb),
+       ["Petersdom", "Renaissance", "Kuppel nach dem Entwurf Michelangelos."]]'::jsonb,
+     '[["Rokoko", "Die Wieskirche stünde dafür, und die fehlt auf diesem Brett."],
+       ["Art déco", "Kein Bauwerk in dieser Liste ist so gebaut."]]'::jsonb),
 
     -- === Sport =============================================================
     ('sport', 'sportarten-geraete', 'Sportarten & Geräte',
@@ -206,7 +232,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Curling", "Curlingstein", "Granitstein von rund zwanzig Kilogramm."],
        ["Bogenschießen", "Pfeil", "Wird mit dem Bogen auf die Scheibe geschossen."],
        ["Billard", "Queue", "Stock zum Stoßen der Kugeln."],
-       ["Tischtennis", "Zelluloidball", "Hohlball, heute meist aus Kunststoff."]]'::jsonb),
+       ["Tischtennis", "Zelluloidball", "Hohlball, heute meist aus Kunststoff."]]'::jsonb,
+     '[["Federball", "Er gehört zum Badminton, und das fehlt auf diesem Brett."],
+       ["Boxhandschuh", "Boxen steht nicht in dieser Liste."]]'::jsonb),
 
     ('sport', 'vereine-laender', 'Vereine & Länder',
      'In welchem Land spielt der Verein?',
@@ -217,7 +245,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Manchester United", "England", "Spielt in der englischen Premier League."],
        ["Ajax Amsterdam", "Niederlande", "Rekordmeister der niederländischen Eredivisie."],
        ["Benfica Lissabon", "Portugal", "Rekordmeister der portugiesischen Primeira Liga."],
-       ["Paris Saint-Germain", "Frankreich", "Spielt in der französischen Ligue 1."]]'::jsonb),
+       ["Paris Saint-Germain", "Frankreich", "Spielt in der französischen Ligue 1."]]'::jsonb,
+     '[["Schottland", "Celtic Glasgow spielte dort, und der Verein fehlt hier."],
+       ["Griechenland", "Kein Verein auf diesem Brett spielt dort."]]'::jsonb),
 
     ('sport', 'olympische-disziplinen', 'Olympische Disziplinen',
      'Zu welcher Sportart gehört die Disziplin?',
@@ -229,7 +259,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Reiten", "Dressur", "Bewertet wird die Lektionsfolge von Pferd und Reiter."],
        ["Fechten", "Degen", "Fechtwaffe, bei der der ganze Körper Trefferfläche ist."],
        ["Kanu", "Slalom", "Fahrt durch hängende Tore im Wildwasser."],
-       ["Radsport", "Bahnradfahren", "Rennen auf der ovalen, überhöhten Radrennbahn."]]'::jsonb),
+       ["Radsport", "Bahnradfahren", "Rennen auf der ovalen, überhöhten Radrennbahn."]]'::jsonb,
+     '[["Freistilringen", "Ringen steht nicht auf diesem Brett."],
+       ["Kunstspringen vom Brett", "Das Wasserspringen fehlt in dieser Liste."]]'::jsonb),
 
     -- === Technik ===========================================================
     ('technik', 'erfindungen', 'Erfindungen & Erfinder',
@@ -241,7 +273,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wilhelm Conrad Röntgen", "Röntgenstrahlen", "1895 entdeckt, erster Nobelpreis für Physik."],
        ["Alexander Graham Bell", "Telefon", "Erhielt 1876 das US-Patent."],
        ["Thomas Edison", "Glühlampe", "Machte die Kohlefadenlampe 1879 marktreif."],
-       ["Alfred Nobel", "Dynamit", "1867 patentiert, Grundlage der Nobelpreise."]]'::jsonb),
+       ["Alfred Nobel", "Dynamit", "1867 patentiert, Grundlage der Nobelpreise."]]'::jsonb,
+     '[["Dampfmaschine", "Sie geht auf James Watt zurück, und der fehlt auf dem Brett."],
+       ["Funktelegrafie", "Guglielmo Marconi steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'programmiersprachen', 'Programmiersprachen',
      'Wer hat die Sprache entworfen?',
@@ -252,7 +286,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["JavaScript", "Brendan Eich", "1995 bei Netscape in zehn Tagen entworfen."],
        ["Ruby", "Yukihiro Matsumoto", "1995 in Japan veröffentlicht."],
        ["PHP", "Rasmus Lerdorf", "1995 aus eigenen Webseiten-Skripten entstanden."],
-       ["Pascal", "Niklaus Wirth", "1970 als Lehrsprache entworfen."]]'::jsonb),
+       ["Pascal", "Niklaus Wirth", "1970 als Lehrsprache entworfen."]]'::jsonb,
+     '[["Bjarne Stroustrup", "Er entwarf C++, und das fehlt auf diesem Brett."],
+       ["Grace Hopper", "Sie steht für COBOL, das hier nicht vorkommt."]]'::jsonb),
 
     ('technik', 'automarken-laender', 'Automarken & Länder',
      'Aus welchem Land stammt die Marke?',
@@ -263,7 +299,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Toyota", "Japan", "Sitz in der Stadt Toyota, Präfektur Aichi."],
        ["Volvo", "Schweden", "1927 in Göteborg gegründet."],
        ["Hyundai", "Südkorea", "Konzernsitz in Seoul."],
-       ["Škoda", "Tschechien", "1895 in Mladá Boleslav gegründet."]]'::jsonb),
+       ["Škoda", "Tschechien", "1895 in Mladá Boleslav gegründet."]]'::jsonb,
+     '[["Vereinigtes Königreich", "Jaguar käme von dort, und die Marke fehlt hier."],
+       ["USA", "Ford steht nicht auf diesem Brett."]]'::jsonb),
 
     -- === Musik =============================================================
     ('musik', 'instrumente-familien', 'Instrumente & Familien',
@@ -274,7 +312,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Klarinette", "Holzblasinstrument", "Ein einfaches Rohrblatt erzeugt den Ton."],
        ["Pauke", "Schlaginstrument", "Das Fell wird angeschlagen und über ein Pedal gestimmt."],
        ["Harfe", "Zupfinstrument", "Die Saiten werden mit den Fingern gezupft."],
-       ["Orgel", "Tasteninstrument", "Die Tasten öffnen die Ventile der Pfeifen."]]'::jsonb),
+       ["Orgel", "Tasteninstrument", "Die Tasten öffnen die Ventile der Pfeifen."]]'::jsonb,
+     '[["Elektrophon", "Die Orgel steht hier als Tasteninstrument; ein elektronisches fehlt."],
+       ["Gesangsstimme", "Sie bildet eine eigene Gruppe, und die kommt hier nicht vor."]]'::jsonb),
 
     ('musik', 'komponisten-epochen', 'Komponisten & Epochen',
      'In welcher Epoche komponierte er?',
@@ -285,7 +325,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Claude Debussy", "Impressionismus", "Klangfarbe wurde wichtiger als klare Harmonik."],
        ["Arnold Schönberg", "Moderne", "Begründete die Zwölftonmusik."],
        ["Giovanni Palestrina", "Renaissance", "Meister der Vokalpolyphonie des 16. Jahrhunderts."],
-       ["Guillaume de Machaut", "Mittelalter", "Führender Komponist der Ars nova."]]'::jsonb),
+       ["Guillaume de Machaut", "Mittelalter", "Führender Komponist der Ars nova."]]'::jsonb,
+     '[["Minimal Music", "Steve Reich stünde dafür, und der fehlt auf diesem Brett."],
+       ["Neue Musik nach 1945", "Kein Komponist in dieser Liste wird ihr zugerechnet."]]'::jsonb),
 
     ('musik', 'bands-herkunft', 'Bands & Herkunft',
      'Aus welchem Land kommt die Band?',
@@ -296,7 +338,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rammstein", "Deutschland", "1994 in Berlin gegründet."],
        ["U2", "Irland", "1976 in Dublin gegründet."],
        ["AC/DC", "Australien", "1973 in Sydney gegründet."],
-       ["Rush", "Kanada", "1968 in Toronto gegründet."]]'::jsonb),
+       ["Rush", "Kanada", "1968 in Toronto gegründet."]]'::jsonb,
+     '[["Norwegen", "A-ha käme von dort, und die Band fehlt auf diesem Brett."],
+       ["Italien", "Måneskin steht nicht in dieser Liste."]]'::jsonb),
 
     -- === Film & Fernsehen ==================================================
     ('film-fernsehen', 'regisseure-filme', 'Regisseure & Filme',
@@ -308,7 +352,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Der Pate", "Francis Ford Coppola", "1972, nach dem Roman von Mario Puzo."],
        ["Jurassic Park", "Steven Spielberg", "1993, Maßstab für digitale Effekte."],
        ["Parasite", "Bong Joon-ho", "Erster nicht englischsprachiger Oscar als bester Film."],
-       ["Metropolis", "Fritz Lang", "1927, Klassiker des Stummfilms."]]'::jsonb),
+       ["Metropolis", "Fritz Lang", "1927, Klassiker des Stummfilms."]]'::jsonb,
+     '[["Martin Scorsese", "Taxi Driver wäre der Film dazu, und der fehlt hier."],
+       ["Akira Kurosawa", "Die sieben Samurai stehen nicht auf diesem Brett."]]'::jsonb),
 
     ('film-fernsehen', 'figuren-serien', 'Figuren & Serien',
      'Aus welcher Serie stammt die Figur?',
@@ -319,7 +365,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Michael Scott", "The Office", "Regionalleiter der Papierfirma Dunder Mifflin."],
        ["Eleven", "Stranger Things", "Mädchen mit telekinetischen Kräften aus Hawkins."],
        ["Tony Soprano", "Die Sopranos", "Mafiaboss aus New Jersey, der in Therapie geht."],
-       ["Don Draper", "Mad Men", "Werbetexter im New York der 1960er Jahre."]]'::jsonb),
+       ["Don Draper", "Mad Men", "Werbetexter im New York der 1960er Jahre."]]'::jsonb,
+     '[["Sherlock", "Keine Figur auf diesem Brett stammt daraus."],
+       ["Friends", "Die Serie fehlt in dieser Liste."]]'::jsonb),
 
     ('film-fernsehen', 'filmgenres', 'Filme & Genres',
      'Zu welchem Genre gehört der Film?',
@@ -330,7 +378,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zwölf Uhr mittags", "Western", "1952, ein Sheriff allein gegen die Bande."],
        ["Casablanca", "Liebesfilm", "1942, Wiedersehen zweier Liebender im Krieg."],
        ["Stirb langsam", "Actionfilm", "1988, ein Polizist gegen Geiselnehmer im Hochhaus."],
-       ["Der dritte Mann", "Film noir", "1949, harte Schatten und schiefe Kamerawinkel."]]'::jsonb),
+       ["Der dritte Mann", "Film noir", "1949, harte Schatten und schiefe Kamerawinkel."]]'::jsonb,
+     '[["Musical", "Kein Film auf diesem Brett gehört dazu."],
+       ["Dokumentarfilm", "Auch dafür steht hier kein Film."]]'::jsonb),
 
     -- === Essen & Trinken ===================================================
     ('essen-trinken', 'gerichte-laender', 'Gerichte & Länder',
@@ -342,7 +392,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Paella", "Spanien", "Reisgericht aus Valencia, in flacher Pfanne gegart."],
        ["Wiener Schnitzel", "Österreich", "Paniertes Kalbfleisch, die Bezeichnung ist geschützt."],
        ["Gulasch", "Ungarn", "Paprikaeintopf, ursprünglich von Rinderhirten."],
-       ["Moussaka", "Griechenland", "Auflauf aus Auberginen und Hackfleisch."]]'::jsonb),
+       ["Moussaka", "Griechenland", "Auflauf aus Auberginen und Hackfleisch."]]'::jsonb,
+     '[["Vietnam", "Phở käme von dort, und das Gericht fehlt auf dem Brett."],
+       ["Indien", "Das Curry steht nicht in dieser Liste."]]'::jsonb),
 
     ('essen-trinken', 'gerichte-zutaten', 'Gerichte & Hauptzutaten',
      'Welche Zutat macht das Gericht aus?',
@@ -353,7 +405,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Tzatziki", "Joghurt", "Joghurt mit Gurke und Knoblauch."],
        ["Ratatouille", "Aubergine", "Auberginen tragen das provenzalische Gemüseschmoren."],
        ["Sauerkraut", "Weißkohl", "Milchsauer vergorener Weißkohl."],
-       ["Polenta", "Maisgrieß", "Brei aus gekochtem Maisgrieß."]]'::jsonb),
+       ["Polenta", "Maisgrieß", "Brei aus gekochtem Maisgrieß."]]'::jsonb,
+     '[["Kartoffel", "Kein Gericht auf diesem Brett wird von ihr bestimmt."],
+       ["Linsen", "Auch sie macht kein Gericht in dieser Liste aus."]]'::jsonb),
 
     ('essen-trinken', 'getraenke-herkunft', 'Getränke & Herkunft',
      'Woher stammt das Getränk?',
@@ -364,7 +418,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cognac", "Frankreich", "Weinbrand aus der Region um die Stadt Cognac."],
        ["Wodka", "Russland", "Aus Getreide oder Kartoffeln gebrannt."],
        ["Grappa", "Italien", "Aus Traubentrester gebrannt."],
-       ["Ouzo", "Griechenland", "Anisschnaps, der sich mit Wasser trübt."]]'::jsonb)
+       ["Ouzo", "Griechenland", "Anisschnaps, der sich mit Wasser trübt."]]'::jsonb,
+     '[["Peru", "Der Pisco käme von dort, und der fehlt auf diesem Brett."],
+       ["Kuba", "Der Rum steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 -- `origin` is a literal rather than a column of `spec`: every question in this
@@ -393,15 +449,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

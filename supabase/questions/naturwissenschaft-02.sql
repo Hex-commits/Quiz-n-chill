@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('naturwissenschaft', 'tierklassen-merkmale', 'Tiergruppen & Merkmale',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Weichtiere", "Mantel und Schale", "Schnecken, Muscheln und Tintenfische gehören dazu."],
        ["Stachelhäuter", "Fünfstrahliger Bau", "Seesterne und Seeigel sind fünfteilig gegliedert."],
        ["Nesseltiere", "Nesselzellen", "Quallen und Korallen lähmen damit ihre Beute."],
-       ["Ringelwürmer", "Gegliederte Segmente", "Der Körper besteht aus fast gleichen Ringen."]]'::jsonb),
+       ["Ringelwürmer", "Gegliederte Segmente", "Der Körper besteht aus fast gleichen Ringen."]]'::jsonb,
+     '[["Tausend Beinpaare", "Tausendfüßer haben deutlich weniger, und sie fehlen auf dem Brett."],
+       ["Panzer aus Kalk ohne Beine", "Auf keine Gruppe in dieser Liste trifft das zu."]]'::jsonb),
 
     ('naturwissenschaft', 'pflanzenteile-funktionen', 'Pflanzenteile & ihre Aufgaben',
      'Wozu dient dieser Teil der Pflanze?',
@@ -34,7 +36,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Kambium", "Dickenwachstum", "Diese Zellschicht bildet die Jahresringe."],
        ["Spaltöffnung", "Gasaustausch", "Kleine Poren, die sich bei Trockenheit schließen."],
        ["Chloroplast", "Ort des Blattgrüns", "Enthält das Chlorophyll, das Licht einfängt."],
-       ["Knolle", "Speicher für Stärke", "Erlaubt das Überdauern im Boden, etwa bei der Kartoffel."]]'::jsonb),
+       ["Knolle", "Speicher für Stärke", "Erlaubt das Überdauern im Boden, etwa bei der Kartoffel."]]'::jsonb,
+     '[["Lockt Insekten mit Duft", "Das tut die Blüte, gefragt ist dort die Fortpflanzung."],
+       ["Bildet Wurzelknöllchen mit Bakterien", "Kein Pflanzenteil auf diesem Brett steht dafür."]]'::jsonb),
 
     ('naturwissenschaft', 'wetterphaenomene', 'Wetterphänomene & Ursachen',
      'Wie entsteht das Phänomen?',
@@ -50,7 +54,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Halo", "Eiskristalle in hohen Wolken", "Der Lichtring um Sonne oder Mond."],
        ["Monsun", "Jahreszeitlicher Windwechsel", "Land und Meer erwärmen sich unterschiedlich schnell."],
        ["El Niño", "Erwärmung des Pazifiks", "Verschiebt Regen- und Dürregebiete weltweit."],
-       ["Tornado", "Rotierender Aufwind", "Ein Wirbel reicht von der Gewitterwolke bis zum Boden."]]'::jsonb),
+       ["Tornado", "Rotierender Aufwind", "Ein Wirbel reicht von der Gewitterwolke bis zum Boden."]]'::jsonb,
+     '[["Wirbelsturm über warmem Meer", "Der Hurrikan fehlt auf diesem Brett."],
+       ["Wasser gefriert am Boden zu Glätte", "Das Blitzeis steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'zellorganellen', 'Zellbestandteile & ihre Aufgaben',
      'Was tut dieser Teil der Zelle?',
@@ -65,7 +71,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Zellmembran", "Grenzt die Zelle ab", "Lässt gezielt Stoffe hinein und hinaus."],
        ["Zellwand", "Gibt Pflanzenzellen Halt", "Aus Cellulose, außerhalb der Membran."],
        ["Vakuole", "Speichert Wasser", "Ihr Innendruck hält Pflanzen aufrecht."],
-       ["Zellskelett", "Formgebendes Fasergerüst", "Netz aus Fasern, an dem Transporte entlanglaufen."]]'::jsonb),
+       ["Zellskelett", "Formgebendes Fasergerüst", "Netz aus Fasern, an dem Transporte entlanglaufen."]]'::jsonb,
+     '[["Bewegt die Zelle mit einem Schwanz", "Die Geißel fehlt auf diesem Brett."],
+       ["Stellt Ribosomen her", "Das tut der Nukleolus, der hier nicht steht."]]'::jsonb),
 
     ('naturwissenschaft', 'krankheiten-organe', 'Krankheiten & betroffene Organe',
      'Welches Organ ist betroffen?',
@@ -81,7 +89,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Angina Pectoris", "Herzkranzgefäße", "Verengte Gefäße lassen den Herzmuskel unterversorgt."],
        ["Osteoporose", "Knochen", "Die Dichte nimmt ab, schon kleine Stürze brechen."],
        ["Otitis media", "Mittelohr", "Häufig bei Kindern, oft nach einer Erkältung."],
-       ["Neurodermitis", "Haut", "Chronisch entzündliche, stark juckende Hauterkrankung."]]'::jsonb),
+       ["Neurodermitis", "Haut", "Chronisch entzündliche, stark juckende Hauterkrankung."]]'::jsonb,
+     '[["Bauchspeicheldrüse", "Die Pankreatitis wäre die Krankheit dazu, und die fehlt hier."],
+       ["Schilddrüse", "Kein Leiden in dieser Liste betrifft sie."]]'::jsonb),
 
     ('naturwissenschaft', 'formelzeichen', 'Größen & Formelzeichen',
      'Welches Zeichen steht für die Größe?',
@@ -98,7 +108,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Elektrische Spannung", "U", "Von der lateinischen Bezeichnung urgere, drängen."],
        ["Elektrischer Widerstand", "R", "Vom englischen resistance."],
        ["Wellenlänge", "λ", "Griechisches Lambda."],
-       ["Dichte", "ρ", "Griechisches Rho."]]'::jsonb),
+       ["Dichte", "ρ", "Griechisches Rho."]]'::jsonb,
+     '[["Q", "Das Zeichen für die Ladung, und die steht nicht auf dem Brett."],
+       ["T", "Für die Temperatur, nach der hier keine Zeile fragt."]]'::jsonb),
 
     ('naturwissenschaft', 'astronomie-begriffe', 'Begriffe der Astronomie',
      'Was bezeichnet der Begriff?',
@@ -114,7 +126,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Asteroid", "Kleinkörper zwischen Planeten", "Die meisten kreisen zwischen Mars und Jupiter."],
        ["Lichtjahr", "Entfernungsmaß", "Die Strecke, die Licht in einem Jahr zurücklegt."],
        ["Parallaxe", "Scheinbare Verschiebung", "Aus ihr lässt sich die Entfernung naher Sterne berechnen."],
-       ["Rotverschiebung", "Zeichen der Entfernung", "Licht ferner Galaxien erscheint langwelliger."]]'::jsonb),
+       ["Rotverschiebung", "Zeichen der Entfernung", "Licht ferner Galaxien erscheint langwelliger."]]'::jsonb,
+     '[["Bahn eines Körpers um einen anderen", "Der Orbit fehlt auf diesem Brett."],
+       ["Schatten des Mondes auf der Erde", "Die Sonnenfinsternis steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'blut-kreislauf', 'Blut & Kreislauf',
      'Welche Aufgabe hat dieser Bestandteil?',
@@ -130,7 +144,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Herzvorhof", "Sammelt ankommendes Blut", "Gibt es an die Kammer weiter."],
        ["Herzkammer", "Pumpt das Blut hinaus", "Die linke muss den ganzen Körper versorgen."],
        ["Lymphe", "Gewebsflüssigkeit", "Transportiert Fette und Abwehrzellen."],
-       ["Milz", "Filtert alte Blutzellen", "Baut ausgediente rote Blutkörperchen ab."]]'::jsonb),
+       ["Milz", "Filtert alte Blutzellen", "Baut ausgediente rote Blutkörperchen ab."]]'::jsonb,
+     '[["Bildet die Blutzellen", "Das tut das Knochenmark, und das fehlt auf dem Brett."],
+       ["Reinigt das Blut von Harnstoff", "Die Niere steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'saeuren-vorkommen', 'Säuren & ihr Vorkommen',
      'Worin steckt diese Säure?',
@@ -146,7 +162,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Apfelsäure", "Unreife Äpfel", "Sorgt für den herben Geschmack."],
        ["Blausäure", "Bittermandeln", "Schon in kleinen Mengen sehr giftig."],
        ["Phosphorsäure", "Cola", "Gibt dem Getränk den säuerlichen Geschmack."],
-       ["Buttersäure", "Ranzige Butter", "Riecht schon in kleinsten Mengen unangenehm."]]'::jsonb),
+       ["Buttersäure", "Ranzige Butter", "Riecht schon in kleinsten Mengen unangenehm."]]'::jsonb,
+     '[["Brennnesselhaare", "Sie enthalten unter anderem Ameisensäure, die schon vergeben ist."],
+       ["Essigessenz", "Die Essigsäure steht nicht auf diesem Brett."]]'::jsonb),
 
     ('naturwissenschaft', 'erneuerbare-energien', 'Erneuerbare Energien',
      'Woraus gewinnt die Anlage ihre Energie?',
@@ -161,7 +179,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Wellenkraftwerk", "Seegang", "Wandelt die Auf- und Abbewegung der Wellen um."],
        ["Geothermiekraftwerk", "Erdwärme", "Heißes Tiefenwasser treibt eine Turbine an."],
        ["Biogasanlage", "Vergorene Biomasse", "Bakterien erzeugen aus Gülle und Mais Methan."],
-       ["Wärmepumpe", "Wärme der Umgebung", "Hebt niedrige Temperaturen auf Heizniveau."]]'::jsonb),
+       ["Wärmepumpe", "Wärme der Umgebung", "Hebt niedrige Temperaturen auf Heizniveau."]]'::jsonb,
+     '[["Gespaltene Atomkerne", "Kernkraft ist nicht erneuerbar und steht hier nicht."],
+       ["Verbrannte Steinkohle", "Auch das ist keine erneuerbare Quelle."]]'::jsonb),
 
     ('naturwissenschaft', 'meeresstroemungen', 'Meeresströmungen & Küsten',
      'An welcher Küste wirkt die Strömung?',
@@ -176,7 +196,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Labradorstrom", "Neufundland", "Bringt Eisberge nach Süden in die Schifffahrtsrouten."],
        ["Ostaustralstrom", "Ostaustralien", "Transportiert warmes Korallenmeerwasser nach Süden."],
        ["Nordatlantikstrom", "Norwegen", "Hält Häfen bis zum Polarkreis eisfrei."],
-       ["Somalistrom", "Ostafrika", "Kehrt mit dem Monsun die Richtung um."]]'::jsonb),
+       ["Somalistrom", "Ostafrika", "Kehrt mit dem Monsun die Richtung um."]]'::jsonb,
+     '[["Grönland", "Kein Strom auf diesem Brett ist dieser Küste zugeordnet."],
+       ["Kalifornien", "Der Kalifornienstrom fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'ordnungszahlen', 'Elemente & Ordnungszahlen',
      'Welche Ordnungszahl hat das Element?',
@@ -192,7 +214,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Silber", "47", "Bester elektrischer Leiter aller Metalle."],
        ["Gold", "79", "Reagiert kaum, deshalb bleibt es glänzend."],
        ["Blei", "82", "Schwerstes stabiles Element."],
-       ["Uran", "92", "Schwerstes natürlich häufig vorkommendes Element."]]'::jsonb),
+       ["Uran", "92", "Schwerstes natürlich häufig vorkommendes Element."]]'::jsonb,
+     '[["3", "Das wäre Lithium, und das steht nicht auf dem Brett."],
+       ["29", "Kupfer trägt sie, und das fehlt in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'oekologie-begriffe', 'Begriffe der Ökologie',
      'Was bezeichnet der Begriff?',
@@ -208,7 +232,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sukzession", "Abfolge der Besiedlung", "Von der Rohfläche über Gräser bis zum Wald."],
        ["Population", "Individuen einer Art", "Alle, die am selben Ort zur selben Zeit leben."],
        ["Ökologische Nische", "Rolle im Gefüge", "Nicht der Ort, sondern der Beruf einer Art."],
-       ["Bioindikator", "Zeigerart", "Ihr Vorkommen verrät die Qualität von Luft oder Wasser."]]'::jsonb),
+       ["Bioindikator", "Zeigerart", "Ihr Vorkommen verrät die Qualität von Luft oder Wasser."]]'::jsonb,
+     '[["Art, die nur an einem Ort vorkommt", "Der Endemit fehlt auf diesem Brett."],
+       ["Zahl der Arten in einem Gebiet", "Die Artenvielfalt steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'skalen-messung', 'Skalen & was sie messen',
      'Was wird mit dieser Skala erfasst?',
@@ -223,7 +249,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mohs-Skala", "Ritzhärte von Mineralien", "Zehn Stufen, jedes Mineral ritzt die weicheren."],
        ["Celsius-Skala", "Temperatur", "Null und hundert Grad an den Fixpunkten des Wassers."],
        ["pH-Skala", "Saurer oder basischer Charakter", "Sieben ist neutral, darunter sauer."],
-       ["Dezibel-Skala", "Schalldruckpegel", "Logarithmisch: zehn Dezibel mehr klingen doppelt so laut."]]'::jsonb),
+       ["Dezibel-Skala", "Schalldruckpegel", "Logarithmisch: zehn Dezibel mehr klingen doppelt so laut."]]'::jsonb,
+     '[["Helligkeit von Sternen", "Die Größenklassen fehlen auf diesem Brett."],
+       ["Schärfe von Chilischoten", "Die Scoville-Skala steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'formeln-bedeutung', 'Formeln & ihre Bedeutung',
      'Was beschreibt die Formel?',
@@ -239,7 +267,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["ρ = m / V", "Dichte", "Masse bezogen auf das Volumen."],
        ["p = F / A", "Druck", "Dieselbe Kraft auf kleiner Fläche drückt stärker."],
        ["s = ½ · a · t²", "Weg beim freien Fall", "Die Strecke wächst mit dem Quadrat der Zeit."],
-       ["λ = h / p", "Materiewellenlänge", "Auch Teilchen haben eine Wellenlänge."]]'::jsonb),
+       ["λ = h / p", "Materiewellenlänge", "Auch Teilchen haben eine Wellenlänge."]]'::jsonb,
+     '[["Umfang eines Kreises", "Die Formel dafür fehlt auf diesem Brett."],
+       ["Fläche eines Dreiecks", "Sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'tierbauten', 'Tiere & ihre Bauten',
      'Welches Tier baut das?',
@@ -253,7 +283,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hügel aus Nadeln und Zweigen", "Waldameise", "Die Südseite ist flacher, damit die Sonne wärmt."],
        ["Nest aus Papier", "Wespe", "Zerkautes Holz wird zu grauem Papierbrei."],
        ["Hängendes Flechtnest", "Webervogel", "Das Männchen baut, das Weibchen prüft die Arbeit."],
-       ["Unterirdischer Bau mit mehreren Ausgängen", "Dachs", "Wird über Generationen erweitert und vererbt."]]'::jsonb),
+       ["Unterirdischer Bau mit mehreren Ausgängen", "Dachs", "Wird über Generationen erweitert und vererbt."]]'::jsonb,
+     '[["Wabe aus Wachs mit sechseckigen Zellen", "Die Honigbiene fehlt auf diesem Brett."],
+       ["Röhre aus Sand am Meeresboden", "Kein Tier in dieser Liste baut so."]]'::jsonb),
 
     ('naturwissenschaft', 'gifte-herkunft', 'Gifte & ihre Herkunft',
      'Woher stammt das Gift?',
@@ -269,7 +301,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rizin", "Rizinussamen", "Bleibt beim Ölpressen im Presskuchen zurück."],
        ["Batrachotoxin", "Pfeilgiftfrosch", "Die Frösche beziehen es über ihre Nahrung."],
        ["Curare", "Lianenrinde", "Pfeilgift, das die Muskeln lähmt."],
-       ["Muscarin", "Fliegenpilz", "Namensgebend für einen ganzen Rezeptortyp."]]'::jsonb),
+       ["Muscarin", "Fliegenpilz", "Namensgebend für einen ganzen Rezeptortyp."]]'::jsonb,
+     '[["Skorpion", "Sein Gift steht nicht auf diesem Brett."],
+       ["Seeanemone", "Kein Gift in dieser Liste stammt von ihr."]]'::jsonb),
 
     ('naturwissenschaft', 'muskeln-bewegungen', 'Muskeln & Bewegungen',
      'Was bewirkt dieser Muskel?',
@@ -283,7 +317,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Herzmuskel", "Pumpt ohne Ermüdung", "Arbeitet unwillkürlich, ein Leben lang."],
        ["Ringmuskel des Auges", "Schließt das Lid", "Auch für das Blinzeln zuständig."],
        ["Großer Gesäßmuskel", "Streckt die Hüfte", "Wichtig beim Aufstehen und Treppensteigen."],
-       ["Kapuzenmuskel", "Hebt die Schulter", "Zieht das Schulterblatt zur Wirbelsäule."]]'::jsonb),
+       ["Kapuzenmuskel", "Hebt die Schulter", "Zieht das Schulterblatt zur Wirbelsäule."]]'::jsonb,
+     '[["Dreht den Kopf zur Seite", "Der Kopfwender fehlt auf diesem Brett."],
+       ["Hält die Wirbelsäule aufrecht", "Der Rückenstrecker steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'klimazonen', 'Klimazonen & Kennzeichen',
      'Wodurch ist die Zone gekennzeichnet?',
@@ -299,7 +335,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ozeanisches Klima", "Milde Winter, kühle Sommer", "Das Meer dämpft die Ausschläge."],
        ["Kontinentalklima", "Große Temperaturschwankungen", "Heiße Sommer und sehr kalte Winter."],
        ["Hochgebirgsklima", "Klima nach Höhenstufen", "In wenigen Kilometern durchläuft man mehrere Zonen."],
-       ["Tundrenklima", "Kurze Vegetationszeit", "Nur Moose, Flechten und Zwergsträucher wachsen."]]'::jsonb),
+       ["Tundrenklima", "Kurze Vegetationszeit", "Nur Moose, Flechten und Zwergsträucher wachsen."]]'::jsonb,
+     '[["Ewiges Eis ohne Pflanzen", "Das Eisklima fehlt auf diesem Brett."],
+       ["Nebelwüste an der Küste", "Sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('naturwissenschaft', 'medizin-erfindungen', 'Meilensteine der Medizin',
      'Wer steht hinter dem Fortschritt?',
@@ -316,7 +354,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Computertomografie", "Godfrey Hounsfield", "Rechner setzen viele Röntgenbilder zu Schnitten zusammen."],
        ["Magnetresonanztomografie", "Paul Lauterbur", "Bilder ohne Röntgenstrahlen, mit Magnetfeldern."],
        ["Tragbarer Herzschrittmacher", "Rune Elmqvist", "Erstes Gerät 1958 einem Patienten eingesetzt."],
-       ["Erste Herztransplantation", "Christiaan Barnard", "1967 in Kapstadt, der Patient überlebte 18 Tage."]]'::jsonb)
+       ["Erste Herztransplantation", "Christiaan Barnard", "1967 in Kapstadt, der Patient überlebte 18 Tage."]]'::jsonb,
+     '[["Entdeckung der Röntgenstrahlen", "Wilhelm Conrad Röntgen fehlt auf diesem Brett."],
+       ["Robert Koch", "Der Nachweis des Tuberkelbakteriums steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -341,15 +381,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

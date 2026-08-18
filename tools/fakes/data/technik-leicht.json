@@ -1,0 +1,82 @@
+{
+  "leicht-haushaltsgeraete": [
+    ["Nähmaschine", "Sie näht Stoff, danach fragt auf diesem Brett keine Zeile."],
+    ["Ventilator", "Er bewegt Luft, und das kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-werkzeuge": [
+    ["Schrauben mit Kraft festziehen", "Der Akkuschrauber fehlt auf diesem Brett."],
+    ["Draht durchtrennen", "Der Seitenschneider steht nicht in dieser Liste."]
+  ],
+  "leicht-fahrzeuge": [
+    ["Post austragen", "Das Postauto fehlt auf diesem Brett."],
+    ["Straßen kehren", "Die Kehrmaschine steht nicht in dieser Liste."]
+  ],
+  "leicht-verkehrszeichen": [
+    ["Grüner Pfeil neben der Ampel", "Er erlaubt Rechtsabbiegen und fehlt auf diesem Brett."],
+    ["Blaues Schild mit weißem P", "Das Parkschild steht nicht in dieser Liste."]
+  ],
+  "leicht-computer": [
+    ["Damit liest man Papier ein", "Der Scanner fehlt auf diesem Brett."],
+    ["Damit sichert man Daten außerhalb", "Die externe Festplatte steht nicht in dieser Liste."]
+  ],
+  "leicht-fahrrad": [
+    ["Wechselt zwischen den Gängen", "Die Schaltung fehlt auf diesem Brett."],
+    ["Sichert das Rad beim Abstellen", "Das Schloss steht nicht in dieser Liste."]
+  ],
+  "leicht-erfindungen-alltag": [
+    ["Nachrichten über weite Strecken funken", "Das Radio fehlt auf diesem Brett."],
+    ["Wäsche ohne Hand waschen", "Die Waschmaschine steht nicht in dieser Liste."]
+  ],
+  "leicht-energie": [
+    ["Verbrennung von Erdgas", "Das Gaskraftwerk fehlt auf diesem Brett."],
+    ["Bewegung der Wellen im Meer", "Das Wellenkraftwerk steht nicht in dieser Liste."]
+  ],
+  "leicht-kueche-technik": [
+    ["Wasser bei minus fünf Grad", "Es gefriert, und das steht nicht auf diesem Brett."],
+    ["Mehl in kaltes Wasser gerührt", "Davon ist in dieser Liste nicht die Rede."]
+  ],
+  "leicht-telefon": [
+    ["Speicherplatz im Netz", "Die Cloud fehlt auf diesem Brett."],
+    ["Schutzhülle für das Gerät", "Sie steht nicht in dieser Liste."]
+  ],
+  "leicht-material": [
+    ["Leder", "Kein Gegenstand auf diesem Brett besteht daraus."],
+    ["Papier", "Es kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-sicherheit": [
+    ["Zeigt die Uhrzeit an", "Das dient keiner Sicherheit auf diesem Brett."],
+    ["Türspion in der Wohnungstür", "Er fehlt in dieser Liste."]
+  ],
+  "leicht-messen": [
+    ["Lautstärke im Raum", "Das Schallpegelmessgerät fehlt auf diesem Brett."],
+    ["Windgeschwindigkeit", "Das Anemometer steht nicht in dieser Liste."]
+  ],
+  "leicht-internet": [
+    ["Datenmenge, die man im Monat verbraucht", "Das Datenvolumen fehlt auf diesem Brett."],
+    ["Programm, das Schaden anrichtet", "Der Virus steht nicht in dieser Liste."]
+  ],
+  "leicht-bauen": [
+    ["Betoniert das Fundament", "Der Betonbauer fehlt auf diesem Brett."],
+    ["Setzt die Fenster ein", "Der Fensterbauer steht nicht in dieser Liste."]
+  ],
+  "leicht-flugzeug-schiff": [
+    ["Weist dem Flugzeug den Weg am Boden", "Der Lotse fehlt auf diesem Brett."],
+    ["Treibt das Schiff durch das Wasser", "Die Schiffsschraube steht nicht in dieser Liste."]
+  ],
+  "leicht-zeichen": [
+    ["Pfeil im Kreis", "Er steht für Wiederholen und fehlt auf diesem Brett."],
+    ["Glocke", "Sie steht für Benachrichtigungen und fehlt in dieser Liste."]
+  ],
+  "leicht-strom-sparen": [
+    ["Alle Fenster den ganzen Tag kippen", "Das verschwendet Wärme, statt zu sparen."],
+    ["Die Heizung im Sommer laufen lassen", "Auch das spart nichts."]
+  ],
+  "leicht-medien-geraete": [
+    ["Musik auf einer Kassette abspielen", "Der Kassettenrekorder fehlt auf diesem Brett."],
+    ["Das Bild größer machen", "Kein Gerät in dieser Liste ist dafür da."]
+  ],
+  "leicht-berufe-technik": [
+    ["Baut Straßen und Wege", "Der Straßenbauer fehlt auf diesem Brett."],
+    ["Repariert Uhren", "Der Uhrmacher steht nicht in dieser Liste."]
+  ]
+}

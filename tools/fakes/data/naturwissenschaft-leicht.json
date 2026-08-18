@@ -1,0 +1,82 @@
+{
+  "leicht-tierkinder": [
+    ["Fohlen im Beutel", "Ein Känguru-Junges heißt Joey, und das Tier fehlt hier."],
+    ["Rehkitz-Zwilling", "Auf diesem Brett steht nur das Kitz selbst."]
+  ],
+  "leicht-tierlaute": [
+    ["Zwitschern", "Der Singvogel wäre das Tier dazu, und der fehlt auf dem Brett."],
+    ["Fauchen", "Kein Tier in dieser Liste ist dafür genannt."]
+  ],
+  "leicht-sinne": [
+    ["Leber", "Sie entgiftet, danach fragt auf diesem Brett aber keine Zeile."],
+    ["Darm", "Er nimmt Nährstoffe auf, und das steht hier nicht."]
+  ],
+  "leicht-planeten": [
+    ["Der zweite Planet von der Sonne", "Das ist die Venus, und die fehlt auf dem Brett."],
+    ["Ein Zwergplanet weit draußen", "Pluto wäre das, und der steht nicht in dieser Liste."]
+  ],
+  "leicht-lebensraeume": [
+    ["Korallenriff", "Kein Tier auf diesem Brett lebt dort."],
+    ["Hochmoor", "Es kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-farben-mischen": [
+    ["Türkis", "Diese Farbe entsteht auf diesem Brett aus keiner Mischung."],
+    ["Gold", "Es lässt sich gar nicht anmischen."]
+  ],
+  "leicht-koerper-zahlen": [
+    ["1", "Danach fragt keine Zeile auf diesem Brett."],
+    ["24", "So viele Rippen hat der Mensch insgesamt, gefragt sind hier die Paare."]
+  ],
+  "leicht-jahreszeiten": [
+    ["Die Uhren werden umgestellt", "Das gehört zu keiner Jahreszeit auf diesem Brett."],
+    ["Regenzeit im Monsun", "Sie kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-wasser": [
+    ["Wasser mit Kohlensäure", "Sprudel steht nicht auf diesem Brett."],
+    ["Wasser im Wasserhahn", "Das Leitungswasser fehlt in dieser Liste."]
+  ],
+  "leicht-obst-gemuese": [
+    ["Rund, orange und schwer, gut für Suppe", "Der Kürbis fehlt auf diesem Brett."],
+    ["Grün und rund, mit vielen Blättern innen", "Der Kopfsalat steht nicht in dieser Liste."]
+  ],
+  "leicht-vogel-oder-nicht": [
+    ["Säugetier, das Eier legt", "Das Schnabeltier fehlt auf diesem Brett."],
+    ["Quallentier", "Kein Tier in dieser Liste gehört dazu."]
+  ],
+  "leicht-wetter": [
+    ["Warmer Fallwind über die Berge", "Der Föhn steht nicht auf diesem Brett."],
+    ["Glatte Straße durch gefrorenen Regen", "Das Glatteis fehlt in dieser Liste."]
+  ],
+  "leicht-baeume": [
+    ["Bittere Nüsse in grüner Schale", "Der Walnussbaum fehlt auf diesem Brett."],
+    ["Blätter wie eine Hand mit fünf Fingern", "Kein Baum in dieser Liste ist so beschrieben."]
+  ],
+  "leicht-magnet-strom": [
+    ["Wasser leitet gar keinen Strom", "Das stimmt nicht, und auf dem Brett steht es auch nicht."],
+    ["Ein Magnet zieht Holz an", "Magnete wirken nicht auf Holz."]
+  ],
+  "leicht-blumen": [
+    ["Blüht als Strauch und duftet im Mai", "Der Flieder fehlt auf diesem Brett."],
+    ["Wächst als Zwiebel und blüht gelb im März", "Die Narzisse steht nicht in dieser Liste."]
+  ],
+  "leicht-insekten": [
+    ["Frisst Blattläuse als Larve", "Das tut der Marienkäfer, gefragt ist dort sein Aussehen."],
+    ["Läuft über Wasser, ohne einzusinken", "Der Wasserläufer fehlt auf diesem Brett."]
+  ],
+  "leicht-koerperpflege": [
+    ["Gegen Langeweile", "Das ist kein Grund für etwas auf diesem Brett."],
+    ["Für schönere Kleidung", "Danach fragt hier keine Zeile."]
+  ],
+  "leicht-himmel": [
+    ["Der Mond ist halb zu sehen", "Der Halbmond fehlt auf diesem Brett."],
+    ["Ein Regenbogen bei Nacht", "Er kommt in dieser Liste nicht vor."]
+  ],
+  "leicht-stoffe": [
+    ["Sand im Wasserglas", "Er sinkt zu Boden, steht aber nicht auf diesem Brett."],
+    ["Milch in heißem Kaffee", "Sie mischt sich, und das fehlt in dieser Liste."]
+  ],
+  "leicht-saeugetiere": [
+    ["Trägt einen Panzer aus Hornplatten", "Das Gürteltier fehlt auf diesem Brett."],
+    ["Hat den längsten Winterschlaf im Wald", "Der Siebenschläfer steht nicht in dieser Liste."]
+  ]
+}

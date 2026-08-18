@@ -3,7 +3,7 @@
 -- Shape, rules and how to apply: see supabase/questions/batch-01.sql.
 
 with spec (subject_slug, slug, title, description, difficulty,
-           source_title, source_url, pairs) as (
+           source_title, source_url, pairs, fakes) as (
     values
 
     ('technik', 'codes-standards', 'Codes & Kennnummern',
@@ -20,7 +20,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["ISO 9001", "Qualitätsmanagement", "Zertifiziert Abläufe, nicht Produkte."],
        ["RFC", "Internetstandards", "Der Name heißt bescheiden Bitte um Kommentare."],
        ["DIN A4", "Papierformate", "Halbieren ergibt immer das nächste Format."],
-       ["Morsecode", "Buchstaben als Töne", "Punkt und Strich, für die Telegrafie erfunden."]]'::jsonb),
+       ["Morsecode", "Buchstaben als Töne", "Punkt und Strich, für die Telegrafie erfunden."]]'::jsonb,
+     '[["Zeitschriften und Zeitungen", "Dafür gibt es die ISSN, und die fehlt auf diesem Brett."],
+       ["Farben im Druck", "Der Pantone-Fächer steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'motorentypen', 'Motoren & ihr Prinzip',
      'Wie arbeitet dieser Antrieb?',
@@ -35,7 +37,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gasturbine", "Kontinuierlicher Gasstrom", "Verdichter, Brennkammer und Turbine auf einer Welle."],
        ["Turboprop", "Turbine treibt den Propeller", "Auf Kurzstrecken sparsamer als der Jet."],
        ["Raketentriebwerk", "Rückstoß ohne Außenluft", "Funktioniert auch im Vakuum."],
-       ["Hybridantrieb", "Zwei Antriebe kombiniert", "Der Verbrenner läuft nur im günstigen Bereich."]]'::jsonb),
+       ["Hybridantrieb", "Zwei Antriebe kombiniert", "Der Verbrenner läuft nur im günstigen Bereich."]]'::jsonb,
+     '[["Verbrennung von Wasserstoff in der Zelle", "Die Brennstoffzelle fehlt auf diesem Brett."],
+       ["Antrieb durch ein aufgezogenes Federwerk", "Kein Motor in dieser Liste arbeitet so."]]'::jsonb),
 
     ('technik', 'werkstoffe', 'Werkstoffe & Eigenschaften',
      'Was zeichnet den Werkstoff aus?',
@@ -51,7 +55,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Gummi", "Elastisch und rückstellend", "Vulkanisation vernetzt die Molekülketten."],
        ["Thermoplast", "Bei Wärme formbar", "Lässt sich mehrfach einschmelzen."],
        ["Holz", "Nachwachsend und faserig", "Trägt längs der Fasern deutlich mehr als quer."],
-       ["Titan", "Fest, leicht und körperverträglich", "Teuer, weil die Gewinnung aufwendig ist."]]'::jsonb),
+       ["Titan", "Fest, leicht und körperverträglich", "Teuer, weil die Gewinnung aufwendig ist."]]'::jsonb,
+     '[["Rostet nicht und ist magnetisch", "Auf keinen Werkstoff auf diesem Brett trifft beides zu."],
+       ["Leitet Wärme fast gar nicht", "Der Aerogel-Dämmstoff fehlt in dieser Liste."]]'::jsonb),
 
     ('technik', 'zeitmessung', 'Uhren & Zeitmessung',
      'Womit misst diese Uhr die Zeit?',
@@ -65,7 +71,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Atomuhr", "Übergang im Cäsiumatom", "Definiert heute die Sekunde."],
        ["Funkuhr", "Empfangenes Zeitsignal", "Stellt sich selbst nach einem Langwellensender."],
        ["Schiffschronometer", "Ganggenauigkeit auf See", "Machte die Bestimmung der Länge möglich."],
-       ["Stoppuhr", "Gemessene Zeitspanne", "Zeigt keine Tageszeit an."]]'::jsonb),
+       ["Stoppuhr", "Gemessene Zeitspanne", "Zeigt keine Tageszeit an."]]'::jsonb,
+     '[["Brennende Kerze mit Markierungen", "Die Kerzenuhr fehlt auf diesem Brett."],
+       ["Zeitsignal über das Internet", "Der Netzwerkzeitdienst steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'drucktechnik', 'Druckverfahren',
      'Wie überträgt das Verfahren die Farbe?',
@@ -79,7 +87,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Thermodruck", "Hitze auf Spezialpapier", "Kassenbons verblassen deshalb mit der Zeit."],
        ["Nadeldruck", "Anschlag durch ein Farbband", "Einziges Verfahren für Durchschläge."],
        ["3D-Druck", "Aufbau in dünnen Schichten", "Material wird hinzugefügt statt abgetragen."],
-       ["Plotten", "Gezeichnete Linien", "Stift oder Messer folgen einer Bahn."]]'::jsonb),
+       ["Plotten", "Gezeichnete Linien", "Stift oder Messer folgen einer Bahn."]]'::jsonb,
+     '[["Bild wird eingebrannt", "Kein Verfahren auf diesem Brett arbeitet so."],
+       ["Farbe wird aufgesprüht", "Das Sprühen steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'verschluesselung', 'Verschlüsselung',
      'Was steckt hinter dem Verfahren?',
@@ -94,7 +104,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["TLS", "Verschlüsselte Webverbindung", "Das S in HTTPS."],
        ["PGP", "Verschlüsselte E-Mail", "Vertrauen entsteht über ein Netz von Signaturen."],
        ["Digitale Signatur", "Nachweis der Urheberschaft", "Mit dem privaten Schlüssel erzeugt."],
-       ["Steganografie", "Verstecken statt Verschlüsseln", "Die Nachricht sieht aus wie ein harmloses Bild."]]'::jsonb),
+       ["Steganografie", "Verstecken statt Verschlüsseln", "Die Nachricht sieht aus wie ein harmloses Bild."]]'::jsonb,
+     '[["Rechnen mit elliptischen Kurven", "Die Kurvenkryptografie fehlt auf diesem Brett."],
+       ["Passwort im Klartext speichern", "Das ist keine Verschlüsselung, sondern ein Fehler."]]'::jsonb),
 
     ('technik', 'robotik', 'Robotik & Automatisierung',
      'Was macht diese Maschine?',
@@ -108,7 +120,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Saugroboter", "Reinigt den Boden allein", "Erstellt dabei eine Karte der Wohnung."],
        ["Chirurgieroboter", "Führt Instrumente ruhig", "Der Arzt steuert von der Konsole aus."],
        ["Rover", "Fährt über fremde Planeten", "Muss verzögerte Befehle verkraften."],
-       ["Pick-and-Place-Automat", "Setzt Bauteile auf Platinen", "Zehntausende Bauteile je Stunde."]]'::jsonb),
+       ["Pick-and-Place-Automat", "Setzt Bauteile auf Platinen", "Zehntausende Bauteile je Stunde."]]'::jsonb,
+     '[["Mäht den Rasen ohne Aufsicht", "Der Mähroboter fehlt auf diesem Brett."],
+       ["Baut ein Haus in einem Stück", "Keine Maschine in dieser Liste tut das."]]'::jsonb),
 
     ('technik', 'satellitensysteme', 'Satellitensysteme & Betreiber',
      'Wer betreibt das System?',
@@ -124,7 +138,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Sentinel", "Europäische Weltraumorganisation", "Erdbeobachtung im Programm Copernicus."],
        ["Meteosat", "EUMETSAT", "Wetterbilder aus 36000 Kilometern Höhe."],
        ["Hubble", "NASA und ESA", "Seit 1990 im Orbit, mehrfach repariert."],
-       ["Kuiper", "Amazon", "Antwort auf die Satelliteninternet-Konkurrenz."]]'::jsonb),
+       ["Kuiper", "Amazon", "Antwort auf die Satelliteninternet-Konkurrenz."]]'::jsonb,
+     '[["OneWeb", "Ein eigener Betreiber, der auf diesem Brett fehlt."],
+       ["Südkorea", "Kein System in dieser Liste wird von dort betrieben."]]'::jsonb),
 
     ('technik', 'brueckentypen', 'Brückentypen',
      'Wie trägt diese Brücke die Last?',
@@ -140,7 +156,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Hubbrücke", "Ganze Fahrbahn steigt an", "Bleibt dabei waagerecht."],
        ["Pontonbrücke", "Schwimmkörper tragen", "Schnell aufgebaut, oft nur vorübergehend."],
        ["Aquädukt", "Führt Wasser statt Fahrzeuge", "Gefälle von wenigen Zentimetern je Kilometer."],
-       ["Viadukt", "Lange Reihe von Pfeilern", "Überspannt ein ganzes Tal."]]'::jsonb),
+       ["Viadukt", "Lange Reihe von Pfeilern", "Überspannt ein ganzes Tal."]]'::jsonb,
+     '[["Tunnel unter dem Fluss", "Ein Tunnel ist keine Brücke."],
+       ["Seilbahn über die Schlucht", "Sie trägt keine Fahrbahn und fehlt auf dem Brett."]]'::jsonb),
 
     ('technik', 'haushaltstechnik', 'Haushaltsgeräte & ihr Prinzip',
      'Wie funktioniert das Gerät?',
@@ -155,7 +173,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Waschmaschine", "Trommel, Lauge und Zeit", "Mechanik, Chemie und Temperatur zusammen."],
        ["Geschirrspüler", "Rotierende Sprüharme", "Heißes Wasser mit Reiniger unter Druck."],
        ["Wäschetrockner", "Warme Luft entzieht Feuchtigkeit", "Moderne Geräte gewinnen die Wärme zurück."],
-       ["Dunstabzugshaube", "Fettfilter und Gebläse", "Im Umluftbetrieb zusätzlich Aktivkohle."]]'::jsonb),
+       ["Dunstabzugshaube", "Fettfilter und Gebläse", "Im Umluftbetrieb zusätzlich Aktivkohle."]]'::jsonb,
+     '[["Erhitzt mit Heißluft im Umlauf", "Die Fritteuse ohne Fett fehlt auf diesem Brett."],
+       ["Presst Kaffee unter Druck", "Die Espressomaschine steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'audiotechnik', 'Audiotechnik',
      'Was tut dieses Gerät oder Verfahren?',
@@ -169,7 +189,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mischpult", "Führt viele Kanäle zusammen", "Pegel, Klang und Effektwege je Kanal."],
        ["Sampler", "Spielt aufgenommene Klänge", "Ein Ton wird über die Tastatur verteilt."],
        ["Synthesizer", "Erzeugt Klänge elektronisch", "Oszillator, Filter und Hüllkurve."],
-       ["Phantomspeisung", "Versorgt Kondensatormikrofone", "48 Volt über dasselbe Kabel wie das Signal."]]'::jsonb),
+       ["Phantomspeisung", "Versorgt Kondensatormikrofone", "48 Volt über dasselbe Kabel wie das Signal."]]'::jsonb,
+     '[["Trennt die Frequenzen auf mehrere Chassis", "Die Frequenzweiche fehlt auf diesem Brett."],
+       ["Speichert die Aufnahme auf Band", "Das Tonbandgerät steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'datenbank-begriffe', 'Begriffe aus Datenbanken',
      'Was bezeichnet der Begriff?',
@@ -185,7 +207,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Cache", "Zwischenspeicher für Häufiges", "Spart den teuren Weg zur Platte."],
        ["Schema", "Bauplan der Tabellen", "Legt Spalten, Typen und Regeln fest."],
        ["Migration", "Änderung der Struktur", "Wird versioniert, damit sie nachvollziehbar bleibt."],
-       ["Backup", "Sicherungskopie", "Ist erst dann eines, wenn die Rücksicherung geprüft wurde."]]'::jsonb),
+       ["Backup", "Sicherungskopie", "Ist erst dann eines, wenn die Rücksicherung geprüft wurde."]]'::jsonb,
+     '[["Regel, die vor dem Schreiben prüft", "Der Constraint fehlt auf diesem Brett."],
+       ["Gespeicherte Abfrage als virtuelle Tabelle", "Die View steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'programmiersprachen-einsatz', 'Programmiersprachen & Einsatz',
      'Wofür wird die Sprache vor allem genutzt?',
@@ -202,7 +226,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Go", "Netzwerkdienste", "Nebenläufigkeit ist eingebaut."],
        ["PHP", "Dynamische Webseiten", "Läuft auf einem großen Teil aller Webserver."],
        ["Fortran", "Numerische Simulation", "Seit 1957 im wissenschaftlichen Rechnen."],
-       ["COBOL", "Bankensoftware", "Läuft in vielen Rechenzentren bis heute."]]'::jsonb),
+       ["COBOL", "Bankensoftware", "Läuft in vielen Rechenzentren bis heute."]]'::jsonb,
+     '[["Tabellen im Büro automatisieren", "Das täte VBA, und das fehlt auf diesem Brett."],
+       ["Auszeichnung von Webseiten", "HTML ist keine Programmiersprache und steht hier nicht."]]'::jsonb),
 
     ('technik', 'netzwerkgeraete', 'Netzwerktechnik',
      'Welche Aufgabe hat das?',
@@ -218,7 +244,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["NAT", "Viele Geräte, eine Adresse", "Merkt sich, welche Antwort zu wem gehört."],
        ["VLAN", "Trennt Netze logisch", "Ein Kabel, mehrere getrennte Bereiche."],
        ["MTU", "Größte Paketlänge", "Zu große Pakete müssen zerlegt werden."],
-       ["Latenz", "Verzögerung der Übertragung", "Für Spiele wichtiger als die Bandbreite."]]'::jsonb),
+       ["Latenz", "Verzögerung der Übertragung", "Für Spiele wichtiger als die Bandbreite."]]'::jsonb,
+     '[["Übersetzt Namen in Adressen", "Das tut der DNS-Server, und der fehlt auf dem Brett."],
+       ["Verstärkt das WLAN-Signal", "Der Repeater steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'elektromobilitaet', 'Elektromobilität',
      'Was bedeutet der Begriff?',
@@ -232,7 +260,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ladekurve", "Leistung über den Ladestand", "Ab etwa 80 Prozent wird deutlich gedrosselt."],
        ["Range Extender", "Kleiner Verbrenner als Generator", "Lädt den Akku, treibt aber nicht an."],
        ["Feststoffakku", "Fester statt flüssiger Elektrolyt", "Verspricht mehr Energie und weniger Brandgefahr."],
-       ["Wärmepumpe im Auto", "Heizen ohne viel Strom", "Verlängert die Reichweite im Winter."]]'::jsonb),
+       ["Wärmepumpe im Auto", "Heizen ohne viel Strom", "Verlängert die Reichweite im Winter."]]'::jsonb,
+     '[["Steckerstandard in Japan", "CHAdeMO wäre das, und es fehlt auf diesem Brett."],
+       ["Tankstelle für Wasserstoff", "Sie steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'heimcomputer-konsolen', 'Heimcomputer & Konsolen',
      'Von welchem Hersteller stammt das Gerät?',
@@ -246,7 +276,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Mega Drive", "Sega", "Der große Rivale des Super Nintendo."],
        ["PlayStation", "Sony", "Setzte auf CD statt auf Module."],
        ["Xbox", "Microsoft", "Erste Konsole mit Festplatte serienmäßig."],
-       ["Schneider CPC", "Amstrad", "In Deutschland unter anderem Namen verkauft."]]'::jsonb),
+       ["Schneider CPC", "Amstrad", "In Deutschland unter anderem Namen verkauft."]]'::jsonb,
+     '[["Philips", "Der CD-i käme von dort, und der fehlt auf diesem Brett."],
+       ["Acorn", "Der BBC Micro steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'datentechnik-einheiten', 'Einheiten der Datentechnik',
      'Was gibt die Einheit an?',
@@ -260,7 +292,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["FLOPS", "Gleitkommaoperationen je Sekunde", "Maß für die Leistung von Supercomputern."],
        ["DPI", "Druckpunkte je Zoll", "Bestimmt die Feinheit des Ausdrucks."],
        ["PPI", "Bildpunkte je Zoll", "Entscheidet, ob man Bildpunkte sieht."],
-       ["Baud", "Symbole je Sekunde", "Nicht dasselbe wie Bit pro Sekunde."]]'::jsonb),
+       ["Baud", "Symbole je Sekunde", "Nicht dasselbe wie Bit pro Sekunde."]]'::jsonb,
+     '[["Watt", "Ein Maß für die Leistung, aber keine Einheit der Datentechnik hier."],
+       ["Zoll", "Es misst die Bildschirmdiagonale und steht nicht auf diesem Brett."]]'::jsonb),
 
     ('technik', 'ingenieure-bauten', 'Ingenieure & ihre Werke',
      'Womit ist der Name verbunden?',
@@ -274,7 +308,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Fritz Todt", "Reichsautobahn", "Namensgeber einer berüchtigten Bauorganisation."],
        ["Gustave Eiffel", "Freiheitsstatue-Gerüst", "Das innere Tragwerk stammt von ihm."],
        ["Frank Whittle", "Strahltriebwerk", "Patentiert 1930, in Serie erst im Krieg."],
-       ["Hedy Lamarr", "Frequenzsprungverfahren", "Grundgedanke moderner Funkübertragung."]]'::jsonb),
+       ["Hedy Lamarr", "Frequenzsprungverfahren", "Grundgedanke moderner Funkübertragung."]]'::jsonb,
+     '[["Otto Lilienthal", "Die ersten Gleitflüge fehlen auf diesem Brett."],
+       ["Rudolf Diesel", "Sein Motor steht nicht in dieser Liste."]]'::jsonb),
 
     ('technik', 'schiffstechnik', 'Schiffstechnik',
      'Was bezeichnet der Begriff am Schiff?',
@@ -290,7 +326,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Ballastwasser", "Sorgt für Stabilität", "Muss heute behandelt werden, wegen eingeschleppter Arten."],
        ["Echolot", "Misst die Wassertiefe", "Über die Laufzeit eines Schallimpulses."],
        ["Anker", "Hält die Position", "Die Kette trägt mehr zur Haltekraft bei als das Eisen."],
-       ["Stabilisatoren", "Dämpfen das Rollen", "Flossen unter Wasser, elektronisch gesteuert."]]'::jsonb),
+       ["Stabilisatoren", "Dämpfen das Rollen", "Flossen unter Wasser, elektronisch gesteuert."]]'::jsonb,
+     '[["Backbord", "Die linke Seite, und danach fragt keine Zeile auf diesem Brett."],
+       ["Steuerbord", "Die rechte Seite, sie fehlt in dieser Liste ebenso."]]'::jsonb),
 
     ('technik', 'gebaeudetechnik', 'Gebäudetechnik',
      'Wozu dient das im Haus?',
@@ -305,7 +343,9 @@ with spec (subject_slug, slug, title, description, difficulty,
        ["Rauchwarnmelder", "Warnt vor Brandrauch", "In Wohnungen inzwischen überall Pflicht."],
        ["Regenwasserzisterne", "Sammelt Regenwasser", "Entlastet zugleich die Kanalisation."],
        ["Aufzugsschacht", "Führt die Kabine", "Gegengewicht spart Antriebsenergie."],
-       ["Blitzschutzanlage", "Leitet Blitze ab", "Fangstange, Ableiter und Erder gehören zusammen."]]'::jsonb)
+       ["Blitzschutzanlage", "Leitet Blitze ab", "Fangstange, Ableiter und Erder gehören zusammen."]]'::jsonb,
+     '[["Erzeugt Strom aus Sonnenlicht", "Die Photovoltaikanlage fehlt auf diesem Brett."],
+       ["Schützt vor Einbrechern", "Die Alarmanlage steht nicht in dieser Liste."]]'::jsonb)
 ),
 
 new_quizzes as (
@@ -330,15 +370,40 @@ flat as (
      cross join lateral jsonb_array_elements(sp.pairs) with ordinality p(value, ord)
 ),
 
+-- The answers that belong to no category. Numbered after the pairs so the two
+-- sets never collide on `position`, though nothing reads it for a fake: the
+-- pool is shuffled before a player sees it, and the review lists fakes on their
+-- own rather than in board order.
+fakes as (
+    select q.id                                         as quiz_id,
+           k.value ->> 0                                as label,
+           k.value ->> 1                                as explanation,
+           (jsonb_array_length(sp.pairs) + k.ord)::int  as position
+      from spec sp
+      join new_quizzes q on q.slug = sp.slug
+     cross join lateral jsonb_array_elements(sp.fakes) with ordinality k(value, ord)
+),
+
 new_categories as (
     insert into categories (quiz_id, label, position)
     select quiz_id, label, position from flat
     returning id, quiz_id, label
+),
+
+paired as (
+    insert into items (quiz_id, category_id, label, position, explanation)
+    select f.quiz_id, c.id, f.answer, f.position, f.explanation
+      from flat f
+      join new_categories c
+        on c.quiz_id = f.quiz_id
+       and c.label = f.label
+    returning id
 )
 
+-- Same table, `category_id` left null. Both inserts run in the one statement,
+-- so `items_quiz_id_label_key` still sees the pairs above: a fake written to
+-- repeat an answer already on its own board fails the file rather than becoming
+-- a second row nobody can tell apart.
 insert into items (quiz_id, category_id, label, position, explanation)
-select f.quiz_id, c.id, f.answer, f.position, f.explanation
-  from flat f
-  join new_categories c
-    on c.quiz_id = f.quiz_id
-   and c.label = f.label;
+select k.quiz_id, null, k.label, k.position, k.explanation
+  from fakes k;

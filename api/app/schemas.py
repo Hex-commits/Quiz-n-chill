@@ -88,18 +88,23 @@ class ItemPublic(ORMModel):
 
 
 class ItemSolution(ORMModel):
-    """Server-side view including the answer."""
+    """Server-side view including the answer.
+
+    `category_id` is None for a fake -- an answer that belongs to no category.
+    Which of the two an item is may never reach a player before the round ends;
+    that is the whole of what there is to spot.
+    """
 
     id: UUID
     label: str
     position: int
-    category_id: UUID
+    category_id: UUID | None = None
     explanation: str | None = None
 
 
 class ItemCreate(BaseModel):
     label: str = Field(min_length=1, max_length=300)
-    category_id: UUID
+    category_id: UUID | None = None
     position: int = 0
 
 
@@ -185,7 +190,7 @@ class ItemResult(BaseModel):
     item_id: UUID
     label: str
     assigned_category_id: UUID | None = None
-    correct_category_id: UUID
+    correct_category_id: UUID | None = None
     is_correct: bool
     explanation: str | None = None
 
@@ -216,11 +221,16 @@ class PlayerPublic(BaseModel):
 
 
 class SolvedItem(BaseModel):
-    """An item that has been placed correctly, so revealing it is safe."""
+    """An item that has been resolved correctly, so revealing it is safe.
+
+    `category_id` is None when the item was a fake and the player said so. It
+    is the same null the answer key holds, and revealing it here gives nothing
+    away: the move that resolved it already did.
+    """
 
     item_id: UUID
     label: str
-    category_id: UUID
+    category_id: UUID | None = None
     solved_by: UUID
 
 
@@ -230,7 +240,7 @@ class LastMove(BaseModel):
     player_id: UUID
     nickname: str
     item_label: str
-    category_id: UUID
+    category_id: UUID | None = None
     was_correct: bool
 
 
@@ -248,12 +258,26 @@ class ResolvedPair(BaseModel):
     solved_by: UUID | None = None
 
 
+class ResolvedFake(BaseModel):
+    """An answer that belonged to no category, once saying so is safe.
+
+    Separate from `ResolvedPair` rather than a pair with an empty category: a
+    fake has nothing to sit beside, and the review reads it as its own list --
+    "these two were never part of it".
+    """
+
+    item_label: str
+    explanation: str | None = None
+    solved_by: UUID | None = None
+
+
 class FinishedRound(BaseModel):
     """A round that is over, so its source and answer key can be shown.
 
     Accumulated as the game runs. The whole pairing is included, unsolved pairs
     too: a round that ended because everyone was knocked out is exactly the one
-    worth reading afterwards.
+    worth reading afterwards. `fakes` is the rest of the answer key -- what was
+    in the pool and belonged nowhere.
     """
 
     quiz_id: UUID
@@ -262,6 +286,7 @@ class FinishedRound(BaseModel):
     difficulty: Difficulty = Difficulty.medium
     source: Source | None = None
     solution: list[ResolvedPair] = []
+    fakes: list[ResolvedFake] = []
 
 
 class RoundView(BaseModel):
@@ -359,9 +384,11 @@ class LobbyStart(BaseModel):
 
 
 class TurnSubmit(BaseModel):
+    """One placement. `category_id` None means "I say this one is a fake"."""
+
     player_id: UUID
     item_id: UUID
-    category_id: UUID
+    category_id: UUID | None = None
 
 
 class PlayerAction(BaseModel):
