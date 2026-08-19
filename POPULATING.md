@@ -297,6 +297,30 @@ supabase link --project-ref <ref>
 supabase db push
 ```
 
+### The hand-written questions
+
+`supabase db push` carries migrations only and `seed.sql` never runs against a
+hosted project, so the files under `supabase/questions` need a way in that is
+not `psql` — reaching the database directly wants the database password, while
+the service-role key is already in `.env`.
+
+```bash
+python -m tools.questions.apply                     # every file, dry run
+python -m tools.questions.apply --commit            # add what is missing
+python -m tools.questions.apply --replace --commit  # rebuild the pool from the files
+```
+
+Boards whose slug already exists are skipped, so a second run adds only what is
+new and an interrupted run is resumed by running it again. `--replace` deletes
+every `origin = 'seed'` quiz first and writes them all back — the way to pick up
+edits to a file that is already applied, since a board that exists is otherwise
+left alone. Generated questions are never touched by it: they are `origin =
+'ingest'` and exist in no file.
+
+Use `psql < file.sql` instead wherever it is available. It runs the real
+statement with the real constraints in one transaction; this tool parses the
+file and writes over PostgREST, one board at a time.
+
 ---
 
 ## Settings, and where they come from

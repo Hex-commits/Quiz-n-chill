@@ -791,18 +791,24 @@ export function LobbyRoom({
 
             <Card
               className={cn(
-                "animate-quiz-rise relative isolate overflow-hidden",
+                /* `overflow-visible` against the base card, which hides it.
+                   The answers inside lift and scale on hover and grow an
+                   outline when picked, and all of that happens at the edge of
+                   this card -- clipped here, the chip on the end of a row loses
+                   the very outline that says it is the one selected. The glow
+                   below still needs clipping, so it gets its own clipper rather
+                   than the card wearing one for it. */
+                "animate-quiz-rise relative isolate overflow-visible",
                 "lg:shrink-0 lg:[--card-spacing:--spacing(3)]",
                 lit && "border-primary/50 shadow-lg",
               )}
             >
               <div
-                className={cn(
-                  "quiz-ambient",
-                  lit && "quiz-ambient--yours",
-                )}
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
                 aria-hidden
-              />
+              >
+                <div className={cn("quiz-ambient", lit && "quiz-ambient--yours")} />
+              </div>
               <CardHeader className="space-y-1.5 text-center lg:space-y-1">
                 <p
                   className={cn(
@@ -878,7 +884,10 @@ export function LobbyRoom({
                   </div>
                 ) : (
                   <>
-                    <div className="flex flex-wrap justify-center gap-2.5">
+                    {/* Room for what a chip does when it is picked: it scales,
+                        lifts, and grows a 2px outline 2px clear of its own box.
+                        At `gap-2.5` two neighbours' outlines met in the middle. */}
+                    <div className="flex flex-wrap justify-center gap-3 sm:gap-3.5">
                       {remainingItems.map((item) => (
                         <Button
                           key={item.id}
@@ -937,8 +946,15 @@ export function LobbyRoom({
               rather than the board growing past the screen. `overflow-y-auto` is
               the last resort and nothing more — ten categories on a laptop in
               landscape will still find the floor.
+
+              That scroller is why this has padding. Asking for one scrolling
+              axis gives you clipping on both, and an armed card lifts and scales
+              outside its own box — against a bare edge the whole top row was
+              shaved flat, which read as the zoom being broken rather than as the
+              board being tight. The padding is the room the transform needs;
+              content is clipped at the padding box, not the border box.
             */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-wrap lg:content-stretch lg:justify-center lg:gap-2 lg:overflow-y-auto">
+            <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-wrap lg:content-stretch lg:justify-center lg:gap-3 lg:overflow-y-auto lg:p-2">
               {categories.map((category, index) => {
                 const solved = solvedIn(category.id);
                 const full = solved.length > 0;
@@ -1856,11 +1872,26 @@ function CategoryCard({
       className={cn(
         "animate-quiz-rise",
         "lg:min-h-0 lg:[--card-spacing:--spacing(2)]",
-        /* The card carries its own width now that the parent names no tracks.
-           A fixed basis rather than a growing one: a short last row would
-           otherwise end up with cards wider than the rows above it, which is a
-           worse look than the slack the centring leaves at the edges. */
-        "lg:min-w-0 lg:grow-0 lg:basis-48 xl:basis-56",
+        /* The card carries its own width now that the parent names no tracks,
+           and it is stated as a share of the line rather than in pixels:
+           `100%/n` less the gaps that n cards leave between them.
+
+           That is what makes the board fill its column instead of floating in
+           the middle of it — a fixed basis left ~90px of dead air down each
+           side while the question card above ran edge to edge. Growing into the
+           line instead would fill it, but only line by line: a last row of two
+           came out wider than the four above it. A share of the line is the
+           same width on every row, so the remainder is simply centred and short
+           rather than centred and wrong.
+
+           Column counts are chosen against what the column is actually wide —
+           the 18rem of turn order beside it means `xl` here is roughly `lg`
+           elsewhere. A board of ten then falls 4+4+2, and 5+5 once there is
+           room for five. */
+        "lg:min-w-0 lg:grow-0",
+        "lg:basis-[calc(33.333%_-_0.5rem)]",
+        "xl:basis-[calc(25%_-_0.5625rem)]",
+        "2xl:basis-[calc(20%_-_0.6rem)]",
         armed &&
           /* Lifted, it overlaps its neighbours, and the ones after it in the
              board would otherwise paint over the lift. */
