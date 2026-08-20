@@ -794,7 +794,11 @@ def _catch_up_owed(lobby: Lobby) -> dict[UUID, int]:
 
 
 def _maybe_finish_round(lobby: Lobby) -> None:
-    """End the round when every item is placed, or nobody is left to place one."""
+    """End the round when every real answer is placed, or nobody is left to place one.
+
+    Fakes never have to be called out: a pool can be cleared while some fake is
+    still sitting there, and waiting for it would stall the round forever once
+    the only moves left are ones nobody has to make."""
     current = lobby.current_round
     if current is None:
         return
@@ -802,7 +806,8 @@ def _maybe_finish_round(lobby: Lobby) -> None:
     if not any(player.is_connected for player in lobby.players):
         return
 
-    all_solved = len(lobby.solved) == len(current.items)
+    pair_ids = {item.id for item in current.pairs()}
+    all_solved = pair_ids <= lobby.solved.keys()
     nobody_can_play = not any(player.can_play() for player in lobby.players)
     if not (all_solved or nobody_can_play):
         return

@@ -281,13 +281,27 @@ def test_a_finished_round_names_the_fakes_it_held(with_fake):
     lobbies.submit_turn(code, anna, items["Berlin"], DE)
     lobbies.submit_turn(code, ben, items["Paris"], FR)
     lobbies.submit_turn(code, anna, items["Madrid"], ES)
-    lobbies.submit_turn(code, ben, items["Rom"], IT)
-    view = lobbies.submit_turn(code, anna, items["Zürich"], None)
+    lobbies.submit_turn(code, ben, items["Zürich"], None)
+    view = lobbies.submit_turn(code, anna, items["Rom"], IT)
 
     finished = view.finished_rounds[-1]
     assert [f.item_label for f in finished.fakes] == ["Zürich"]
-    assert finished.fakes[0].solved_by == anna
+    assert finished.fakes[0].solved_by == ben
     assert "Zürich" not in [p.item_label for p in finished.solution]
+
+
+def test_round_ends_with_a_fake_still_untouched(with_fake):
+    """Nobody owes the fake a turn -- clearing the real pairings is the round."""
+    code, (anna, ben) = setup_game(slugs=("topic-a", "topic-b"))
+    items = items_of(code)
+
+    lobbies.submit_turn(code, anna, items["Berlin"], DE)
+    lobbies.submit_turn(code, ben, items["Paris"], FR)
+    lobbies.submit_turn(code, anna, items["Madrid"], ES)
+    view = lobbies.submit_turn(code, ben, items["Rom"], IT)
+
+    assert view.status is LobbyStatus.reviewing
+    assert view.finished_rounds[-1].fakes[0].solved_by is None
 
 
 def test_a_solved_item_cannot_be_played_again():
