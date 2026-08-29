@@ -422,6 +422,71 @@
   animation: quiz-shine 720ms var(--ease-soft);
 }
 
+/**
+ * A card turning over on the felt.
+ *
+ * Written here rather than as utilities on the element because a flip is four
+ * rules that only work as a set -- a perspective on the frame, preserved 3D on
+ * the thing that turns, and a hidden backface on each of the two faces. Spread
+ * across a `className` they read as noise, and one of them going missing in a
+ * refactor is a card that turns into a mirror image of its own back.
+ *
+ * The front face is in flow and the back is laid over it, so the card is as
+ * tall as whatever is written on it. That matters for the question, which is a
+ * sentence of unknown length rather than a rank and a suit.
+ */
+.quiz-flip {
+  perspective: 900px;
+}
+
+.quiz-flip-inner {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 700ms var(--ease-soft);
+}
+
+.quiz-flip-inner--up {
+  transform: rotateY(180deg);
+}
+
+.quiz-flip-face {
+  backface-visibility: hidden;
+}
+
+.quiz-flip-face:not(.quiz-flip-face--front) {
+  position: absolute;
+  inset: 0;
+}
+
+.quiz-flip-face--front {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  transform: rotateY(180deg);
+}
+
+/**
+ * The back of a card. A woven diamond rather than a flat colour, because a
+ * plain rectangle on a felt reads as a hole in the table rather than as
+ * something lying on it.
+ */
+.quiz-card-back {
+  background-color: oklch(0.42 0.14 25);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgb(255 255 255 / 0.14) 0 1px,
+      transparent 1px 6px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgb(255 255 255 / 0.14) 0 1px,
+      transparent 1px 6px
+    );
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* The number leaving is only ever off screen because its animation takes it
      there, so switching that off has to hide it some other way. */
@@ -440,6 +505,9 @@
   .quiz-ambient--yours,
   .quiz-shine:hover::after {
     animation: none;
+  }
+  .quiz-flip-inner {
+    transition: none;
   }
   .quiz-ambient {
     opacity: 0.4;
