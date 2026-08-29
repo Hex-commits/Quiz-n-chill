@@ -42,21 +42,41 @@ CATEGORY_COLUMNS = (
 )
 ITEM_SOLUTION_COLUMNS = "id, label, position, category_id, explanation"
 
+#: The only origin a game is played from -- see the `origin` column, added in
+#: `20260803120000_question_origin.sql`. `seed` is the hand-written pool in
+#: `supabase/seed.sql`: written by a person, checked against its source and
+#: worded to be read out. `ingest` is whatever the local model made of a
+#: Wikipedia article, and it shows in the wording long before it shows in the
+#: facts. The generated rows stay in the table -- they are still worth reading
+#: through and promoting -- they are simply not dealt.
+PLAYABLE_ORIGIN = "seed"
+
+
+def _playable(quizzes: list[dict] | None) -> list[dict]:
+    """The questions in an embedded `quizzes(...)` that a game may be dealt.
+
+    Filtered here rather than in the query for the same reason `pools_by_subject`
+    filters difficulty here: a condition on an embedded resource nulls the embed
+    out instead of dropping the parent row, so a subject whose questions are all
+    generated has to come back empty rather than not come back at all.
+    """
+    return [quiz for quiz in (quizzes or []) if quiz.get("origin") == PLAYABLE_ORIGIN]
+
 
 def list_subjects() -> list[Subject]:
     response = (
         get_client()
         .table("subjects")
-        .select(f"{SUBJECT_COLUMNS}, quizzes(difficulty)")
+        .select(f"{SUBJECT_COLUMNS}, quizzes(difficulty, origin)")
         .order("position")
         .execute()
     )
     return [
         Subject(
             **{k: v for k, v in row.items() if k != "quizzes"},
-            quiz_count=len(row.get("quizzes") or []),
+            quiz_count=len(_playable(row.get("quizzes"))),
             difficulty_counts=Counter(
-                quiz["difficulty"] for quiz in (row.get("quizzes") or [])
+                quiz["difficulty"] for quiz in _playable(row.get("quizzes"))
             ),
         )
         for row in response.data
@@ -73,7 +93,9 @@ def list_quizzes(subject_slugs: list[str] | None = None) -> list[QuizSummary]:
     if subject_slugs:
         query = query.in_("subjects.slug", subject_slugs)
 
-    response = query.order("created_at").execute()
+    # A plain column on the row being selected, so this one *can* be a query
+    # filter -- unlike the embedded case `_playable` exists for.
+    response = query.eq("origin", PLAYABLE_ORIGIN).order("created_at").execute()
     return [_to_summary(row) for row in response.data]
 
 
@@ -82,6 +104,10 @@ def pools_by_subject(
     difficulties: list[Difficulty] | None = None,
 ) -> dict[str, list[str]]:
     """Available question slugs per subject, for the balanced draw.
+
+    Only `PLAYABLE_ORIGIN` questions are pooled, so a subject that holds nothing
+    but generated ones is empty here and drops out below -- the same as a subject
+    with no questions at all, which is what it is as far as a game is concerned.
 
     Subjects that exist but hold no questions are dropped; a subject slug that
     does not exist at all is reported, because silently playing a shorter game
@@ -103,7 +129,7 @@ def pools_by_subject(
     response = (
         get_client()
         .table("subjects")
-        .select("slug, quizzes(slug, difficulty)")
+        .select("slug, quizzes(slug, difficulty, origin)")
         .in_("slug", subject_slugs)
         .execute()
     )
@@ -117,7 +143,7 @@ def pools_by_subject(
     pools = {
         row["slug"]: [
             quiz["slug"]
-            for quiz in (row.get("quizzes") or [])
+            for quiz in _playable(row.get("quizzes"))
             if wanted is None or quiz.get("difficulty") in wanted
         ]
         for row in response.data

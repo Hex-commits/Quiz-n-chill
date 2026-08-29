@@ -72,6 +72,16 @@ CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 4
 MAX_PLAYERS = 10
 
+OPEN_END_DRAW = 30
+"""How many questions an open-end game loads before they come round again.
+
+Not a limit on the game -- that ends on chips -- but on the work of starting
+one, since every question drawn is a database read. Thirty is far more hands
+than a table of twenty-big-blind stacks takes to produce one winner, so a game
+that reaches the end of them is already unusual; it plays them again rather than
+stopping, asking a different category off each board the second time round.
+"""
+
 MAX_HISTORY = 20
 
 PRESENCE_TIMEOUT = timedelta(seconds=15)
@@ -223,6 +233,7 @@ def start_game(
     exclude_slugs: list[str] | None = None,
     difficulties: list[Difficulty] | None = None,
     mode: GameMode = GameMode.classic,
+    open_end: bool = False,
 ) -> LobbyView:
     """Begin a game drawn from the chosen subjects.
 
@@ -238,6 +249,10 @@ def start_game(
     it, because a request that cannot be satisfied must still produce a game:
     questions big enough to deal a different board each time are never excluded,
     and once the unplayed ones run out the played ones are used anyway.
+
+    `open_end` is a poker game with no length: it runs until one player has the
+    chips. There is then no round count to draw against, so it takes the pool
+    instead -- see `OPEN_END_DRAW`.
     """
     with _mutate(code) as lobby:
         player = lobby.player(player_id)
@@ -258,9 +273,20 @@ def start_game(
                 else "The chosen subjects contain no questions."
             )
 
-        drawn = draw_balanced(pools, round_count + 1, avoid=_avoid(exclude_slugs))
-        quiz_slugs = drawn[:round_count]
-        spare_slug = drawn[round_count] if len(drawn) > round_count else None
+        open_end = open_end and mode is GameMode.poker
+        if open_end:
+            quiz_slugs = draw_balanced(
+                pools,
+                min(OPEN_END_DRAW, sum(map(len, pools.values()))),
+                avoid=_avoid(exclude_slugs),
+            )
+            # The settling round is a Classic rule, and there is no last question
+            # for it to settle after.
+            spare_slug = None
+        else:
+            drawn = draw_balanced(pools, round_count + 1, avoid=_avoid(exclude_slugs))
+            quiz_slugs = drawn[:round_count]
+            spare_slug = drawn[round_count] if len(drawn) > round_count else None
         subject_names = _subject_names(subject_slugs)
 
         rounds = [_load_round(slug) for slug in quiz_slugs]
@@ -271,6 +297,7 @@ def start_game(
             subject_slugs=list(subject_slugs),
             difficulties=list(difficulties) if difficulties else list(Difficulty),
             round_count=round_count,
+            open_end=open_end,
             turn_seconds=turn_seconds,
         )
         lobby.subject_names = subject_names

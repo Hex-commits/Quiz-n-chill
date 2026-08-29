@@ -123,7 +123,9 @@ Rules, as implemented in `api/app/services/lobbies.py`:
   server draws that many at random, spread as evenly as possible across the
   chosen subjects — 5 rounds over 3 subjects gives 2/2/1, and which subject
   gets the extra one varies. Asking for more rounds than exist simply plays
-  everything available. See `api/app/services/drafting.py`.
+  everything available. Only hand-written questions are drawn — see
+  `PLAYABLE_ORIGIN` under [Design decisions](#design-decisions). See
+  `api/app/services/drafting.py`.
 - Scores carry across rounds, and the highest total wins. Ties report every
   winner.
 - The starting player rotates each round.
@@ -313,8 +315,10 @@ python -m tools.ingest --limit 10            # dry run + JSON report
 python -m tools.ingest --limit 10 --commit   # write to Supabase
 ```
 
-Dry run is the default. **[POPULATING.md](POPULATING.md)** is the runbook —
-every command from an empty database to a playable pool, plus the verification
+Dry run is the default. Generated questions land in `quizzes` with
+`origin = 'ingest'` and are **not dealt** until somebody reads one and sets its
+origin to `seed`. **[POPULATING.md](POPULATING.md)** is the runbook — every
+command from an empty database to a reviewed pool, plus the verification
 queries and what to do when a run goes wrong. [tools/ingest/README.md](tools/ingest/README.md)
 explains why the pipeline is built the way it is.
 
@@ -355,6 +359,14 @@ round has ended.
 (id + label) separately from `ItemSolution` (with `category_id`). The player
 route can only return the former, so a frontend bug cannot leak the answer — the
 field simply is not in the payload. Verified by test, not by convention.
+
+**Only hand-written questions are played.** `quizzes.origin` separates the
+`seed` pool — written by a person, checked against its source, worded to be read
+out — from what `tools/ingest` generated. `PLAYABLE_ORIGIN` in
+`api/app/services/quizzes.py` is the one place that says which is dealt, and it
+governs the subject counts a host picks from as well as the draw itself, so the
+number on the picker is the number that will be played. Generated rows stay in
+the table; they are worth reading through and promoting, not deleting.
 
 **Items are shuffled server-side.** Seed rows are stored grouped by category, so
 the stored order would give the grouping away.

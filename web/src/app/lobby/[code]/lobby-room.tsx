@@ -115,6 +115,16 @@ const MODE_LABELS: Record<GameMode, string> = {
 
 const ROUND_CHOICES = [3, 5, 7, 10];
 
+/**
+ * The extra length a poker table can be set to, sitting on the end of the round
+ * choices as a number so that one control offers all of them.
+ *
+ * Zero rather than a string because `Segmented` is keyed on the value and the
+ * rest of the row are numbers; it never reaches the server, where the length of
+ * a game and whether it has one are two separate fields.
+ */
+const OPEN_END = 0;
+
 const TURN_CHOICES = [15, 30, 45, 60];
 
 const DIFFICULTY_CHOICES: { level: Difficulty; label: string; bars: number }[] = [
@@ -149,6 +159,7 @@ export function LobbyRoom({
     subject_slugs: subjects.map((subject) => subject.slug),
     difficulties: ["easy", "medium", "hard"],
     round_count: 5,
+    open_end: false,
     turn_seconds: 30,
   });
 
@@ -573,6 +584,7 @@ export function LobbyRoom({
                       played,
                       localSetup.difficulties,
                       localSetup.mode,
+                      localSetup.open_end,
                     ),
                   )
                 }
@@ -1450,6 +1462,9 @@ function LobbySetup({
     0,
   );
 
+  /** Chips are on the table, so the choices that are about chips are offered. */
+  const poker = setup.mode === "poker";
+
   const patch = (next: Partial<LobbySettings>) => onChange({ ...setup, ...next });
 
   return (
@@ -1548,13 +1563,22 @@ function LobbySetup({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <section className="space-y-2.5">
-            <SetupLabel title="Rounds" />
+            <SetupLabel title={poker ? "Hands" : "Rounds"} />
+            {/* Open end is offered only at the poker table, because it is a rule
+                about chips and Classic has none to run out of. */}
             <Segmented
-              options={ROUND_CHOICES}
-              value={setup.round_count}
+              options={poker ? [...ROUND_CHOICES, OPEN_END] : ROUND_CHOICES}
+              value={poker && setup.open_end ? OPEN_END : setup.round_count}
               disabled={readOnly}
               muted={readOnly}
-              onSelect={(n) => patch({ round_count: n })}
+              format={(n) => (n === OPEN_END ? "Open end" : String(n))}
+              onSelect={(n) =>
+                patch(
+                  n === OPEN_END
+                    ? { open_end: true }
+                    : { open_end: false, round_count: n },
+                )
+              }
             />
           </section>
 
@@ -1571,7 +1595,14 @@ function LobbySetup({
           </section>
         </div>
 
-        {setup.subject_slugs.length > 0 && setup.round_count > availableQuestions ? (
+        {setup.subject_slugs.length === 0 ? null : poker && setup.open_end ? (
+          <p className="text-muted-foreground text-sm">
+            No fixed length — the table plays on until one player has all the
+            chips. The {availableQuestions} question
+            {availableQuestions === 1 ? "" : "s"} in the chosen subjects come
+            round again if it runs long, asked about something else each time.
+          </p>
+        ) : setup.round_count > availableQuestions ? (
           <p className="text-muted-foreground text-sm">
             Only {availableQuestions} question
             {availableQuestions === 1 ? "" : "s"} available in the chosen subjects

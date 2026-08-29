@@ -289,7 +289,10 @@ export interface PokerResult {
 export interface PokerView {
   stage: PokerStage;
   hand_index: number;
+  /** What was drawn, which in an open-end game is not what will be played. */
   hand_count: number;
+  /** `hand_index` may run past `hand_count`: the game ends on chips. */
+  open_end: boolean;
   pot: number;
   carried: number;
   current_bet: number;
@@ -312,6 +315,11 @@ export interface LobbySettings {
   subject_slugs: string[];
   difficulties: Difficulty[];
   round_count: number;
+  /**
+   * Play until one player has all the chips, rather than for `round_count`.
+   * Poker only — Classic has no chips, and the server ignores it there.
+   */
+  open_end: boolean;
   turn_seconds: number;
 }
 

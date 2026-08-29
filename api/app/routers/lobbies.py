@@ -72,6 +72,7 @@ def start_game(code: str, payload: LobbyStart) -> LobbyView:
         payload.exclude_slugs,
         payload.difficulties,
         payload.mode,
+        payload.open_end,
     )
 
 

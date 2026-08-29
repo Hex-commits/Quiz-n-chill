@@ -53,12 +53,23 @@ from app.services.lobby_state import Lobby, PokerSeat, PokerTable, Round
 
 STARTING_STACK = 200
 
-SMALL_BLIND = 5
+SMALL_BLIND = 10
 
-BIG_BLIND = 10
-"""Twenty big blinds each. Short enough that folding every hand loses the game
-over the five to twenty hands one of these lasts, which is the point: the
-players who never risk anything must not be the ones who win."""
+BIG_BLIND = 20
+"""Ten big blinds each -- a deliberately short stack.
+
+The forced bet is the engine: it is the only chips that move whatever anybody
+does, so it sets how fast the table thins out. A player who folds every hand is
+gone in about seven laps rather than thirteen, and at this depth a hand is a
+decision worth making rather than a small bet to see what happens.
+
+Both matter more since the table gained an open end, where nothing but chips
+ends the game. At twenty big blinds a cautious table of five could sit through
+sixty hands before anybody busted, which is not a party game.
+
+Still deep enough to play, which is the reason not to go shorter: three betting
+rounds with room for a raise and a call in each. Shorter than this and every
+hand is shove-or-fold, and the betting stops being part of the game."""
 
 PAYOUT_SECONDS = 12
 """How long the answer key stays up before the next hand is dealt."""
@@ -235,6 +246,7 @@ def view(lobby: Lobby) -> PokerView | None:
         stage=table.stage,
         hand_index=lobby.round_index,
         hand_count=len(lobby.rounds),
+        open_end=lobby.settings.open_end,
         pot=table.pot + sum(s.committed for s in table.seats) + table.carried,
         carried=table.carried,
         current_bet=table.current_bet,
@@ -306,7 +318,10 @@ def _start_hand(lobby: Lobby) -> None:
     if sum(1 for seat in table.seats if not seat.sitting_out) < 2:
         return
 
-    round_ = deal_board(lobby.rounds[lobby.round_index])
+    # Wrapped, for the open-end game that outlasts its questions. `deal_board`
+    # and `_pick_question` both draw again, so a second pass over a question
+    # asks about a different category off it rather than repeating the hand.
+    round_ = deal_board(lobby.rounds[lobby.round_index % len(lobby.rounds)])
     lobby.current_round = round_
     options = [item.id for item in round_.items]
     random.shuffle(options)
@@ -690,8 +705,10 @@ def _next_hand(lobby: Lobby) -> None:
     """Deal the next hand, or end the game if this was the last one."""
     lobby.round_index += 1
     playing = sum(1 for seat in _table(lobby).seats if not _busted(lobby, seat))
-    if lobby.round_index >= len(lobby.rounds) or playing < 2:
-        lobby.round_index = min(lobby.round_index, len(lobby.rounds) - 1)
+    open_end = lobby.settings.open_end
+    if (not open_end and lobby.round_index >= len(lobby.rounds)) or playing < 2:
+        if not open_end:
+            lobby.round_index = min(lobby.round_index, len(lobby.rounds) - 1)
         lobby.status = LobbyStatus.finished
         _table(lobby).next_hand_at = None
         _sync_players(lobby)

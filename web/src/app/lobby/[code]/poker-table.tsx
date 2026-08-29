@@ -17,10 +17,12 @@
  * turns over at the top of each betting round -- subject, then topic, then the
  * question itself -- and the betting is what the players do about it.
  *
- * Chips are the thing to be able to read at a glance, so every stack gets a
- * number *and* a bar. The number is exact; the bar is comparative -- who is
+ * Chips are the thing to be able to read at a glance, so every pile is drawn
+ * three ways at once. The number is exact. The bar is comparative -- who is
  * ahead is a question about the other stacks, and answering it by reading four
- * numbers is slower than seeing four bars.
+ * numbers is slower than seeing four bars. And the number is *set at the size
+ * of the pile it counts*, so a big stack and a fat pot are literally bigger on
+ * the felt than a short stack and an opening bet. See `chipScale`.
  *
  * Holds no rules. Every legality question -- whose turn, what a raise has to
  * be, whether an answer counts -- is settled by the API; this file draws what
@@ -108,6 +110,35 @@ function rim(percent: number, half: string) {
   return `clamp(var(${half}), ${percent}%, calc(100% - var(${half})))`;
 }
 
+/**
+ * The size each chip readout shrinks to when it is the smallest pile at the
+ * table, as a fraction of the size it is drawn at when it is the biggest.
+ *
+ * One floor per readout, because "still legible" is not one number: a pot set
+ * at forty pixels can give up half of itself and still be the loudest thing on
+ * the felt, while a bet already drawn on a pill has almost nothing to give.
+ */
+const CHIP_FLOOR = { pot: 0.5, stack: 0.62, bet: 0.82 };
+
+/**
+ * How big to draw a pile of chips, against the biggest pile at the table.
+ *
+ * Square-rooted rather than taken straight off the ratio. Stacks at a table run
+ * over an order of magnitude, and a linear scale would draw a player on their
+ * last hundred as an unreadable speck long before they were actually out of the
+ * game. The root keeps the small end readable while still saying, at a glance
+ * and without anybody reading a digit, who is deep and who is nearly out.
+ */
+function chipScale(amount: number, biggest: number, floor: number) {
+  const share = Math.sqrt(Math.min(1, Math.max(0, amount) / Math.max(biggest, 1)));
+  return floor + (1 - floor) * share;
+}
+
+/** A font size for `amount`, against the `--chip-base` set on the element. */
+function chipFont(amount: number, biggest: number, floor: number) {
+  return { fontSize: `calc(var(--chip-base) * ${chipScale(amount, biggest, floor)})` };
+}
+
 export function PokerTable({
   lobby,
   poker,
@@ -156,8 +187,14 @@ export function PokerTable({
       {curtain ? <Curtain curtain={curtain} /> : null}
       <div className="mx-auto w-full max-w-3xl space-y-3">
       <div className="flex items-center justify-between gap-2">
+        {/* An open-end table has no "of": it is over when one player has the
+            chips, and a total drawn from the question pool would be a promise
+            about the length of the game that nothing keeps. */}
         <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-          Hand {poker.hand_index + 1} of {poker.hand_count}
+          Hand {poker.hand_index + 1}
+          {poker.open_end
+            ? ` · ${poker.seats.filter((seat) => seat.stack > 0).length} left in`
+            : ` of ${poker.hand_count}`}
         </p>
         {secondsLeft !== null ? (
           <Badge
@@ -176,7 +213,7 @@ export function PokerTable({
           the felt too narrow to read a question off; landscape from `sm`, which
           is the shape of the real thing. */}
       <div className="relative aspect-[4/5] w-full sm:aspect-[16/10]">
-        <Felt poker={poker} />
+        <Felt poker={poker} biggest={biggest} />
         {around.map((seat, index) => {
           const chair = chairAt(index, around.length);
           return (
@@ -347,7 +384,7 @@ function Curtain({ curtain }: { curtain: Reveal }) {
  * land on the rim. The inset padding is what keeps the middle clear of them:
  * generous enough that no card ever runs under a plaque, at any width.
  */
-function Felt({ poker }: { poker: PokerView }) {
+function Felt({ poker, biggest }: { poker: PokerView; biggest: number }) {
   const revealed = REVEALED[poker.stage];
   const image = revealed >= 3 ? (poker.question?.image ?? null) : null;
 
@@ -373,7 +410,12 @@ function Felt({ poker }: { poker: PokerView }) {
           <span className="text-[9px] font-medium tracking-[0.2em] text-emerald-200/70 uppercase sm:text-[11px]">
             Pot
           </span>
-          <span className="font-mono text-2xl font-bold tabular-nums sm:text-4xl">
+          {/* The pot is a pile like any other, and on the first bet of a hand
+              it is the smallest one on the table. It should look it. */}
+          <span
+            className="font-mono font-bold tabular-nums [--chip-base:2rem] sm:[--chip-base:2.75rem]"
+            style={chipFont(poker.pot, biggest, CHIP_FLOOR.pot)}
+          >
             {poker.pot}
           </span>
           {poker.carried > 0 ? (
@@ -559,7 +601,10 @@ function Seat({
       </div>
 
       <div className="flex items-baseline gap-1">
-        <span className="font-mono text-sm font-semibold tabular-nums sm:text-lg">
+        <span
+          className="font-mono leading-none font-semibold tabular-nums [--chip-base:1.125rem] sm:[--chip-base:1.5rem]"
+          style={chipFont(seat.stack, biggest, CHIP_FLOOR.stack)}
+        >
           {seat.stack}
         </span>
         {seat.won > 0 ? (
@@ -600,11 +645,15 @@ function Seat({
         <span
           className={cn(
             "absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full",
-            "bg-amber-400 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-amber-950 shadow",
+            "bg-amber-400 px-1.5 py-0.5 font-mono font-semibold tabular-nums text-amber-950 shadow",
+            "[--chip-base:0.8125rem]",
             stakeBelow ? "top-full mt-1" : "bottom-full mb-1",
           )}
+          style={chipFont(stake, biggest, CHIP_FLOOR.bet)}
         >
-          <Coins className="size-2.5" aria-hidden />
+          {/* Sized in `em`, so the coin grows with the number beside it and the
+              whole pill reads as one bet rather than as an icon and a figure. */}
+          <Coins className="size-[1em]" aria-hidden />
           {stake}
         </span>
       ) : null}

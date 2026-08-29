@@ -6,6 +6,7 @@ question are random by design, so every test below reads the table for what it
 was dealt rather than assuming it.
 """
 
+import random
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -68,6 +69,15 @@ def setup_poker(nicknames=("Anna", "Ben"), hands=1):
     ids = [host_id] + [lobbies.join_lobby(code, name) for name in nicknames[1:]]
     slugs = [f"topic-{n}" for n in range(hands)]
     lobbies.start_game(code, host_id, slugs, hands, mode=GameMode.poker)
+    return code, ids
+
+
+def setup_open_end(nicknames=("Anna", "Ben"), questions=1):
+    """A poker game with no length: it runs until one player has the chips."""
+    code, host_id = lobbies.create_lobby(nicknames[0])
+    ids = [host_id] + [lobbies.join_lobby(code, name) for name in nicknames[1:]]
+    slugs = [f"topic-{n}" for n in range(questions)]
+    lobbies.start_game(code, host_id, slugs, 1, mode=GameMode.poker, open_end=True)
     return code, ids
 
 
@@ -619,3 +629,69 @@ def test_the_routes_carry_the_moves():
     assert backed.status_code == 200
     seats = {s["player_id"]: s for s in backed.json()["poker"]["seats"]}
     assert seats[str(on_the_clock)]["side_stake"] == poker.BIG_BLIND
+
+
+# ---------------------------------------------------------------------------
+# Open end: the game that runs until one player has the chips
+# ---------------------------------------------------------------------------
+
+
+def test_an_open_end_game_keeps_dealing_after_the_questions_run_out():
+    """The questions are what it is played with, not what ends it."""
+    code, _ids = setup_open_end(questions=1)
+    lobbies.poker_act(code, view(code).to_act, PokerAction.fold)
+    expire(code, "next_hand_at")
+
+    table = view(code)
+    assert lobbies.get_view(code).status.value == "playing"
+    assert table.hand_index == 1, "past the one question drawn, and still dealing"
+    assert table.hand_count == 1
+    assert table.open_end is True
+    assert table.pot == poker.SMALL_BLIND + poker.BIG_BLIND, "blinds are up again"
+
+
+def test_an_open_end_game_ends_when_one_player_has_the_chips():
+    code, (anna, ben) = setup_open_end(questions=1)
+
+    lobbies.poker_act(code, view(code).to_act, PokerAction.all_in)
+    lobbies.poker_act(code, view(code).to_act, PokerAction.all_in)
+    assert view(code).stage is PokerStage.answering, "nobody left with chips to bet"
+
+    right = answer_key(code)[0]
+    lobbies.poker_answer(code, anna, right)
+    lobbies.poker_answer(code, ben, a_wrong_answer(code))
+    expire(code, "next_hand_at")
+
+    lobby = lobbies.get_view(code)
+    assert lobby.status.value == "finished"
+    assert lobby.winner_ids == [anna]
+    assert {seat.player_id: seat.stack for seat in view(code).seats}[ben] == 0
+
+
+def test_a_question_that_comes_round_again_is_asked_differently():
+    """Wrapping re-deals rather than replaying. One stored question holds several
+    askable categories, and each pass draws again -- so a table that outlasts the
+    pool gets new hands off it rather than the same hand twice.
+
+    Seeded, because the draw is random by design and an unseeded run of this
+    would be a test that usually passes."""
+    random.seed(20260829)
+    code, _ids = setup_open_end(questions=1)
+
+    asked = []
+    for _ in range(10):
+        with lobbies.edit(code) as lobby:
+            asked.append(lobby.poker.question_category_id)
+        lobbies.poker_act(code, view(code).to_act, PokerAction.fold)
+        expire(code, "next_hand_at")
+
+    assert view(code).hand_index == 10, "ten hands off one question"
+    assert len(set(asked)) > 1, "and not the same category every time"
+
+
+def test_open_end_is_a_poker_rule_and_classic_ignores_it():
+    code, host_id = lobbies.create_lobby("Anna")
+    lobbies.join_lobby(code, "Ben")
+    lobbies.start_game(code, host_id, ["topic-0"], 1, open_end=True)
+
+    assert lobbies.get_view(code).settings.open_end is False

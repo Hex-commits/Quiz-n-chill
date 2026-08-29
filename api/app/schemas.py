@@ -415,6 +415,12 @@ class PokerView(BaseModel):
     stage: PokerStage
     hand_index: int
     hand_count: int
+    open_end: bool = False
+    """The game ends on chips, not on `hand_count`, which is only what was drawn.
+
+    Sent because it changes what the number above the table means: `hand_index`
+    can and does run past `hand_count` once the questions come round again.
+    """
     pot: int = 0
     carried: int = 0
     current_bet: int = 0
@@ -471,6 +477,13 @@ class LobbySettings(BaseModel):
         default_factory=lambda: list(Difficulty), max_length=len(Difficulty)
     )
     round_count: int = Field(default=5, ge=1, le=20)
+    open_end: bool = False
+    """Play until one player has all the chips, rather than for `round_count`.
+
+    Poker only, and ignored elsewhere: it is a rule about chips, and Classic has
+    none. `round_count` keeps whatever the host last chose while this is on, so
+    turning it off again does not lose their answer.
+    """
     turn_seconds: int = Field(default=30, ge=10, le=120)
 
 
@@ -531,6 +544,7 @@ class LobbyStart(BaseModel):
         default_factory=lambda: list(Difficulty), min_length=1
     )
     round_count: int = Field(default=5, ge=1, le=20)
+    open_end: bool = False
     turn_seconds: int = Field(default=30, ge=10, le=120)
     exclude_slugs: list[str] = Field(default_factory=list, max_length=500)
 

@@ -208,6 +208,7 @@ export function startGame(
   excludeSlugs: string[] = [],
   difficulties: Difficulty[] = ["easy", "medium", "hard"],
   mode: GameMode = "classic",
+  openEnd = false,
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/start`, {
     method: "POST",
@@ -216,6 +217,7 @@ export function startGame(
       mode,
       subject_slugs: subjectSlugs,
       round_count: roundCount,
+      open_end: openEnd,
       turn_seconds: turnSeconds,
       exclude_slugs: excludeSlugs,
       difficulties,
