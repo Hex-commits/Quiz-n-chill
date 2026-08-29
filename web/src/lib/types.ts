@@ -12,6 +12,13 @@
 export type Difficulty = "easy" | "medium" | "hard";
 
 /**
+ * Which game the lobby is playing. Every mode draws from the same pool of
+ * questions — the mode is what the table does with a board, not which boards
+ * exist.
+ */
+export type GameMode = "classic" | "poker";
+
+/**
  * Where a question was written from. Present only on payloads a player sees
  * *after* answering — during play, a link to the source is a link to the
  * answers, so the API does not send it.
@@ -223,7 +230,92 @@ export interface RoundView {
  * can see what they are about to play and someone joining late has missed
  * nothing. Only the host may write it — see `updateLobbySettings`.
  */
+/**
+ * Where a poker hand has got to. The four betting stages are Hold'em's own;
+ * what is not is what each deal reveals — the flop names the subject, the turn
+ * the topic, and the river turns the question itself face up.
+ */
+export type PokerStage =
+  | "preflop"
+  | "flop"
+  | "turn"
+  | "river"
+  | "answering"
+  | "payout";
+
+export type PokerAction = "fold" | "check" | "call" | "raise" | "all_in";
+
+/**
+ * One player at the table, as everyone at it may see them. No hole cards: those
+ * are fetched per player from `pokerHand`, never broadcast. `answer_item_id`
+ * and `is_correct` stay null until the hand pays out — answers are simultaneous.
+ */
+export interface PokerSeat {
+  player_id: string;
+  stack: number;
+  committed: number;
+  folded: boolean;
+  all_in: boolean;
+  sitting_out: boolean;
+  has_cards: boolean;
+  has_answered: boolean;
+  answer_item_id: string | null;
+  is_correct: boolean | null;
+  won: number;
+}
+
+export interface PokerAward {
+  player_id: string;
+  amount: number;
+}
+
+/** How a hand ended. `carried` is the part of the pot nobody won — it plays on. */
+export interface PokerResult {
+  correct_item_ids: string[];
+  correct_labels: string[];
+  explanation: string | null;
+  awards: PokerAward[];
+  carried: number;
+  uncontested: boolean;
+}
+
+/**
+ * The table, redacted to what the cards on it have already said: `subject_name`
+ * from the flop, `title` from the turn, `question` from the river — and
+ * `options` only once the betting on it is over. What has not been revealed yet
+ * is absent rather than hidden.
+ */
+export interface PokerView {
+  stage: PokerStage;
+  hand_index: number;
+  hand_count: number;
+  /** Community cards, as `"As"`, `"Td"` — rank then suit. */
+  board: string[];
+  pot: number;
+  carried: number;
+  current_bet: number;
+  min_raise: number;
+  big_blind: number;
+  button_id: string | null;
+  to_act: string | null;
+  /** Whichever clock is running. Which one it is follows from `stage`. */
+  seconds_left: number | null;
+  seats: PokerSeat[];
+  subject_name: string | null;
+  title: string | null;
+  question: Category | null;
+  options: Item[];
+  result: PokerResult | null;
+}
+
+/** One player's own two cards, fetched by them and nobody else. */
+export interface PokerHand {
+  hand_index: number;
+  cards: string[];
+}
+
 export interface LobbySettings {
+  mode: GameMode;
   subject_slugs: string[];
   difficulties: Difficulty[];
   round_count: number;
@@ -280,6 +372,8 @@ export interface LobbyView {
   /** Every placement this round, oldest first. Reset when a round starts. */
   history: LastMove[];
   round_view: RoundView | null;
+  /** The poker table, when that is the mode. Null in Classic. */
+  poker: PokerView | null;
   finished_rounds: FinishedRound[];
   last_move: LastMove | null;
   winner_ids: string[];

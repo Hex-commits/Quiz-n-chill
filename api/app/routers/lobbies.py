@@ -10,6 +10,9 @@ from app.schemas import (
     LobbyStart,
     LobbyView,
     PlayerAction,
+    PokerAct,
+    PokerAnswer,
+    PokerHand,
     TurnSubmit,
 )
 from app.services import lobbies as service
@@ -68,6 +71,7 @@ def start_game(code: str, payload: LobbyStart) -> LobbyView:
         payload.turn_seconds,
         payload.exclude_slugs,
         payload.difficulties,
+        payload.mode,
     )
 
 
@@ -80,6 +84,32 @@ def submit_turn(code: str, payload: TurnSubmit) -> LobbyView:
     graded like any other -- right if it was, out for the round if it was not.
     """
     return service.submit_turn(code, payload.player_id, payload.item_id, payload.category_id)
+
+
+@router.post("/{code}/poker/act", response_model=LobbyView)
+def poker_act(code: str, payload: PokerAct) -> LobbyView:
+    """Fold, check, call or raise. `amount` is the total to raise *to*."""
+    return service.poker_act(code, payload.player_id, payload.action, payload.amount)
+
+
+@router.post("/{code}/poker/answer", response_model=LobbyView)
+def poker_answer(code: str, payload: PokerAnswer) -> LobbyView:
+    """Name the answer the hand is being played for.
+
+    Everyone still in answers at once, so nothing about who chose what leaves
+    the server until the hand pays out.
+    """
+    return service.poker_answer(code, payload.player_id, payload.item_id)
+
+
+@router.get("/{code}/poker/hand", response_model=PokerHand)
+def poker_hand(code: str, player_id: UUID) -> PokerHand:
+    """The asking player's own two cards.
+
+    Not part of the lobby view, which is public and broadcast to everyone
+    watching. Cards do not move during a hand, so one fetch per hand does it.
+    """
+    return service.poker_hand(code, player_id)
 
 
 @router.post("/{code}/next-round", response_model=LobbyView)

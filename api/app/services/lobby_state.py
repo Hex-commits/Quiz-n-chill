@@ -25,6 +25,8 @@ from app.schemas import (
     LastMove,
     LobbySettings,
     LobbyStatus,
+    PokerResult,
+    PokerStage,
     Source,
 )
 
@@ -74,6 +76,74 @@ class Round:
 
 
 @dataclass
+class PokerSeat:
+    """One player's place at the poker table, for the hand being played.
+
+    `committed` is what they have put in on this street and `contributed` what
+    they have put in over the whole hand. Two counters rather than one because
+    they answer different questions: the first is what a call has to match, the
+    second is what a side pot is built from when somebody is all in for less
+    than the rest.
+    """
+
+    player_id: UUID
+    stack: int
+    hole: list[str] = field(default_factory=list)
+    committed: int = 0
+    contributed: int = 0
+    folded: bool = False
+    all_in: bool = False
+    sitting_out: bool = False
+    acted: bool = False
+    answer_item_id: UUID | None = None
+    correct: bool | None = None
+    won: int = 0
+
+    def in_hand(self) -> bool:
+        return not self.sitting_out and not self.folded
+
+    def can_act(self) -> bool:
+        return self.in_hand() and not self.all_in
+
+
+@dataclass
+class PokerTable:
+    """A poker game played for questions.
+
+    Holds no answer key of its own: the question is the lobby's current round,
+    and `question_category_id` points at the one category off it being asked.
+    What may be shown of that, and when, is `poker.view`'s decision.
+
+    `acted` on a seat means "has acted since the last raise", which is what
+    makes a betting round finishable. `pot` is what the streets behind this one
+    gathered; `carried` is the part of an earlier pot nobody answered for, and
+    it plays on. `option_ids` fixes the order the answers are offered in, so
+    polling cannot reorder them under a player mid-decision.
+    """
+
+    stage: PokerStage = PokerStage.preflop
+    seats: list[PokerSeat] = field(default_factory=list)
+    deck: list[str] = field(default_factory=list)
+    board: list[str] = field(default_factory=list)
+    button: int = 0
+    to_act: int | None = None
+    current_bet: int = 0
+    min_raise: int = 0
+    pot: int = 0
+    carried: int = 0
+    big_blind: int = 0
+    question_category_id: UUID | None = None
+    option_ids: list[UUID] = field(default_factory=list)
+    acts_by: datetime | None = None
+    answers_by: datetime | None = None
+    next_hand_at: datetime | None = None
+    result: PokerResult | None = None
+
+    def seat(self, player_id: UUID) -> PokerSeat | None:
+        return next((s for s in self.seats if s.player_id == player_id), None)
+
+
+@dataclass
 class Lobby:
     code: str
     players: list[Player] = field(default_factory=list)
@@ -99,6 +169,7 @@ class Lobby:
     history: list[LastMove] = field(default_factory=list)
     finished_rounds: list[FinishedRound] = field(default_factory=list)
     settings: LobbySettings = field(default_factory=LobbySettings)
+    poker: PokerTable | None = None
     version: int = 0
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 

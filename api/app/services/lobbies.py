@@ -26,10 +26,8 @@ serverless host, where consecutive requests from one player land on different
 instances. With the in-process store it needs a single long-lived process.
 """
 
-import random
 import secrets
 from contextlib import contextmanager
-from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from math import ceil
 from uuid import UUID, uuid4
@@ -41,20 +39,24 @@ from app.schemas import (
     CategoryKind,
     Difficulty,
     FinishedRound,
+    GameMode,
     ItemPublic,
     LastMove,
     LobbySettings,
     LobbyStatus,
     LobbyView,
     PlayerPublic,
+    PokerAction,
+    PokerHand,
     ResolvedFake,
     ResolvedPair,
     RoundView,
     SolvedItem,
 )
+from app.services.boards import BOARD_FAKES, BOARD_PAIRS, deal_board
 from app.services.drafting import draw_balanced
 from app.services.lobby_state import Lobby, Player, Round
-from app.services import realtime
+from app.services import poker, realtime
 from app.services.lobby_store import LOBBY_TTL, build_store
 from app.services.quizzes import (
     get_quiz_solution,
@@ -65,7 +67,7 @@ from app.services.quizzes import (
 )
 from app.services.scoring import grade_item
 
-__all__ = ["Lobby", "Player", "Round"]
+__all__ = ["BOARD_FAKES", "BOARD_PAIRS", "Lobby", "Player", "Round", "deal_board"]
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 4
@@ -78,16 +80,6 @@ PRESENCE_TIMEOUT = timedelta(seconds=15)
 QUIET_AFTER = timedelta(seconds=6)
 
 NEXT_ROUND_COUNTDOWN = timedelta(seconds=3)
-
-BOARD_PAIRS = 10
-
-BOARD_FAKES = 2
-"""How many fakes a dealt board carries, when the question has that many.
-
-Fixed rather than "whatever the question holds" so that trimming a thirty-pair
-question down to ten does not also make it the board with the highest share of
-fakes in the game. A question written without fakes deals none, and plays
-exactly as it did before they existed."""
 
 REPLAYABLE_PAIRS = BOARD_PAIRS * 3 // 2
 
@@ -231,6 +223,7 @@ def start_game(
     turn_seconds: int = 30,
     exclude_slugs: list[str] | None = None,
     difficulties: list[Difficulty] | None = None,
+    mode: GameMode = GameMode.classic,
 ) -> LobbyView:
     """Begin a game drawn from the chosen subjects.
 
@@ -275,6 +268,7 @@ def start_game(
         lobby.catch_up_round = _load_round(spare_slug) if spare_slug else None
 
         lobby.settings = LobbySettings(
+            mode=mode,
             subject_slugs=list(subject_slugs),
             difficulties=list(difficulties) if difficulties else list(Difficulty),
             round_count=round_count,
@@ -294,7 +288,10 @@ def start_game(
         lobby.next_round_at = None
         for candidate in lobby.players:
             candidate.score = 0
-        _begin_round(lobby, rounds[0])
+        if mode is GameMode.poker:
+            poker.begin(lobby)
+        else:
+            _begin_round(lobby, rounds[0])
         lobby.touch()
         return _view(lobby)
 
@@ -320,6 +317,7 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         lobby.last_move = None
         lobby.ready_ids = []
         lobby.next_round_at = None
+        lobby.poker = None
         for candidate in lobby.players:
             candidate.score = 0
             candidate.is_active = True
@@ -354,7 +352,9 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
             if not any(candidate.is_host for candidate in lobby.players):
                 lobby.players[0].is_host = True
 
-            if lobby.status is LobbyStatus.playing:
+            if lobby.status is LobbyStatus.playing and _is_poker(lobby):
+                poker.resync(lobby)
+            elif lobby.status is LobbyStatus.playing:
                 keep_id = current_id if current_id and current_id != player_id else successor_id
                 lobby.turn_cursor = _index_of(lobby, keep_id) if keep_id else 0
                 _maybe_finish_round(lobby)
@@ -414,6 +414,56 @@ def ready_for_next_round(code: str, player_id: UUID) -> LobbyView:
 
         _advance_review(lobby)
         return _view(lobby)
+
+
+def poker_act(
+    code: str, player_id: UUID, action: PokerAction, amount: int | None = None
+) -> LobbyView:
+    """Fold, check, call or raise at the poker table."""
+    with _mutate(code) as lobby:
+        lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
+        _require_poker(lobby)
+
+        poker.act(lobby, player_id, action, amount)
+        lobby.touch()
+        return _view(lobby)
+
+
+def poker_answer(code: str, player_id: UUID, item_id: UUID) -> LobbyView:
+    """Name the answer the hand is being played for. Everyone answers at once."""
+    with _mutate(code) as lobby:
+        lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
+        _require_poker(lobby)
+
+        poker.answer(lobby, player_id, item_id)
+        lobby.touch()
+        return _view(lobby)
+
+
+def poker_hand(code: str, player_id: UUID) -> PokerHand:
+    """The asking player's own two cards, and nobody else's.
+
+    Its own request because `LobbyView` is public -- it is broadcast to every
+    client watching the lobby, so a per-player secret cannot travel on it.
+    """
+    with _mutate(code) as lobby:
+        lobby.player(player_id)
+        _heartbeat(lobby, player_id)
+        _require_poker(lobby)
+        return poker.hand_of(lobby, player_id)
+
+
+def _is_poker(lobby: Lobby) -> bool:
+    return lobby.settings.mode is GameMode.poker and lobby.poker is not None
+
+
+def _require_poker(lobby: Lobby) -> None:
+    if not _is_poker(lobby):
+        raise ConflictError("There is no poker game here.")
 
 
 def mark_away(code: str, player_id: UUID) -> None:
@@ -506,41 +556,6 @@ def submit_turn(
         _maybe_finish_round(lobby)
         lobby.touch()
         return _view(lobby)
-
-
-def deal_board(round_: Round, rng: random.Random | None = None) -> Round:
-    """Cut a stored question down to the pairs this round will play.
-
-    Returns a new `Round` rather than mutating: the loaded question is reused
-    every time the quiz comes up, so trimming it in place would make the second
-    game a subset of the first, and the third a subset of that.
-
-    Which pairs are dropped is random, which is the point -- a thirty-pair
-    picture question is a different board every game. Categories keep their
-    written order, because `position` is how the question was meant to read and
-    sampling returns them shuffled.
-
-    Fakes are dealt separately and to their own count: they have no category to
-    be sampled along with, and filtering items by the surviving categories --
-    which is how the pairs are cut -- would drop every one of them.
-    """
-    rng = rng or random.Random()
-    fakes = round_.fakes()
-    kept_fakes = (
-        fakes if len(fakes) <= BOARD_FAKES else rng.sample(fakes, BOARD_FAKES)
-    )
-
-    if len(round_.categories) <= BOARD_PAIRS:
-        if len(kept_fakes) == len(fakes):
-            return round_
-        return replace(round_, items=round_.pairs() + kept_fakes)
-
-    keep = {c.id for c in rng.sample(round_.categories, BOARD_PAIRS)}
-    return replace(
-        round_,
-        categories=[c for c in round_.categories if c.id in keep],
-        items=[i for i in round_.pairs() if i.category_id in keep] + kept_fakes,
-    )
 
 
 def _begin_round(lobby: Lobby, round_: Round) -> None:
@@ -661,6 +676,9 @@ def _resync(lobby: Lobby) -> None:
     anything while the answers are up, so the countdown it may be running has
     only the players' polling to move it.
     """
+    if lobby.settings.mode is GameMode.poker:
+        poker.resync(lobby)
+        return
     _advance_review(lobby)
     if lobby.status is not LobbyStatus.playing:
         return
@@ -1032,7 +1050,8 @@ def _view(lobby: Lobby) -> LobbyView:
         next_round_in=_next_round_in(lobby),
         timed_out=lobby.timed_out,
         history=list(lobby.history),
-        round_view=_round_view(lobby),
+        round_view=None if _is_poker(lobby) else _round_view(lobby),
+        poker=poker.view(lobby) if _is_poker(lobby) else None,
         finished_rounds=list(lobby.finished_rounds),
         last_move=lobby.last_move,
         winner_ids=_winner_ids(lobby),

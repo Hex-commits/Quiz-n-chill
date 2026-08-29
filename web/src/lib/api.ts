@@ -10,9 +10,12 @@ import type {
   Assignment,
   CheckResult,
   Difficulty,
+  GameMode,
   LobbyIdentity,
   LobbySettings,
   LobbyView,
+  PokerAction,
+  PokerHand,
   QuizDetail,
   QuizSummary,
   Subject,
@@ -205,11 +208,13 @@ export function startGame(
   turnSeconds: number,
   excludeSlugs: string[] = [],
   difficulties: Difficulty[] = ["easy", "medium", "hard"],
+  mode: GameMode = "classic",
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/start`, {
     method: "POST",
     body: JSON.stringify({
       player_id: playerId,
+      mode,
       subject_slugs: subjectSlugs,
       round_count: roundCount,
       turn_seconds: turnSeconds,
@@ -217,6 +222,45 @@ export function startGame(
       difficulties,
     }),
   });
+}
+
+/** Fold, check, call or raise. `amount` is the total to raise *to*. */
+export function pokerAct(
+  code: string,
+  playerId: string,
+  action: PokerAction,
+  amount?: number,
+): Promise<LobbyView> {
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/poker/act`, {
+    method: "POST",
+    body: JSON.stringify({ player_id: playerId, action, amount }),
+  });
+}
+
+/** Name the answer the hand is being played for. Everyone answers at once. */
+export function pokerAnswer(
+  code: string,
+  playerId: string,
+  itemId: string,
+): Promise<LobbyView> {
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/poker/answer`, {
+    method: "POST",
+    body: JSON.stringify({ player_id: playerId, item_id: itemId }),
+  });
+}
+
+/**
+ * Your own two cards, and nobody else's.
+ *
+ * Its own request because the lobby view is public — it is broadcast to every
+ * client watching. Cards do not move during a hand, so this is fetched once per
+ * hand rather than polled.
+ */
+export function pokerHand(code: string, playerId: string): Promise<PokerHand> {
+  const query = `?player_id=${encodeURIComponent(playerId)}`;
+  return request<PokerHand>(
+    `/lobbies/${encodeURIComponent(code)}/poker/hand${query}`,
+  );
 }
 
 /** `categoryId` of null is the move that says the answer belongs nowhere. */

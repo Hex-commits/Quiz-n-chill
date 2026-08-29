@@ -14,6 +14,7 @@ from app.errors import ConflictError, NotFoundError, ValidationError
 from app.schemas import (
     Category,
     Difficulty,
+    GameMode,
     ItemSolution,
     LobbySettings,
     LobbyStatus,
@@ -749,6 +750,7 @@ def test_the_settings_the_host_picks_are_visible_to_everyone():
         code,
         host,
         LobbySettings(
+            mode=GameMode.poker,
             subject_slugs=["geografie", "musik"],
             difficulties=[Difficulty.easy],
             round_count=7,
@@ -757,6 +759,7 @@ def test_the_settings_the_host_picks_are_visible_to_everyone():
     )
 
     view = lobbies.get_view(code, ben)
+    assert view.settings.mode == GameMode.poker
     assert view.settings.subject_slugs == ["geografie", "musik"]
     assert view.settings.difficulties == [Difficulty.easy]
     assert view.settings.round_count == 7
@@ -768,6 +771,7 @@ def test_a_fresh_lobby_reports_the_defaults_rather_than_nothing():
 
     settings = lobbies.get_view(code).settings
 
+    assert settings.mode == GameMode.classic
     assert settings.subject_slugs == []
     assert settings.round_count == 5
     assert settings.turn_seconds == 30
@@ -794,8 +798,9 @@ def test_starting_records_the_game_that_was_actually_started():
     lobbies.join_lobby(code, "Ben")
     lobbies.set_settings(code, host, LobbySettings(subject_slugs=["stale"], round_count=9))
 
-    view = lobbies.start_game(code, host, ["topic-a"], 1, 45)
+    view = lobbies.start_game(code, host, ["topic-a"], 1, 45, mode=GameMode.poker)
 
+    assert view.settings.mode == GameMode.poker
     assert view.settings.subject_slugs == ["topic-a"]
     assert view.settings.round_count == 1
     assert view.settings.turn_seconds == 45

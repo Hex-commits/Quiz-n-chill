@@ -38,6 +38,9 @@ import { Progress } from "@/components/ui/progress";
 import {
   getLobby,
   leaveLobby,
+  pokerAct,
+  pokerAnswer,
+  pokerHand,
   markAway,
   readyForNextRound,
   restartLobby,
@@ -60,6 +63,7 @@ import { deadlineFrom, reconcileDeadline, useCountdown } from "@/lib/use-countdo
 import type {
   CategoryImage,
   Difficulty,
+  GameMode,
   LastMove,
   LobbySettings,
   LobbyView,
@@ -70,6 +74,7 @@ import type {
 import { useStored } from "@/lib/use-stored";
 import { cn } from "@/lib/utils";
 
+import { PokerTable } from "./poker-table";
 import { RejoinForm } from "./rejoin-form";
 
 const POLL_MS = 4_000;
@@ -95,6 +100,18 @@ const COPIED_MS = 2_000;
  */
 const NEXT_ROUND_SECONDS = 3;
 
+/**
+ * The modes, in the order they are offered. Named here rather than taken from
+ * the mode value itself so the label is a decision someone made, not a
+ * capitalised slug that changes meaning the day a mode is renamed.
+ */
+const MODE_CHOICES: GameMode[] = ["classic", "poker"];
+
+const MODE_LABELS: Record<GameMode, string> = {
+  classic: "Classic",
+  poker: "Poker",
+};
+
 const ROUND_CHOICES = [3, 5, 7, 10];
 
 const TURN_CHOICES = [15, 30, 45, 60];
@@ -119,11 +136,21 @@ export function LobbyRoom({
   const [busy, setBusy] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [localSetup, setLocalSetup] = useState<LobbySettings>({
+    mode: "classic",
     subject_slugs: subjects.slice(0, 3).map((subject) => subject.slug),
     difficulties: ["easy", "medium", "hard"],
     round_count: 5,
     turn_seconds: 30,
   });
+
+  /**
+   * The player's own two cards.
+   *
+   * Fetched rather than read off the lobby view, because that view is public --
+   * it goes out to every client watching the lobby. Cards do not move during a
+   * hand, so one request per hand is the whole protocol.
+   */
+  const [hole, setHole] = useState<string[]>([]);
 
   const versionRef = useRef(-1);
 
@@ -221,6 +248,27 @@ export function LobbyRoom({
       unsubscribe();
     };
   }, [code, refresh, apply]);
+
+  /**
+   * Pick up this hand's cards, once per hand.
+   *
+   * Keyed on the hand rather than the poll: they are dealt once and do not
+   * change, so re-fetching on every view would be a request per second for two
+   * strings that cannot have moved.
+   */
+  const dealtHand = lobby?.poker?.hand_index ?? null;
+  useEffect(() => {
+    if (!playerId || dealtHand === null) return;
+
+    let live = true;
+    pokerHand(code, playerId).then(
+      (hand) => live && setHole(hand.cards),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [code, playerId, dealtHand]);
 
   const poke = useCallback(() => void refresh(), [refresh]);
 
@@ -534,6 +582,7 @@ export function LobbyRoom({
                       localSetup.turn_seconds,
                       played,
                       localSetup.difficulties,
+                      localSetup.mode,
                     ),
                   )
                 }
@@ -696,6 +745,25 @@ export function LobbyRoom({
             </CardContent>
           </Card>
         ) : null}
+      </div>
+    );
+  }
+
+  if (lobby.poker) {
+    return (
+      <div className="space-y-3">
+        {header}
+        <PokerTable
+          lobby={lobby}
+          poker={lobby.poker}
+          playerId={playerId}
+          cards={hole}
+          busy={busy}
+          onAct={(action, amount) =>
+            act(() => pokerAct(code, playerId, action, amount))
+          }
+          onAnswer={(itemId) => act(() => pokerAnswer(code, playerId, itemId))}
+        />
       </div>
     );
   }
@@ -1323,7 +1391,7 @@ function LevelBars({ filled, selected }: { filled: number; selected: boolean }) 
  * No held scale here, unlike `Chip`: these sit in a fixed row, and a pill that
  * grew would push its neighbours around every time the choice moved.
  */
-function Segmented({
+function Segmented<T extends string | number>({
   options,
   value,
   disabled,
@@ -1331,13 +1399,13 @@ function Segmented({
   onSelect,
   format = String,
 }: {
-  options: number[];
-  value: number;
+  options: T[];
+  value: T;
   disabled?: boolean;
   /** Show as out of reach: somebody else's control, not yours to click. */
   muted?: boolean;
-  onSelect: (value: number) => void;
-  format?: (value: number) => string;
+  onSelect: (value: T) => void;
+  format?: (value: T) => string;
 }) {
   return (
     <div
@@ -1444,6 +1512,18 @@ function LobbySetup({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <section className="space-y-2.5">
+          <SetupLabel title="Game mode" />
+          <Segmented
+            options={MODE_CHOICES}
+            value={setup.mode}
+            disabled={readOnly}
+            muted={readOnly}
+            format={(mode) => MODE_LABELS[mode]}
+            onSelect={(mode) => patch({ mode })}
+          />
+        </section>
+
         <section className="space-y-2.5">
           <SetupLabel
             title="Subjects"

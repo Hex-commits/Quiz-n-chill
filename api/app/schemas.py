@@ -30,6 +30,18 @@ class CategoryKind(StrEnum):
     image = "image"
 
 
+class GameMode(StrEnum):
+    """Which game the lobby is playing.
+
+    A property of the game rather than of a question: every mode draws from the
+    same pool of Zuordnungsfragen, and picking one changes what the table does
+    with a board, not which boards exist.
+    """
+
+    classic = "classic"
+    poker = "poker"
+
+
 class ImagePublic(BaseModel):
     """A picture, and what has to be printed under it.
 
@@ -309,6 +321,140 @@ class RoundView(BaseModel):
     solved_items: list[SolvedItem] = []
 
 
+class PokerStage(StrEnum):
+    """Where a poker hand has got to.
+
+    The four betting stages are ordinary Hold'em. What is not ordinary is what
+    each deal reveals: the flop names the subject, the turn names the topic, and
+    the river turns the question face up. So a player bets three times on a
+    question they can only partly see, and once on one they can read.
+    """
+
+    preflop = "preflop"
+    flop = "flop"
+    turn = "turn"
+    river = "river"
+    answering = "answering"
+    payout = "payout"
+
+
+class PokerAction(StrEnum):
+    fold = "fold"
+    check = "check"
+    call = "call"
+    raise_to = "raise"
+    all_in = "all_in"
+
+
+class PokerSeatView(BaseModel):
+    """One player at the table, as everyone at it may see them.
+
+    No hole cards: they are the one thing at this table that is not public, and
+    they never travel on the lobby view. `has_cards` is all anyone else gets --
+    see `PokerHand`, which is fetched per player and answers only for the player
+    who asks.
+
+    `answer_item_id` and `is_correct` stay null until the hand is paid out.
+    Answers are simultaneous, and a view that showed them as they arrived would
+    turn the last player to answer into the best-informed one.
+    """
+
+    player_id: UUID
+    stack: int
+    committed: int = 0
+    folded: bool = False
+    all_in: bool = False
+    sitting_out: bool = False
+    has_cards: bool = False
+    has_answered: bool = False
+    answer_item_id: UUID | None = None
+    is_correct: bool | None = None
+    won: int = 0
+
+
+class PokerAward(BaseModel):
+    player_id: UUID
+    amount: int
+
+
+class PokerResult(BaseModel):
+    """How a hand ended, revealed with the answer key once it has.
+
+    `carried` is the part of the pot nobody won. Getting the question wrong does
+    not return the chips -- they sit on the table and the next hand plays for
+    them too.
+    """
+
+    correct_item_ids: list[UUID] = []
+    correct_labels: list[str] = []
+    explanation: str | None = None
+    awards: list[PokerAward] = []
+    carried: int = 0
+    uncontested: bool = False
+
+
+class PokerView(BaseModel):
+    """The table as everyone at it may see it.
+
+    Everything here is either public poker (chips, bets, the board) or a part of
+    the question that has already been turned over. What has not been revealed
+    yet is absent rather than hidden, so a client cannot read ahead however it
+    is inspected: `question` is null until the river turns it over, and
+    `options` stays empty until the betting after it is done.
+
+    `question` is one category off the board -- named, or pictured on a picture
+    question. `seconds_left` is whichever clock is running: the player on the
+    clock, the answers, or the wait before the next hand. Which one it is
+    follows from `stage`.
+    """
+
+    stage: PokerStage
+    hand_index: int
+    hand_count: int
+    board: list[str] = []
+    pot: int = 0
+    carried: int = 0
+    current_bet: int = 0
+    min_raise: int = 0
+    big_blind: int = 0
+    button_id: UUID | None = None
+    to_act: UUID | None = None
+    seconds_left: int | None = None
+    seats: list[PokerSeatView] = []
+    subject_name: str | None = None
+    title: str | None = None
+    question: Category | None = None
+    options: list[ItemPublic] = []
+    result: PokerResult | None = None
+
+
+class PokerHand(BaseModel):
+    """One player's hole cards, answered only to that player.
+
+    Its own endpoint rather than a field on the lobby view, because the lobby
+    view is public: it is broadcast to every client watching the lobby, and one
+    per-player secret on it would be one redaction to get wrong on every future
+    change. Cards do not move during a hand, so this is fetched once per hand.
+    """
+
+    hand_index: int
+    cards: list[str] = []
+
+
+class PokerAct(BaseModel):
+    """One betting move. `amount` is the total to raise *to*, and only a raise
+    reads it."""
+
+    player_id: UUID
+    action: PokerAction
+    amount: int | None = None
+
+
+class PokerAnswer(BaseModel):
+    player_id: UUID
+    item_id: UUID
+
+
 class LobbySettings(BaseModel):
     """The game the host has set up, before there is a game to play.
 
@@ -322,6 +468,7 @@ class LobbySettings(BaseModel):
     on every click leading up to it.
     """
 
+    mode: GameMode = GameMode.classic
     subject_slugs: list[str] = Field(default_factory=list, max_length=50)
     difficulties: list[Difficulty] = Field(
         default_factory=lambda: list(Difficulty), max_length=len(Difficulty)
@@ -356,6 +503,7 @@ class LobbyView(BaseModel):
     history: list[LastMove] = []
     current_player_quiet: bool = False
     round_view: RoundView | None = None
+    poker: PokerView | None = None
     finished_rounds: list[FinishedRound] = []
     last_move: LastMove | None = None
     winner_ids: list[UUID] = []
@@ -380,6 +528,7 @@ class LobbyIdentity(BaseModel):
 
 class LobbyStart(BaseModel):
     player_id: UUID
+    mode: GameMode = GameMode.classic
     subject_slugs: list[str] = Field(min_length=1)
     difficulties: list[Difficulty] = Field(
         default_factory=lambda: list(Difficulty), min_length=1
