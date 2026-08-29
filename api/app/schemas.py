@@ -290,12 +290,18 @@ class FinishedRound(BaseModel):
 
 
 class RoundView(BaseModel):
-    """The current topic as players may see it: no answer key, no source."""
+    """The current topic as players may see it: no answer key, no source.
+
+    `subject_name` is the pool area the question was drawn from (Geografie,
+    Musik) -- safe to show while the round runs, since it says what kind of
+    question this is and nothing about where the answers go.
+    """
 
     quiz_id: UUID
     slug: str
     title: str
     description: str | None = None
+    subject_name: str | None = None
     difficulty: Difficulty = Difficulty.medium
     category_kind: CategoryKind = CategoryKind.text
     categories: list[Category] = []

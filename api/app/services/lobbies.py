@@ -989,6 +989,7 @@ def _load_round(slug: str) -> Round:
         slug=row["slug"],
         title=row["title"],
         description=row.get("description"),
+        subject_name=(row.get("subjects") or {}).get("name"),
         difficulty=row["difficulty"],
         source=source_of(row),
         categories=categories,
@@ -1096,6 +1097,7 @@ def _round_view(lobby: Lobby) -> RoundView | None:
         slug=current.slug,
         title=current.title,
         description=current.description,
+        subject_name=current.subject_name,
         difficulty=current.difficulty,
         category_kind=current.category_kind,
         categories=[

@@ -837,6 +837,9 @@ export function LobbyRoom({
                   </p>
                 ) : null}
                 <div className="flex items-center justify-center gap-2 pt-1">
+                  {round.subject_name ? (
+                    <Badge variant="outline">{round.subject_name}</Badge>
+                  ) : null}
                   <DifficultyBadge difficulty={round.difficulty} />
                   <span className={cn("font-mono text-xs tabular-nums", overGlow)}>
                     {round.solved_items.length}/{total}

@@ -34,7 +34,7 @@ from app.services.images import commons_url
 from app.services.scoring import score_assignments
 
 QUIZ_COLUMNS = "id, slug, title, description, difficulty, category_kind, created_at"
-QUIZ_SOLUTION_COLUMNS = f"{QUIZ_COLUMNS}, source_url, source_title"
+QUIZ_SOLUTION_COLUMNS = f"{QUIZ_COLUMNS}, source_url, source_title, subjects(name)"
 QUIZ_WITH_SUBJECT = f"{QUIZ_COLUMNS}, subjects(slug, name)"
 SUBJECT_COLUMNS = "id, slug, name, description, position"
 CATEGORY_COLUMNS = (

@@ -201,6 +201,12 @@ export interface RoundView {
   slug: string;
   title: string;
   description: string | null;
+  /**
+   * The pool area the question came from (Geografie, Musik). Shown while the
+   * round runs: it says what kind of question this is and nothing about where
+   * the answers go. Null only for a round dealt before the API sent it.
+   */
+  subject_name: string | null;
   difficulty: Difficulty;
   /** "image" means every category is a photograph. Answers are words either way. */
   category_kind: "text" | "image";

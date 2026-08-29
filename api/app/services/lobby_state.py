@@ -54,6 +54,7 @@ class Round:
     title: str
     description: str | None
     difficulty: str
+    subject_name: str | None = None
     category_kind: CategoryKind = CategoryKind.text
     source: Source | None = None
     categories: list[Category] = field(default_factory=list)
