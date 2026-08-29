@@ -111,12 +111,7 @@ def settle_bets(code):
         one_move(code)
 
 
-BETTING = (
-    PokerStage.preflop,
-    PokerStage.flop,
-    PokerStage.turn,
-    PokerStage.river,
-)
+BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn)
 
 
 def deal_to_the_question(code):
@@ -136,13 +131,15 @@ def expire(code, field):
 # ---------------------------------------------------------------------------
 
 
-def test_a_hand_opens_with_the_blinds_up_and_nothing_revealed():
+def test_a_hand_opens_with_the_blinds_up_and_the_subject_named():
+    """The opening round has something to bet on, which is the point of it."""
     code, _ids = setup_poker()
 
     table = view(code)
     assert table.stage is PokerStage.preflop
     assert table.pot == poker.SMALL_BLIND + poker.BIG_BLIND
-    assert (table.subject_name, table.title, table.question) == (None, None, None)
+    assert table.subject_name == "Geografie"
+    assert (table.title, table.question) == (None, None)
     assert {seat.stack for seat in table.seats} == {
         poker.STARTING_STACK - poker.SMALL_BLIND,
         poker.STARTING_STACK - poker.BIG_BLIND,
@@ -152,28 +149,22 @@ def test_a_hand_opens_with_the_blinds_up_and_nothing_revealed():
 def test_the_question_is_revealed_one_betting_round_at_a_time():
     code, _ids = setup_poker()
 
-    assert view(code).subject_name is None
-    assert view(code).title is None
+    opening = view(code)
+    assert opening.subject_name == "Geografie"
+    assert opening.title is None
 
     settle_bets(code)
-    flop = view(code)
-    assert flop.stage is PokerStage.flop
-    assert flop.subject_name == "Geografie"
-    assert flop.title is None
-    assert flop.question is None
+    second = view(code)
+    assert second.stage is PokerStage.flop
+    assert second.title == "Flüsse in Europa"
+    assert second.question is None
+    assert second.options == []
 
     settle_bets(code)
-    turn = view(code)
-    assert turn.stage is PokerStage.turn
-    assert turn.title == "Flüsse in Europa"
-    assert turn.question is None
-    assert turn.options == []
-
-    settle_bets(code)
-    river = view(code)
-    assert river.stage is PokerStage.river
-    assert river.question is not None
-    assert river.options == []
+    third = view(code)
+    assert third.stage is PokerStage.turn
+    assert third.question is not None
+    assert third.options == []
 
     settle_bets(code)
     asked = view(code)
@@ -182,25 +173,25 @@ def test_the_question_is_revealed_one_betting_round_at_a_time():
     assert len(asked.options) == 4
 
 
-def test_nothing_of_the_question_leaks_before_its_card_turns_over():
+def test_nothing_of_the_question_leaks_before_its_round():
     code, (anna, _ben) = setup_poker()
 
     payload = lobbies.get_view(code, anna).model_dump_json()
 
-    for label in ("Berlin", "Paris", "Madrid", "Rom", "Deutschland", "Flüsse"):
+    for label in ("Berlin", "Paris", "Madrid", "Rom", "Deutschland"):
         assert label not in payload
 
 
 def test_the_answers_stay_off_the_table_while_the_last_bet_is_made():
-    """The river asks. What it does not do is list what the answer might be."""
+    """The last round asks. What it does not do is list what the answer may be."""
     code, _ids = setup_poker()
-    while view(code).stage is not PokerStage.river:
+    while view(code).stage is not PokerStage.turn:
         settle_bets(code)
 
-    river = view(code)
+    asking = view(code)
     payload = lobbies.get_view(code).model_dump_json()
-    assert river.question is not None
-    assert river.options == []
+    assert asking.question is not None
+    assert asking.options == []
     for label in ("Berlin", "Paris", "Madrid", "Rom"):
         assert f'"{label}"' not in payload
 

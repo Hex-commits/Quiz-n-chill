@@ -324,17 +324,20 @@ class RoundView(BaseModel):
 class PokerStage(StrEnum):
     """Where a poker hand has got to.
 
-    Poker's four betting rounds, keeping poker's names for them. Nothing is
-    dealt: what arrives between the rounds is the question, a piece at a time --
-    the flop names the subject, the turn names the topic, and the river turns
-    the question itself face up. So a player bets three times on a question they
-    can only partly see, and once on one they can read.
+    Three betting rounds, keeping poker's names for them, and one reveal at the
+    top of each: the blinds go up with the subject, the flop names the topic,
+    and the turn puts the question itself face up. So every round is bet on
+    strictly more than the one before it, and the last is bet on a question you
+    can read.
+
+    There is no river. Hold'em has four rounds because it has four deals; this
+    has three things to say, and a round that revealed nothing would be a round
+    with nothing to bet on.
     """
 
     preflop = "preflop"
     flop = "flop"
     turn = "turn"
-    river = "river"
     answering = "answering"
     payout = "payout"
 
@@ -400,8 +403,8 @@ class PokerView(BaseModel):
     Everything here is either public poker (chips, bets, the board) or a part of
     the question that has already been turned over. What has not been revealed
     yet is absent rather than hidden, so a client cannot read ahead however it
-    is inspected: `question` is null until the river turns it over, and
-    `options` stays empty until the betting after it is done.
+    is inspected: `question` is null until the round that turns it over, and
+    `options` stays empty until the betting on it is done.
 
     `question` is one category off the board -- named, or pictured on a picture
     question. `seconds_left` is whichever clock is running: the player on the

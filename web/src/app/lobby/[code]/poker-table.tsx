@@ -8,10 +8,9 @@
  * is looking at the same object, and where a thing sits says what it is --
  * chips in front of a player are theirs, chips in the middle are nobody's yet.
  *
- * The felt carries the reveal. There are no cards in this version: what used to
- * arrive as a flop, a turn and a river arrives as three lines of the question
- * filling in, one per betting round, and the betting is what the players do
- * between them.
+ * The felt carries the reveal. There are no cards in this version: the question
+ * fills in a line at a time, one at the top of each betting round, and the
+ * betting is what the players do about it.
  *
  * Chips are the thing to be able to read at a glance, so every stack gets a
  * number *and* a bar. The number is exact; the bar is comparative -- who is
@@ -26,6 +25,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Coins, Crown, Loader2 } from "lucide-react";
 
+import { AnswerPool } from "@/components/answer-pool";
 import { CategoryPicture, ImageCredit } from "@/components/category-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,12 +41,16 @@ import type {
   PokerView,
 } from "@/lib/types";
 
-/** How many rungs of the reveal each stage has lit. */
+/**
+ * How many rungs of the reveal each round has lit.
+ *
+ * The opening round is already worth one: the blinds and the subject arrive
+ * together, so there is no round in this game that is bet on nothing.
+ */
 const REVEALED: Record<PokerView["stage"], number> = {
-  preflop: 0,
-  flop: 1,
-  turn: 2,
-  river: 3,
+  preflop: 1,
+  flop: 2,
+  turn: 3,
   answering: 3,
   payout: 3,
 };
@@ -195,10 +199,10 @@ type Reveal = {
  * server-side step -- still shows the last thing it uncovered rather than
  * nothing at all.
  *
- * Nothing is raised for the view a client arrives on. Somebody opening the tab
- * mid-hand has not just been told anything; they are catching up, and a
- * full-screen announcement of something the rest of the table saw a minute ago
- * would be a lie about what just happened.
+ * The one thing raised on a client's first view is a hand that has only just
+ * begun -- the game starting, which the whole table is watching. Anything
+ * further along is somebody joining part-way through and catching up, and see
+ * the effect for why that gets no curtain.
  */
 function useReveal(poker: PokerView): Reveal | null {
   const [curtain, setCurtain] = useState<Reveal | null>(null);
@@ -210,17 +214,25 @@ function useReveal(poker: PokerView): Reveal | null {
       ? poker.subject_name
       : rung === 2
         ? poker.title
-        : rung >= 3
-          ? (poker.question?.label ?? null)
-          : null;
+        : (poker.question?.label ?? null);
   const image = rung >= 3 ? (poker.question?.image ?? null) : null;
 
   useEffect(() => {
     const was = seen.current;
     seen.current = { hand: poker.hand_index, rung };
-    if (!was) return;
 
-    const fresh = poker.hand_index !== was.hand ? 0 : was.rung;
+    /* On the very first view, the only thing worth raising a curtain for is a
+       hand that has only just begun -- the game starting, which every player is
+       watching. Anything further along is a hand somebody is joining part-way
+       through, and announcing what the table saw a minute ago would be a lie
+       about what just happened. */
+    const fresh = was
+      ? poker.hand_index !== was.hand
+        ? 0
+        : was.rung
+      : poker.stage === "preflop"
+        ? 0
+        : rung;
     if (rung <= fresh || rung < 1) return;
     if (!value && !image) return;
 
@@ -231,7 +243,7 @@ function useReveal(poker: PokerView): Reveal | null {
        noise. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurtain({ rung, term: CURTAIN_TERM[rung], value, image });
-  }, [poker.hand_index, rung, value, image]);
+  }, [poker.hand_index, poker.stage, rung, value, image]);
 
   useEffect(() => {
     if (!curtain) return;
@@ -531,7 +543,7 @@ function Betting({
   return (
     <Card>
       <CardContent className="space-y-2">
-        {poker.stage === "river" ? (
+        {poker.stage === "turn" ? (
           <p className="text-muted-foreground text-center text-xs">
             The answers come out once this betting round is done.
           </p>
@@ -693,19 +705,16 @@ function Answering({
           value={((secondsLeft ?? 0) / Math.max(seconds, 1)) * 100}
           className="h-1.5"
         />
-        <div className="flex flex-wrap gap-2">
-          {poker.options.map((option) => (
-            <Button
-              key={option.id}
-              variant={picked === option.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPicked(option.id)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
+        <AnswerPool
+          items={poker.options}
+          selectedId={picked}
+          disabled={busy}
+          onSelect={setPicked}
+        />
+        {/* As heavy as the chips above it: the pool is the decision, and this
+            is the half of it that spends chips. */}
         <Button
+          size="lg"
           className="w-full"
           disabled={busy || picked === null}
           onClick={() => picked && onAnswer(picked)}

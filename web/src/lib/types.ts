@@ -231,16 +231,15 @@ export interface RoundView {
  * nothing. Only the host may write it — see `updateLobbySettings`.
  */
 /**
- * Where a hand has got to. Poker's four betting rounds, keeping poker's names —
- * nothing is dealt between them but the question, a piece at a time: the flop
- * names the subject, the turn the topic, and the river turns the question face
- * up.
+ * Where a hand has got to. Three betting rounds with one reveal at the top of
+ * each: the blinds go up with the subject, the flop names the topic, and the
+ * turn puts the question itself face up. No river — a round that revealed
+ * nothing would be a round with nothing to bet on.
  */
 export type PokerStage =
   | "preflop"
   | "flop"
   | "turn"
-  | "river"
   | "answering"
   | "payout";
 
@@ -282,9 +281,10 @@ export interface PokerResult {
 }
 
 /**
- * The table, redacted to what the reveal has already said: `subject_name` first,
- * then `title`, then `question` — and `options` only once the betting on the
- * question is over. What has not been revealed yet is absent rather than hidden.
+ * The table, redacted to what the reveal has already said: `subject_name` from
+ * the first round, `title` from the second, `question` from the third — and
+ * `options` only once the betting on it is over. What has not been revealed yet
+ * is absent rather than hidden.
  */
 export interface PokerView {
   stage: PokerStage;

@@ -199,7 +199,7 @@ export const CUES = {
   ],
 
   /**
-   * The river, where the question itself turns over. C major spread as wide as
+   * The round where the question itself turns over. C major spread as wide as
    * the range allows -- root, fifth, then the third an octave up. An opening
    * rather than a resolution: it is the moment the hand has been building to,
    * and there is still betting to come.

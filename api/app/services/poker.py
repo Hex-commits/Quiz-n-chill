@@ -3,21 +3,22 @@
 There are no cards. What the blinds, the four betting rounds and the showdown
 are built around here is a question that arrives a piece at a time --
 
-    pre-reveal  nothing yet
-    first       the subject          "Geografie"
-    second      the topic            "Flüsse in Europa"
-    third       the question itself  "Rhein"
+    with the blinds  the subject          "Geografie"
+    second round     the topic            "Flüsse in Europa"
+    third round      the question itself  "Rhein"
 
--- so the first bets are made on a question you cannot see, and the last one
-after you can read it. The answers to choose between are not part of that: they
-come out when the betting is over, so the last bet is made on whether you know
-the answer rather than on whether you recognise it in a list. Everyone still in
-then answers at once, and whoever is right takes the pot; several right answers
+-- one reveal at the top of each betting round, so every round is bet on
+strictly more than the one before it and the last is bet on a question you can
+read. The answers to choose between are not part of that: they come out when
+the betting is over, so the last bet is made on whether you know the answer
+rather than on whether you recognise it in a list. Everyone still in then
+answers at once, and whoever is right takes the pot; several right answers
 split it. A pot nobody wins is not returned. It stays on the table and the next
 hand plays for it too.
 
-The stages keep poker's names -- flop, turn, river -- because that is what they
-are: the betting rounds between one reveal and the next.
+The stages keep poker's names -- preflop, flop, turn -- because that is what
+they are: the betting rounds. There is no river, because there is nothing left
+to say by then.
 
 This module is rules only. It never touches the store, publishes nothing, and
 every function here takes the `Lobby` it works on -- `lobbies` owns the
@@ -71,7 +72,7 @@ were behind them. A cut of the winnings rather than a fixed prize, because a
 side bet on a hand that got big should be worth more than one on a hand that
 did not."""
 
-BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn, PokerStage.river)
+BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn)
 
 ORDER = (*BETTING, PokerStage.answering, PokerStage.payout)
 
@@ -259,10 +260,10 @@ def view(lobby: Lobby) -> PokerView | None:
             )
             for seat in table.seats
         ],
-        subject_name=round_.subject_name if round_ and seen >= 1 else None,
-        title=round_.title if round_ and seen >= 2 else None,
-        question=_question(table, round_, revealed=over) if seen >= 3 else None,
-        options=_options(table, round_) if seen >= 4 else [],
+        subject_name=round_.subject_name if round_ else None,
+        title=round_.title if round_ and seen >= 1 else None,
+        question=_question(table, round_, revealed=over) if seen >= 2 else None,
+        options=_options(table, round_) if seen >= 3 else [],
         result=table.result,
     )
 

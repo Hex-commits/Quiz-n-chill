@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 
 import { CategoryPicture, ImageCredit } from "@/components/category-image";
+import { AnswerPool } from "@/components/answer-pool";
 import { ApiErrorNotice } from "@/components/api-error-notice";
 import { SoundToggle } from "@/components/sound-toggle";
 import { DifficultyBadge, SourceLink } from "@/components/source-link";
@@ -945,44 +946,12 @@ export function LobbyRoom({
                   </div>
                 ) : (
                   <>
-                    {/* Room for what a chip does when it is picked: it scales,
-                        lifts, and grows a 2px outline 2px clear of its own box.
-                        At `gap-2.5` two neighbours' outlines met in the middle. */}
-                    <div className="flex flex-wrap justify-center gap-3 sm:gap-3.5">
-                      {remainingItems.map((item) => (
-                        <Button
-                          key={item.id}
-                          size="lg"
-                          className={cn(
-                            "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-semibold whitespace-normal",
-                            "ease-(--ease-soft) transition-all duration-200",
-                            /* A lifted or picked chip reaches outside its own
-                               box, and `quiz-shine` positions every chip, so
-                               without a z-index the next chip along paints over
-                               the edge that says which one is picked. */
-                            "hover:z-10 hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
-                            "active:translate-y-0 active:scale-[0.98] active:duration-75",
-                            /* An outline rather than a ring: the gap it leaves
-                               is transparent, so the dark card shows between
-                               the yellow fill and the yellow edge. A ring at
-                               the same offset would paint its own backdrop over
-                               the card and read as one thick smear. */
-                            selectedItemId === item.id &&
-                              "outline-primary z-10 scale-[1.03] shadow-lg outline-solid outline-2 outline-offset-2",
-                          )}
-                          variant={selectedItemId === item.id ? "default" : "outline"}
-                          disabled={!isMyTurn || busy}
-                          aria-pressed={selectedItemId === item.id}
-                          onClick={() =>
-                            setSelectedItemId(
-                              selectedItemId === item.id ? null : item.id,
-                            )
-                          }
-                        >
-                          {item.label}
-                        </Button>
-                      ))}
-                    </div>
+                    <AnswerPool
+                      items={remainingItems}
+                      selectedId={selectedItemId}
+                      disabled={!isMyTurn || busy}
+                      onSelect={setSelectedItemId}
+                    />
                     {lobby.timed_out ? (
                       <p className="text-muted-foreground flex items-center justify-center gap-2 pt-4 text-sm">
                         <Timer className="size-4 shrink-0" aria-hidden />
