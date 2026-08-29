@@ -84,11 +84,15 @@ class PokerSeat:
     they answer different questions: the first is what a call has to match, the
     second is what a side pot is built from when somebody is all in for less
     than the rest.
+
+    `backing` is who this player put chips behind after folding, and
+    `side_stake` is how many. Neither is part of the pot: the stake is out of
+    the stack from the moment it is placed, and where it ends up is decided when
+    the hand pays out.
     """
 
     player_id: UUID
     stack: int
-    hole: list[str] = field(default_factory=list)
     committed: int = 0
     contributed: int = 0
     folded: bool = False
@@ -98,6 +102,8 @@ class PokerSeat:
     answer_item_id: UUID | None = None
     correct: bool | None = None
     won: int = 0
+    backing: UUID | None = None
+    side_stake: int = 0
 
     def in_hand(self) -> bool:
         return not self.sitting_out and not self.folded
@@ -108,7 +114,7 @@ class PokerSeat:
 
 @dataclass
 class PokerTable:
-    """A poker game played for questions.
+    """A game of betting rounds played for one question.
 
     Holds no answer key of its own: the question is the lobby's current round,
     and `question_category_id` points at the one category off it being asked.
@@ -123,8 +129,6 @@ class PokerTable:
 
     stage: PokerStage = PokerStage.preflop
     seats: list[PokerSeat] = field(default_factory=list)
-    deck: list[str] = field(default_factory=list)
-    board: list[str] = field(default_factory=list)
     button: int = 0
     to_act: int | None = None
     current_bet: int = 0

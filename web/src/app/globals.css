@@ -197,6 +197,34 @@
   }
 }
 
+/**
+ * A full-screen reveal: fade the room out, hold, fade it back.
+ *
+ * One animation for the whole life of the curtain rather than an entry and an
+ * exit, because the hold in the middle is the point -- a reveal that arrives
+ * and leaves without stopping reads as a glitch. The percentages are the
+ * timing: in by 10%, out from 85%, and everything between is the moment the
+ * table is meant to look up.
+ */
+@keyframes quiz-curtain {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-quiz-curtain {
+  animation: quiz-curtain var(--curtain-ms, 2600ms) var(--ease-soft) both;
+}
+
 @keyframes quiz-shake {
   0%,
   100% {

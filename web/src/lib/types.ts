@@ -231,9 +231,10 @@ export interface RoundView {
  * nothing. Only the host may write it — see `updateLobbySettings`.
  */
 /**
- * Where a poker hand has got to. The four betting stages are Hold'em's own;
- * what is not is what each deal reveals — the flop names the subject, the turn
- * the topic, and the river turns the question itself face up.
+ * Where a hand has got to. Poker's four betting rounds, keeping poker's names —
+ * nothing is dealt between them but the question, a piece at a time: the flop
+ * names the subject, the turn the topic, and the river turns the question face
+ * up.
  */
 export type PokerStage =
   | "preflop"
@@ -246,9 +247,8 @@ export type PokerStage =
 export type PokerAction = "fold" | "check" | "call" | "raise" | "all_in";
 
 /**
- * One player at the table, as everyone at it may see them. No hole cards: those
- * are fetched per player from `pokerHand`, never broadcast. `answer_item_id`
- * and `is_correct` stay null until the hand pays out — answers are simultaneous.
+ * One player at the table, as everyone at it may see them. `answer_item_id` and
+ * `is_correct` stay null until the hand pays out — answers are simultaneous.
  */
 export interface PokerSeat {
   player_id: string;
@@ -257,11 +257,13 @@ export interface PokerSeat {
   folded: boolean;
   all_in: boolean;
   sitting_out: boolean;
-  has_cards: boolean;
   has_answered: boolean;
   answer_item_id: string | null;
   is_correct: boolean | null;
   won: number;
+  /** Who this player folded and put chips behind, and how many. Public. */
+  backing: string | null;
+  side_stake: number;
 }
 
 export interface PokerAward {
@@ -280,17 +282,14 @@ export interface PokerResult {
 }
 
 /**
- * The table, redacted to what the cards on it have already said: `subject_name`
- * from the flop, `title` from the turn, `question` from the river — and
- * `options` only once the betting on it is over. What has not been revealed yet
- * is absent rather than hidden.
+ * The table, redacted to what the reveal has already said: `subject_name` first,
+ * then `title`, then `question` — and `options` only once the betting on the
+ * question is over. What has not been revealed yet is absent rather than hidden.
  */
 export interface PokerView {
   stage: PokerStage;
   hand_index: number;
   hand_count: number;
-  /** Community cards, as `"As"`, `"Td"` — rank then suit. */
-  board: string[];
   pot: number;
   carried: number;
   current_bet: number;
@@ -306,12 +305,6 @@ export interface PokerView {
   question: Category | null;
   options: Item[];
   result: PokerResult | null;
-}
-
-/** One player's own two cards, fetched by them and nobody else. */
-export interface PokerHand {
-  hand_index: number;
-  cards: string[];
 }
 
 export interface LobbySettings {

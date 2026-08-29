@@ -324,10 +324,11 @@ class RoundView(BaseModel):
 class PokerStage(StrEnum):
     """Where a poker hand has got to.
 
-    The four betting stages are ordinary Hold'em. What is not ordinary is what
-    each deal reveals: the flop names the subject, the turn names the topic, and
-    the river turns the question face up. So a player bets three times on a
-    question they can only partly see, and once on one they can read.
+    Poker's four betting rounds, keeping poker's names for them. Nothing is
+    dealt: what arrives between the rounds is the question, a piece at a time --
+    the flop names the subject, the turn names the topic, and the river turns
+    the question itself face up. So a player bets three times on a question they
+    can only partly see, and once on one they can read.
     """
 
     preflop = "preflop"
@@ -349,14 +350,13 @@ class PokerAction(StrEnum):
 class PokerSeatView(BaseModel):
     """One player at the table, as everyone at it may see them.
 
-    No hole cards: they are the one thing at this table that is not public, and
-    they never travel on the lobby view. `has_cards` is all anyone else gets --
-    see `PokerHand`, which is fetched per player and answers only for the player
-    who asks.
-
     `answer_item_id` and `is_correct` stay null until the hand is paid out.
     Answers are simultaneous, and a view that showed them as they arrived would
     turn the last player to answer into the best-informed one.
+
+    `backing` is public from the moment it is placed. It is a bet on how the
+    hand ends rather than anything a player is holding, and a table that can see
+    who is behind whom has something to talk about while the hand runs.
     """
 
     player_id: UUID
@@ -365,11 +365,12 @@ class PokerSeatView(BaseModel):
     folded: bool = False
     all_in: bool = False
     sitting_out: bool = False
-    has_cards: bool = False
     has_answered: bool = False
     answer_item_id: UUID | None = None
     is_correct: bool | None = None
     won: int = 0
+    backing: UUID | None = None
+    side_stake: int = 0
 
 
 class PokerAward(BaseModel):
@@ -411,7 +412,6 @@ class PokerView(BaseModel):
     stage: PokerStage
     hand_index: int
     hand_count: int
-    board: list[str] = []
     pot: int = 0
     carried: int = 0
     current_bet: int = 0
@@ -428,19 +428,6 @@ class PokerView(BaseModel):
     result: PokerResult | None = None
 
 
-class PokerHand(BaseModel):
-    """One player's hole cards, answered only to that player.
-
-    Its own endpoint rather than a field on the lobby view, because the lobby
-    view is public: it is broadcast to every client watching the lobby, and one
-    per-player secret on it would be one redaction to get wrong on every future
-    change. Cards do not move during a hand, so this is fetched once per hand.
-    """
-
-    hand_index: int
-    cards: list[str] = []
-
-
 class PokerAct(BaseModel):
     """One betting move. `amount` is the total to raise *to*, and only a raise
     reads it."""
@@ -453,6 +440,13 @@ class PokerAct(BaseModel):
 class PokerAnswer(BaseModel):
     player_id: UUID
     item_id: UUID
+
+
+class PokerBack(BaseModel):
+    """A folded player putting chips behind someone still in the hand."""
+
+    player_id: UUID
+    backed_id: UUID
 
 
 class LobbySettings(BaseModel):

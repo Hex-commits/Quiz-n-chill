@@ -91,6 +91,16 @@ def a_wrong_answer(code):
     return next(item.id for item in view(code).options if item.id not in right)
 
 
+def one_move(code):
+    """The cheapest legal move for whoever is on the clock: check, or call."""
+    table = view(code)
+    seat = next(s for s in table.seats if s.player_id == table.to_act)
+    action = (
+        PokerAction.check if seat.committed == table.current_bet else PokerAction.call
+    )
+    lobbies.poker_act(code, table.to_act, action)
+
+
 def settle_bets(code):
     """Everyone checks or calls until this street closes. The cheapest way on."""
     street = view(code).stage
@@ -98,13 +108,7 @@ def settle_bets(code):
         table = view(code)
         if table.to_act is None or table.stage is not street:
             return table
-        seat = next(s for s in table.seats if s.player_id == table.to_act)
-        action = (
-            PokerAction.check
-            if seat.committed == table.current_bet
-            else PokerAction.call
-        )
-        lobbies.poker_act(code, table.to_act, action)
+        one_move(code)
 
 
 BETTING = (
@@ -132,34 +136,20 @@ def expire(code, field):
 # ---------------------------------------------------------------------------
 
 
-def test_a_hand_opens_with_blinds_up_and_two_cards_each():
-    code, (anna, ben) = setup_poker()
+def test_a_hand_opens_with_the_blinds_up_and_nothing_revealed():
+    code, _ids = setup_poker()
 
     table = view(code)
     assert table.stage is PokerStage.preflop
     assert table.pot == poker.SMALL_BLIND + poker.BIG_BLIND
-    assert all(seat.has_cards for seat in table.seats)
+    assert (table.subject_name, table.title, table.question) == (None, None, None)
     assert {seat.stack for seat in table.seats} == {
         poker.STARTING_STACK - poker.SMALL_BLIND,
         poker.STARTING_STACK - poker.BIG_BLIND,
     }
-    assert len(lobbies.poker_hand(code, anna).cards) == 2
-    assert len(lobbies.poker_hand(code, ben).cards) == 2
 
 
-def test_the_two_cards_are_the_players_own_and_reach_nobody_else():
-    """The safety property the whole per-player endpoint exists for."""
-    code, (anna, ben) = setup_poker()
-
-    payload = lobbies.get_view(code, anna).model_dump_json()
-    for card in lobbies.poker_hand(code, anna).cards:
-        # Quoted: "9c" is also two hex digits, and would match inside a uuid.
-        assert f'"{card}"' not in payload
-
-    assert lobbies.poker_hand(code, anna).cards != lobbies.poker_hand(code, ben).cards
-
-
-def test_the_question_is_revealed_one_card_at_a_time():
+def test_the_question_is_revealed_one_betting_round_at_a_time():
     code, _ids = setup_poker()
 
     assert view(code).subject_name is None
@@ -168,7 +158,6 @@ def test_the_question_is_revealed_one_card_at_a_time():
     settle_bets(code)
     flop = view(code)
     assert flop.stage is PokerStage.flop
-    assert len(flop.board) == 3
     assert flop.subject_name == "Geografie"
     assert flop.title is None
     assert flop.question is None
@@ -176,7 +165,6 @@ def test_the_question_is_revealed_one_card_at_a_time():
     settle_bets(code)
     turn = view(code)
     assert turn.stage is PokerStage.turn
-    assert len(turn.board) == 4
     assert turn.title == "Flüsse in Europa"
     assert turn.question is None
     assert turn.options == []
@@ -184,7 +172,6 @@ def test_the_question_is_revealed_one_card_at_a_time():
     settle_bets(code)
     river = view(code)
     assert river.stage is PokerStage.river
-    assert len(river.board) == 5
     assert river.question is not None
     assert river.options == []
 
@@ -415,6 +402,123 @@ def test_the_answer_key_is_shown_once_the_hand_is_over():
 
 
 # ---------------------------------------------------------------------------
+# Backing another player
+# ---------------------------------------------------------------------------
+
+
+def fold_out(code, folder):
+    """Bet round the table until `folder` is on the clock, then fold them.
+
+    Bounded rather than a bare `while`: if the hand ends or the stage moves on
+    without them ever speaking, a test should say so rather than spin.
+    """
+    for _ in range(20):
+        table = view(code)
+        if table.to_act == folder:
+            lobbies.poker_act(code, folder, PokerAction.fold)
+            return
+        assert table.stage in BETTING, f"hand reached {table.stage} before {folder}"
+        one_move(code)
+    raise AssertionError("never got the clock round to that player")
+
+
+def test_backing_costs_a_big_blind_and_says_who_you_are_behind():
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    stack = seat_of(code, anna).stack
+
+    lobbies.poker_back(code, anna, ben)
+
+    backer = seat_of(code, anna)
+    assert backer.backing == ben
+    assert backer.side_stake == poker.BIG_BLIND
+    assert backer.stack == stack - poker.BIG_BLIND
+
+
+def test_backing_the_right_answer_returns_the_stake_with_a_share_of_the_pot():
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    lobbies.poker_back(code, anna, ben)
+    backer_stack = seat_of(code, anna).stack
+
+    deal_to_the_question(code)
+    pot = view(code).pot
+    lobbies.poker_answer(code, ben, answer_key(code)[0])
+    lobbies.poker_answer(code, cleo, a_wrong_answer(code))
+
+    cut = pot // poker.SIDE_BET_SHARE
+    assert seat_of(code, anna).won == cut
+    assert seat_of(code, anna).stack == backer_stack + poker.BIG_BLIND + cut
+    assert seat_of(code, ben).won == pot - cut
+
+
+def test_backing_the_wrong_player_loses_the_stake_into_the_pot():
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    lobbies.poker_back(code, anna, cleo)
+    backer_stack = seat_of(code, anna).stack
+
+    deal_to_the_question(code)
+    pot = view(code).pot
+    lobbies.poker_answer(code, ben, answer_key(code)[0])
+    lobbies.poker_answer(code, cleo, a_wrong_answer(code))
+
+    assert seat_of(code, anna).stack == backer_stack
+    assert seat_of(code, ben).won == pot + poker.BIG_BLIND
+    assert sum(seat.stack for seat in view(code).seats) == 3 * poker.STARTING_STACK
+
+
+def test_two_backers_on_one_player_share_the_same_tenth():
+    code, (anna, ben, cleo, dan) = setup_poker(("Anna", "Ben", "Cleo", "Dan"))
+    fold_out(code, anna)
+    lobbies.poker_back(code, anna, dan)
+    fold_out(code, ben)
+    lobbies.poker_back(code, ben, dan)
+
+    deal_to_the_question(code)
+    pot = view(code).pot
+    lobbies.poker_answer(code, cleo, a_wrong_answer(code))
+    lobbies.poker_answer(code, dan, answer_key(code)[0])
+
+    cut = pot // poker.SIDE_BET_SHARE
+    assert seat_of(code, anna).won + seat_of(code, ben).won == cut
+    assert seat_of(code, dan).won == pot - cut
+
+
+def test_only_a_folded_player_can_back_and_only_once():
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+
+    with pytest.raises(ConflictError, match="has folded"):
+        lobbies.poker_back(code, view(code).to_act, ben)
+
+    fold_out(code, anna)
+    lobbies.poker_back(code, anna, ben)
+    with pytest.raises(ConflictError, match="already behind"):
+        lobbies.poker_back(code, anna, cleo)
+
+
+def test_you_cannot_back_yourself_or_somebody_who_has_folded():
+    code, (anna, ben, _cleo, _dan) = setup_poker(("Anna", "Ben", "Cleo", "Dan"))
+    fold_out(code, anna)
+
+    with pytest.raises(ConflictError, match="not in this hand"):
+        lobbies.poker_back(code, anna, anna)
+
+    fold_out(code, ben)
+    with pytest.raises(ConflictError, match="not in this hand"):
+        lobbies.poker_back(code, anna, ben)
+
+
+def test_backing_closes_when_the_answers_go_up():
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    deal_to_the_question(code)
+
+    with pytest.raises(ConflictError, match="nothing left to back"):
+        lobbies.poker_back(code, anna, ben)
+
+
+# ---------------------------------------------------------------------------
 # Chips, side pots and the end of the game
 # ---------------------------------------------------------------------------
 
@@ -482,11 +586,11 @@ def test_the_next_hand_waits_for_a_player_who_is_reloading():
     held = view(code)
     assert held.hand_index == 1
     assert held.to_act is None
-    assert all(not seat.has_cards for seat in held.seats)
+    assert held.pot == 0, "no blinds are up until there is somebody to take them"
 
     dealt = lobbies.get_view(code, ben).poker
     assert dealt.to_act is not None
-    assert all(seat.has_cards for seat in dealt.seats)
+    assert dealt.pot == poker.SMALL_BLIND + poker.BIG_BLIND
 
 
 def test_a_classic_game_has_no_poker_table_and_the_other_way_round():
@@ -502,10 +606,10 @@ def test_a_classic_game_has_no_poker_table_and_the_other_way_round():
         lobbies.poker_act(other, host, PokerAction.check)
 
 
-def test_the_routes_carry_the_moves_and_keep_the_cards_apart():
+def test_the_routes_carry_the_moves():
     """One pass over HTTP, since everything above this talks to the service."""
     client = TestClient(app)
-    code, (anna, ben) = setup_poker()
+    code, _ids = setup_poker(("Anna", "Ben", "Cleo"))
     on_the_clock = view(code).to_act
 
     folded = client.post(
@@ -513,9 +617,14 @@ def test_the_routes_carry_the_moves_and_keep_the_cards_apart():
         json={"player_id": str(on_the_clock), "action": "fold"},
     )
     assert folded.status_code == 200
-    assert folded.json()["poker"]["stage"] == "payout"
 
-    mine = client.get(f"/lobbies/{code}/poker/hand", params={"player_id": str(anna)})
-    theirs = client.get(f"/lobbies/{code}/poker/hand", params={"player_id": str(ben)})
-    assert len(mine.json()["cards"]) == 2
-    assert mine.json()["cards"] != theirs.json()["cards"]
+    backed = client.post(
+        f"/lobbies/{code}/poker/back",
+        json={
+            "player_id": str(on_the_clock),
+            "backed_id": str(view(code).to_act),
+        },
+    )
+    assert backed.status_code == 200
+    seats = {s["player_id"]: s for s in backed.json()["poker"]["seats"]}
+    assert seats[str(on_the_clock)]["side_stake"] == poker.BIG_BLIND

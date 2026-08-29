@@ -12,7 +12,7 @@ from app.schemas import (
     PlayerAction,
     PokerAct,
     PokerAnswer,
-    PokerHand,
+    PokerBack,
     TurnSubmit,
 )
 from app.services import lobbies as service
@@ -102,14 +102,14 @@ def poker_answer(code: str, payload: PokerAnswer) -> LobbyView:
     return service.poker_answer(code, payload.player_id, payload.item_id)
 
 
-@router.get("/{code}/poker/hand", response_model=PokerHand)
-def poker_hand(code: str, player_id: UUID) -> PokerHand:
-    """The asking player's own two cards.
+@router.post("/{code}/poker/back", response_model=LobbyView)
+def poker_back(code: str, payload: PokerBack) -> LobbyView:
+    """Back another player with a big blind, having folded your own hand.
 
-    Not part of the lobby view, which is public and broadcast to everyone
-    watching. Cards do not move during a hand, so one fetch per hand does it.
+    Right, and the stake comes back with a share of what they took. Wrong, and
+    it joins the pot for whoever does take it.
     """
-    return service.poker_hand(code, player_id)
+    return service.poker_back(code, payload.player_id, payload.backed_id)
 
 
 @router.post("/{code}/next-round", response_model=LobbyView)

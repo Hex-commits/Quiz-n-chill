@@ -15,7 +15,6 @@ import type {
   LobbySettings,
   LobbyView,
   PokerAction,
-  PokerHand,
   QuizDetail,
   QuizSummary,
   Subject,
@@ -250,17 +249,20 @@ export function pokerAnswer(
 }
 
 /**
- * Your own two cards, and nobody else's.
+ * Back another player with a big blind, having folded your own hand.
  *
- * Its own request because the lobby view is public — it is broadcast to every
- * client watching. Cards do not move during a hand, so this is fetched once per
- * hand rather than polled.
+ * Right, and the stake comes back with a share of what they took. Wrong, and it
+ * joins the pot for whoever does take it.
  */
-export function pokerHand(code: string, playerId: string): Promise<PokerHand> {
-  const query = `?player_id=${encodeURIComponent(playerId)}`;
-  return request<PokerHand>(
-    `/lobbies/${encodeURIComponent(code)}/poker/hand${query}`,
-  );
+export function pokerBack(
+  code: string,
+  playerId: string,
+  backedId: string,
+): Promise<LobbyView> {
+  return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/poker/back`, {
+    method: "POST",
+    body: JSON.stringify({ player_id: playerId, backed_id: backedId }),
+  });
 }
 
 /** `categoryId` of null is the move that says the answer belongs nowhere. */

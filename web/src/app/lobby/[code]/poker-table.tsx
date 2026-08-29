@@ -1,38 +1,47 @@
 "use client";
 
 /**
- * The poker table: five cards that say more about the question each time one
- * turns over, and the betting that happens in between.
+ * The table.
  *
- * The layout follows the reveal rather than the poker. Board and ladder sit
- * together at the top, because the whole point of a card here is the line it
- * fills in underneath: flop → subject, turn → topic, river → the question and
- * the answers it can be given. Chips, seats and the action bar sit below that,
- * where they can be read without taking the eye off what is being asked.
+ * Laid out as one, because that is what the game is: a felt in the middle with
+ * the pot and the question on it, and the players sat round the edge. Everyone
+ * is looking at the same object, and where a thing sits says what it is --
+ * chips in front of a player are theirs, chips in the middle are nobody's yet.
  *
- * Holds no rules. Every legality question — whose turn, what a raise has to be,
- * whether an answer counts — is settled by the API; this file draws what came
- * back and posts what was clicked.
+ * The felt carries the reveal. There are no cards in this version: what used to
+ * arrive as a flop, a turn and a river arrives as three lines of the question
+ * filling in, one per betting round, and the betting is what the players do
+ * between them.
+ *
+ * Chips are the thing to be able to read at a glance, so every stack gets a
+ * number *and* a bar. The number is exact; the bar is comparative -- who is
+ * ahead is a question about the other stacks, and answering it by reading four
+ * numbers is slower than seeing four bars.
+ *
+ * Holds no rules. Every legality question -- whose turn, what a raise has to
+ * be, whether an answer counts -- is settled by the API; this file draws what
+ * came back and posts what was clicked.
  */
 
-import { useState } from "react";
-import { Check, Circle, Coins, Crown, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Coins, Crown, Loader2 } from "lucide-react";
 
 import { CategoryPicture, ImageCredit } from "@/components/category-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { HURRY_FROM, play, playCountdown } from "@/lib/sound";
 import { cn } from "@/lib/utils";
-import type { LobbyView, PokerAction, PokerSeat, PokerView } from "@/lib/types";
+import type {
+  CategoryImage,
+  LobbyView,
+  PokerAction,
+  PokerSeat,
+  PokerView,
+} from "@/lib/types";
 
-/**
- * How many rungs of the ladder each stage has lit.
- *
- * Capped at three rather than indexed off the stage, because the question stays
- * on screen for the two stages after the river deals it -- answering it and
- * paying it out are exactly when it is being read.
- */
+/** How many rungs of the reveal each stage has lit. */
 const REVEALED: Record<PokerView["stage"], number> = {
   preflop: 0,
   flop: 1,
@@ -42,135 +51,115 @@ const REVEALED: Record<PokerView["stage"], number> = {
   payout: 3,
 };
 
-const SUITS: Record<string, { glyph: string; red: boolean }> = {
-  s: { glyph: "♠", red: false },
-  h: { glyph: "♥", red: true },
-  d: { glyph: "♦", red: true },
-  c: { glyph: "♣", red: false },
-};
+/**
+ * How long each reveal holds the screen, in milliseconds.
+ *
+ * The question gets longer than the two that lead up to it. It is the one
+ * anybody has to read rather than glance at, and it is the last thing they see
+ * before betting on whether they know it.
+ */
+const CURTAIN_MS = [0, 2400, 2400, 3400];
+
+/** What each rung of the reveal is called on the curtain. */
+const CURTAIN_TERM = ["", "Subject", "Topic", "The question"];
 
 export function PokerTable({
   lobby,
   poker,
   playerId,
-  cards,
+  secondsLeft,
   busy,
   onAct,
   onAnswer,
+  onBack,
 }: {
   lobby: LobbyView;
   poker: PokerView;
   playerId: string;
-  /** The asking player's own two cards, fetched per hand. */
-  cards: string[];
+  /** Whichever clock the table is running, ticked in the browser. */
+  secondsLeft: number | null;
   busy: boolean;
   onAct: (action: PokerAction, amount?: number) => void;
   onAnswer: (itemId: string) => void;
+  onBack: (backedId: string) => void;
 }) {
   const me = poker.seats.find((seat) => seat.player_id === playerId) ?? null;
+  const curtain = useReveal(poker);
+  usePokerSounds(poker, me, secondsLeft);
+
   const nameOf = (id: string) =>
     lobby.players.find((player) => player.id === id)?.nickname ?? "—";
 
-  const revealed = REVEALED[poker.stage];
-  const over = poker.stage === "payout";
+  /* What the bars are drawn against: the biggest stack at the table, or the pot
+     where that is bigger still. Early in a hand the pot is most of the chips
+     that have moved, and a bar scaled to a full stack would never leave zero. */
+  const biggest = Math.max(...poker.seats.map((seat) => seat.stack), poker.pot, 1);
+
+  /* Split down the middle so the felt has players either side of it, the way it
+     would if they were sat there. One column below `lg`, where a table with
+     sides is just two narrow columns of nothing. */
+  const half = Math.ceil(poker.seats.length / 2);
+  const sides = [poker.seats.slice(0, half), poker.seats.slice(half)];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-3">
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Hand {poker.hand_index + 1} of {poker.hand_count}
-            </p>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="gap-1.5 font-mono">
-                <Coins className="size-3.5" aria-hidden />
-                {poker.pot}
-              </Badge>
-              {poker.carried > 0 ? (
-                <Badge variant="outline" className="font-mono">
-                  {poker.carried} carried
-                </Badge>
-              ) : null}
-              {poker.seconds_left !== null ? (
-                <Badge variant="outline" className="font-mono tabular-nums">
-                  {poker.seconds_left}s
-                </Badge>
-              ) : null}
-            </div>
-          </div>
+    <>
+      {curtain ? <Curtain curtain={curtain} /> : null}
+      <div className="mx-auto w-full max-w-5xl space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          Hand {poker.hand_index + 1} of {poker.hand_count}
+        </p>
+        {secondsLeft !== null ? (
+          <Badge
+            variant="outline"
+            className={cn(
+              "font-mono tabular-nums",
+              secondsLeft <= HURRY_FROM && "border-destructive/60 text-destructive",
+            )}
+          >
+            {secondsLeft}s
+          </Badge>
+        ) : null}
+      </div>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            {[0, 1, 2, 3, 4].map((index) => (
-              <PlayingCard key={index} card={poker.board[index] ?? null} />
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)_minmax(0,1fr)] lg:items-center">
+        {sides.map((side, index) => (
+          <div
+            key={index}
+            className={cn(
+              "grid gap-2 sm:grid-cols-2 lg:grid-cols-1",
+              /* The felt reads first on a phone, where there are no sides. */
+              index === 0 ? "order-2 lg:order-none" : "order-3 lg:order-none",
+            )}
+          >
+            {side.map((seat) => (
+              <Seat
+                key={seat.player_id}
+                seat={seat}
+                name={nameOf(seat.player_id)}
+                isMe={seat.player_id === playerId}
+                isDealer={seat.player_id === poker.button_id}
+                onTheClock={seat.player_id === poker.to_act}
+                backing={seat.backing ? nameOf(seat.backing) : null}
+                biggest={biggest}
+                stage={poker.stage}
+              />
             ))}
           </div>
+        ))}
 
-          <dl className="mx-auto grid max-w-md gap-1 text-sm">
-            <Rung term="Subject" value={poker.subject_name} lit={revealed >= 1} />
-            <Rung term="Topic" value={poker.title} lit={revealed >= 2} />
-            <Rung
-              term="Question"
-              value={
-                poker.question
-                  ? (poker.question.label ?? "the picture below")
-                  : null
-              }
-              lit={revealed >= 3}
-            />
-          </dl>
-
-          {poker.question?.image ? (
-            <figure className="mx-auto w-full max-w-sm space-y-1">
-              <div className="overflow-hidden rounded-(--radius-sm)">
-                <CategoryPicture
-                  image={poker.question.image}
-                  label={poker.question.label ?? "The question"}
-                />
-              </div>
-              <figcaption>
-                <ImageCredit image={poker.question.image} />
-              </figcaption>
-            </figure>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="grid gap-2 sm:grid-cols-2">
-          {poker.seats.map((seat) => (
-            <Seat
-              key={seat.player_id}
-              seat={seat}
-              name={nameOf(seat.player_id)}
-              isMe={seat.player_id === playerId}
-              isDealer={seat.player_id === poker.button_id}
-              onTheClock={seat.player_id === poker.to_act}
-              stage={poker.stage}
-            />
-          ))}
-        </CardContent>
-      </Card>
-
-      {me && me.has_cards ? (
-        <div className="flex items-center justify-center gap-2">
-          {cards.length > 0 ? (
-            cards.map((card) => <PlayingCard key={card} card={card} />)
-          ) : (
-            <>
-              <PlayingCard card={null} />
-              <PlayingCard card={null} />
-            </>
-          )}
+        <div className="order-1 lg:order-none">
+          <Felt poker={poker} />
         </div>
-      ) : null}
+      </div>
 
-      {over && poker.result ? (
-        <Payout poker={poker} nameOf={nameOf} />
+      {poker.stage === "payout" && poker.result ? (
+        <Payout poker={poker} nameOf={nameOf} secondsLeft={secondsLeft} />
       ) : poker.stage === "answering" ? (
         <Answering
           poker={poker}
           me={me}
+          secondsLeft={secondsLeft}
           seconds={lobby.settings.turn_seconds}
           busy={busy}
           onAnswer={onAnswer}
@@ -183,38 +172,202 @@ export function PokerTable({
           nameOf={nameOf}
           busy={busy}
           onAct={onAct}
+          onBack={onBack}
         />
+      )}
+      </div>
+    </>
+  );
+}
+
+type Reveal = {
+  rung: number;
+  term: string;
+  value: string | null;
+  image: CategoryImage | null;
+};
+
+/**
+ * Raise the curtain when the question has just said something new.
+ *
+ * Keyed on how far the reveal has got rather than on the stage, so a hand that
+ * jumps -- everyone all in, and the rest of the question arriving in one
+ * server-side step -- still shows the last thing it uncovered rather than
+ * nothing at all.
+ *
+ * Nothing is raised for the view a client arrives on. Somebody opening the tab
+ * mid-hand has not just been told anything; they are catching up, and a
+ * full-screen announcement of something the rest of the table saw a minute ago
+ * would be a lie about what just happened.
+ */
+function useReveal(poker: PokerView): Reveal | null {
+  const [curtain, setCurtain] = useState<Reveal | null>(null);
+  const seen = useRef<{ hand: number; rung: number } | null>(null);
+
+  const rung = REVEALED[poker.stage];
+  const value =
+    rung === 1
+      ? poker.subject_name
+      : rung === 2
+        ? poker.title
+        : rung >= 3
+          ? (poker.question?.label ?? null)
+          : null;
+  const image = rung >= 3 ? (poker.question?.image ?? null) : null;
+
+  useEffect(() => {
+    const was = seen.current;
+    seen.current = { hand: poker.hand_index, rung };
+    if (!was) return;
+
+    const fresh = poker.hand_index !== was.hand ? 0 : was.rung;
+    if (rung <= fresh || rung < 1) return;
+    if (!value && !image) return;
+
+    play(rung >= 3 ? "reveal" : "step");
+    /* Raising the curtain *is* the reaction to a view arriving, and the sound
+       above it cannot happen during a render. Adjusting state in render, as the
+       count-in does, is not available to something that also has to make a
+       noise. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurtain({ rung, term: CURTAIN_TERM[rung], value, image });
+  }, [poker.hand_index, rung, value, image]);
+
+  useEffect(() => {
+    if (!curtain) return;
+    const timer = setTimeout(() => setCurtain(null), CURTAIN_MS[curtain.rung]);
+    return () => clearTimeout(timer);
+  }, [curtain]);
+
+  return curtain;
+}
+
+/**
+ * The reveal, full screen.
+ *
+ * The same shape as the count-in between rounds, deliberately: this game
+ * already has one way of saying "everybody look up", and a second one would
+ * only be a second thing to learn. It does not take the pointer -- the clock is
+ * still running underneath, and a player who has already decided should be able
+ * to act through it.
+ */
+function Curtain({ curtain }: { curtain: Reveal }) {
+  return (
+    <div
+      className="animate-quiz-curtain bg-background/80 pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 p-6 backdrop-blur-md"
+      style={{ "--curtain-ms": `${CURTAIN_MS[curtain.rung]}ms` } as React.CSSProperties}
+      aria-hidden
+    >
+      <p className="text-muted-foreground text-xs font-bold tracking-[0.3em] uppercase">
+        {curtain.term}
+      </p>
+      {curtain.image ? (
+        <div className="animate-quiz-count-in w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl">
+          <CategoryPicture image={curtain.image} label="The question" />
+        </div>
+      ) : (
+        <p className="animate-quiz-count-in text-primary max-w-4xl text-center text-4xl leading-none font-black text-balance sm:text-6xl">
+          {curtain.value}
+        </p>
       )}
     </div>
   );
 }
 
 /**
- * One line of the ladder: what this card said, or a dash where it has not been
- * turned over yet.
+ * The middle of the table: the pot, and the question as far as it has been
+ * told.
  *
- * The unlit rungs stay on screen rather than appearing as they fill. Knowing
- * that two more things are still to be told is part of what a bet before the
- * flop is made on.
+ * Green and round and carrying its own colours rather than the page's, because
+ * it is a thing on the page rather than a part of it -- the one element here
+ * that should look the same in both themes, for the same reason a real table
+ * does not change colour when somebody turns the lights down.
+ */
+function Felt({ poker }: { poker: PokerView }) {
+  const revealed = REVEALED[poker.stage];
+
+  return (
+    <div
+      className={cn(
+        "mx-auto w-full max-w-md rounded-[2.5rem] px-6 py-7 text-emerald-50 shadow-xl",
+        "bg-[radial-gradient(ellipse_at_center,var(--color-emerald-700),var(--color-emerald-900))]",
+        "ring-8 ring-amber-950/40 ring-inset",
+      )}
+    >
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="text-[11px] font-medium tracking-[0.2em] text-emerald-200/70 uppercase">
+          Pot
+        </span>
+        <span className="font-mono text-4xl font-bold tabular-nums">
+          {poker.pot}
+        </span>
+        {poker.carried > 0 ? (
+          <span className="text-xs text-amber-200/90">
+            {poker.carried} carried from the last hand
+          </span>
+        ) : null}
+      </div>
+
+      <dl className="mt-5 space-y-1.5 border-t border-emerald-200/20 pt-4 text-sm">
+        <Rung term="Subject" value={poker.subject_name} lit={revealed >= 1} />
+        <Rung term="Topic" value={poker.title} lit={revealed >= 2} />
+        <Rung
+          term="Question"
+          value={poker.question ? (poker.question.label ?? "the picture below") : null}
+          lit={revealed >= 3}
+          loud
+        />
+      </dl>
+
+      {poker.question?.image ? (
+        <figure className="mt-3 space-y-1">
+          <div className="overflow-hidden rounded-(--radius-sm)">
+            <CategoryPicture
+              image={poker.question.image}
+              label={poker.question.label ?? "The question"}
+            />
+          </div>
+          <figcaption className="text-emerald-100/70">
+            <ImageCredit image={poker.question.image} />
+          </figcaption>
+        </figure>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One line of the reveal, or a dash where it has not been told yet.
+ *
+ * The unlit rungs stay on the felt rather than appearing as they fill. Knowing
+ * that two more things are still to come is part of what an early bet is made
+ * on.
  */
 function Rung({
   term,
   value,
   lit,
+  loud,
 }: {
   term: string;
   value: string | null;
   lit: boolean;
+  /** The question itself, which is the one anybody reads twice. */
+  loud?: boolean;
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <dt className="text-muted-foreground w-20 shrink-0 text-xs tracking-wide uppercase">
+      <dt className="w-20 shrink-0 text-[10px] tracking-[0.15em] text-emerald-200/60 uppercase">
         {term}
       </dt>
       <dd
         className={cn(
           "min-w-0 truncate",
-          lit && value ? "font-medium" : "text-muted-foreground/50",
+          !lit || !value
+            ? "text-emerald-200/30"
+            : loud
+              ? "text-lg font-semibold"
+              : "font-medium",
         )}
       >
         {lit && value ? value : "—"}
@@ -223,39 +376,22 @@ function Rung({
   );
 }
 
-/** A card, or its back where one has not been dealt. */
-function PlayingCard({ card }: { card: string | null }) {
-  if (!card) {
-    return (
-      <div
-        className="bg-muted/60 border-border h-16 w-11 rounded-md border border-dashed"
-        aria-label="Face down"
-      />
-    );
-  }
-
-  const suit = SUITS[card.slice(-1)] ?? { glyph: "?", red: false };
-  const rank = card.slice(0, -1).replace("T", "10");
-  return (
-    <div
-      className={cn(
-        "bg-card flex h-16 w-11 flex-col items-center justify-center rounded-md border shadow-sm",
-        suit.red ? "text-red-600 dark:text-red-400" : "text-foreground",
-      )}
-      aria-label={`${rank}${suit.glyph}`}
-    >
-      <span className="text-lg leading-none font-bold">{rank}</span>
-      <span className="text-lg leading-none">{suit.glyph}</span>
-    </div>
-  );
-}
-
+/**
+ * A player's place: their name, their chips as a number and as a bar, and
+ * whatever they have pushed forward.
+ *
+ * The bet sits in its own pill rather than in the stack, because that is where
+ * those chips are -- out of the stack, not yet in the pot, and coming back to
+ * nobody until the street closes.
+ */
 function Seat({
   seat,
   name,
   isMe,
   isDealer,
   onTheClock,
+  backing,
+  biggest,
   stage,
 }: {
   seat: PokerSeat;
@@ -263,49 +399,83 @@ function Seat({
   isMe: boolean;
   isDealer: boolean;
   onTheClock: boolean;
+  /** Who they are behind, having folded. */
+  backing: string | null;
+  /** The biggest stack at the table, for the bar to be read against. */
+  biggest: number;
   stage: PokerView["stage"];
 }) {
+  const out = seat.folded || seat.sitting_out;
+
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-(--radius-sm) border px-3 py-2 text-sm",
-        onTheClock && "border-primary/60 bg-primary/5",
-        (seat.folded || seat.sitting_out) && "opacity-50",
+        "rounded-xl border px-3 py-2 transition-colors",
+        onTheClock && "border-primary bg-primary/5 shadow-sm",
+        out && "opacity-55",
       )}
     >
-      <span className="truncate font-medium">
-        {name}
-        {isMe ? " (you)" : ""}
-      </span>
-      {isDealer ? (
-        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-          D
-        </Badge>
-      ) : null}
-      {seat.sitting_out ? (
-        <span className="text-muted-foreground text-xs">out</span>
-      ) : seat.folded ? (
-        <span className="text-muted-foreground text-xs">folded</span>
-      ) : seat.all_in ? (
-        <span className="text-xs font-medium">all in</span>
-      ) : null}
-      {stage === "answering" && seat.has_answered ? (
-        <Check className="text-success size-3.5" aria-label="Answered" />
-      ) : null}
-      {seat.is_correct === true ? (
-        <Crown className="size-3.5 text-amber-500" aria-label="Right" />
-      ) : null}
-      <span className="ml-auto flex items-center gap-2 font-mono tabular-nums">
-        {seat.committed > 0 ? (
-          <span className="text-muted-foreground text-xs">
-            +{seat.committed}
+      <div className="flex items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+          {name}
+          {isMe ? <span className="text-muted-foreground"> (you)</span> : null}
+        </span>
+        {seat.is_correct === true ? (
+          <Crown className="size-3.5 shrink-0 text-amber-500" aria-label="Right" />
+        ) : null}
+        {stage === "answering" && seat.has_answered ? (
+          <Check className="text-success size-3.5 shrink-0" aria-label="Answered" />
+        ) : null}
+        {isDealer ? (
+          <span
+            className="bg-foreground text-background flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold"
+            title="Dealer"
+          >
+            D
           </span>
         ) : null}
+      </div>
+
+      <div className="mt-0.5 flex items-baseline gap-2">
+        <span className="font-mono text-xl font-semibold tabular-nums">
+          {seat.stack}
+        </span>
         {seat.won > 0 ? (
-          <span className="text-success text-xs">+{seat.won}</span>
+          <span className="text-success font-mono text-xs">+{seat.won}</span>
         ) : null}
-        {seat.stack}
-      </span>
+        <span className="text-muted-foreground ml-auto truncate text-[11px]">
+          {seat.sitting_out
+            ? "sitting out"
+            : seat.all_in
+              ? "all in"
+              : seat.folded
+                ? backing
+                  ? `behind ${backing}`
+                  : "folded"
+                : ""}
+        </span>
+      </div>
+
+      {/* Comparative, not absolute: the bar answers "who is ahead", which the
+          numbers alone make you work out. */}
+      <div className="bg-muted mt-1.5 h-1 overflow-hidden rounded-full">
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-500",
+            out ? "bg-muted-foreground/40" : "bg-primary",
+          )}
+          style={{ width: `${Math.min(100, (seat.stack / biggest) * 100)}%` }}
+        />
+      </div>
+
+      {seat.committed > 0 || seat.side_stake > 0 ? (
+        <div className="mt-1.5 flex justify-end">
+          <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 font-mono text-xs tabular-nums text-amber-700 dark:text-amber-300">
+            <Coins className="size-3" aria-hidden />
+            {seat.committed + seat.side_stake}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -314,7 +484,7 @@ function Seat({
  * The betting bar.
  *
  * Raise sizes are offered as buttons rather than a field. A field on a phone is
- * a keyboard over the board and a number to think of while a clock runs; the
+ * a keyboard over the table and a number to think of while a clock runs; the
  * two sizes anyone reaches for are the smallest legal one and the pot, so those
  * are the two that get a button.
  */
@@ -325,6 +495,7 @@ function Betting({
   nameOf,
   busy,
   onAct,
+  onBack,
 }: {
   poker: PokerView;
   me: PokerSeat | null;
@@ -332,15 +503,14 @@ function Betting({
   nameOf: (id: string) => string;
   busy: boolean;
   onAct: (action: PokerAction, amount?: number) => void;
+  onBack: (backedId: string) => void;
 }) {
-  if (!me || me.sitting_out || me.folded) {
-    return (
-      <Waiting>
-        {me?.folded
-          ? "You folded. Watching this one out."
-          : "Sitting this hand out."}
-      </Waiting>
-    );
+  if (!me || me.sitting_out) {
+    return <Waiting>Sitting this hand out.</Waiting>;
+  }
+
+  if (me.folded) {
+    return <Backing poker={poker} me={me} nameOf={nameOf} busy={busy} onBack={onBack} />;
   }
 
   if (poker.to_act !== playerId) {
@@ -353,52 +523,108 @@ function Betting({
 
   const owed = poker.current_bet - me.committed;
   const max = me.committed + me.stack;
-  const minRaise = poker.current_bet + poker.min_raise;
-  const potRaise = poker.current_bet + poker.pot;
-  const raises = [minRaise, potRaise].filter(
-    (size, index, all) => size < max && all.indexOf(size) === index,
-  );
+  const raises = [
+    poker.current_bet + poker.min_raise,
+    poker.current_bet + poker.pot,
+  ].filter((size, index, all) => size < max && all.indexOf(size) === index);
 
   return (
     <Card>
       <CardContent className="space-y-2">
-        {/* Said once, on the street where the board looks unfinished: the
-            question is up but nothing to answer it with is. */}
         {poker.stage === "river" ? (
           <p className="text-muted-foreground text-center text-xs">
             The answers come out once this betting round is done.
           </p>
         ) : null}
         <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button variant="outline" disabled={busy} onClick={() => onAct("fold")}>
-          Fold
-        </Button>
-        {owed > 0 ? (
-          <Button disabled={busy} onClick={() => onAct("call")}>
-            Call {Math.min(owed, me.stack)}
+          <Button variant="outline" disabled={busy} onClick={() => onAct("fold")}>
+            Fold
           </Button>
-        ) : (
-          <Button disabled={busy} onClick={() => onAct("check")}>
-            Check
+          {owed > 0 ? (
+            <Button disabled={busy} onClick={() => onAct("call")}>
+              Call {Math.min(owed, me.stack)}
+            </Button>
+          ) : (
+            <Button disabled={busy} onClick={() => onAct("check")}>
+              Check
+            </Button>
+          )}
+          {raises.map((size) => (
+            <Button
+              key={size}
+              variant="secondary"
+              disabled={busy}
+              onClick={() => onAct("raise", size)}
+            >
+              Raise to {size}
+            </Button>
+          ))}
+          <Button variant="secondary" disabled={busy} onClick={() => onAct("all_in")}>
+            All in {max}
           </Button>
-        )}
-        {raises.map((size) => (
-          <Button
-            key={size}
-            variant="secondary"
-            disabled={busy}
-            onClick={() => onAct("raise", size)}
-          >
-            Raise to {size}
-          </Button>
-        ))}
-        <Button
-          variant="secondary"
-          disabled={busy}
-          onClick={() => onAct("all_in")}
-        >
-          All in {max}
-        </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Out of the hand, but not out of the game.
+ *
+ * A folded player can put a big blind behind somebody still in it. It gives the
+ * players who folded early something to do besides watch, and it is a real read
+ * rather than a raffle: you fold before the question is up, so you are betting
+ * on who at this table knows their subjects.
+ */
+function Backing({
+  poker,
+  me,
+  nameOf,
+  busy,
+  onBack,
+}: {
+  poker: PokerView;
+  me: PokerSeat;
+  nameOf: (id: string) => string;
+  busy: boolean;
+  onBack: (backedId: string) => void;
+}) {
+  if (me.backing) {
+    return (
+      <Waiting>
+        You are behind {nameOf(me.backing)} for {me.side_stake}. A share of
+        whatever they take is yours.
+      </Waiting>
+    );
+  }
+
+  const candidates = poker.seats.filter((seat) => !seat.folded && !seat.sitting_out);
+  if (me.stack < poker.big_blind || candidates.length === 0) {
+    return <Waiting>You folded. Watching this one out.</Waiting>;
+  }
+
+  return (
+    <Card>
+      <CardContent className="space-y-2">
+        <p className="text-sm">
+          You folded. Put {poker.big_blind} behind someone still in it?
+        </p>
+        <p className="text-muted-foreground text-xs">
+          They answer right and your stake comes back with a share of what they
+          take. Wrong, and it joins the pot for whoever does take it.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {candidates.map((seat) => (
+            <Button
+              key={seat.player_id}
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => onBack(seat.player_id)}
+            >
+              Back {nameOf(seat.player_id)}
+            </Button>
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -410,18 +636,20 @@ function Betting({
  *
  * Two clicks rather than one: a hand's worth of chips is riding on the answer,
  * and a mis-tap on a twelve-button grid should cost nothing. The first click
- * picks, the second commits, and after that the choice is the server's — it
+ * picks, the second commits, and after that the choice is the server's -- it
  * comes back only when the hand pays out.
  */
 function Answering({
   poker,
   me,
+  secondsLeft,
   seconds,
   busy,
   onAnswer,
 }: {
   poker: PokerView;
   me: PokerSeat | null;
+  secondsLeft: number | null;
   /** What the clock started at, so the bar drains against the right total. */
   seconds: number;
   busy: boolean;
@@ -436,7 +664,8 @@ function Answering({
   if (!me || me.folded || me.sitting_out) {
     return (
       <Waiting>
-        Out of this one. {answered} of {answering} have answered.
+        {me?.backing ? "Riding on your pick. " : "Out of this one. "}
+        {answered} of {answering} have answered.
       </Waiting>
     );
   }
@@ -461,7 +690,7 @@ function Answering({
           </span>
         </div>
         <Progress
-          value={((poker.seconds_left ?? 0) / Math.max(seconds, 1)) * 100}
+          value={((secondsLeft ?? 0) / Math.max(seconds, 1)) * 100}
           className="h-1.5"
         />
         <div className="flex flex-wrap gap-2">
@@ -493,9 +722,11 @@ function Answering({
 function Payout({
   poker,
   nameOf,
+  secondsLeft,
 }: {
   poker: PokerView;
   nameOf: (id: string) => string;
+  secondsLeft: number | null;
 }) {
   const result = poker.result;
   if (!result) return null;
@@ -536,9 +767,8 @@ function Payout({
           </p>
         )}
 
-        <p className="text-muted-foreground flex items-center gap-2 text-xs">
-          <Circle className="size-3 animate-pulse" aria-hidden />
-          Next hand in {poker.seconds_left ?? 0}s
+        <p className="text-muted-foreground text-xs">
+          Next hand in {secondsLeft ?? 0}s
         </p>
       </CardContent>
     </Card>
@@ -546,7 +776,88 @@ function Payout({
 }
 
 function Waiting({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-muted-foreground py-2 text-center text-sm">{children}</p>
-  );
+  return <p className="text-muted-foreground py-2 text-center text-sm">{children}</p>;
+}
+
+/**
+ * The table, heard.
+ *
+ * One effect rather than a cue fired from each button, because most of what is
+ * worth hearing did not happen on this device: somebody else called, the reveal
+ * moved on, the answers went up. All of that arrives as a new view, so the
+ * sounds are differences between the last one and this one.
+ *
+ * Nothing plays on the first view, and nothing plays across a change of hand. A
+ * player who reloads mid-hand would otherwise be dealt every sound of the hand
+ * so far at once.
+ */
+function usePokerSounds(
+  poker: PokerView,
+  me: PokerSeat | null,
+  secondsLeft: number | null,
+) {
+  const before = useRef<{
+    hand: number;
+    stage: PokerView["stage"];
+    chips: number;
+    folded: number;
+    allIn: number;
+    onTheClock: boolean;
+  } | null>(null);
+
+  /* Holding a seat is not the same as being in the hand: a folded player must
+     not be told it is their turn to answer. */
+  const answering = Boolean(me && !me.folded && !me.sitting_out);
+
+  useEffect(() => {
+    const now = {
+      hand: poker.hand_index,
+      stage: poker.stage,
+      /* Side stakes count as chips moving too -- backing someone is the one bet
+         in this game that never touches `committed`. */
+      chips: poker.seats.reduce(
+        (total, seat) => total + seat.committed + seat.side_stake,
+        0,
+      ),
+      folded: poker.seats.filter((seat) => seat.folded).length,
+      allIn: poker.seats.filter((seat) => seat.all_in).length,
+      onTheClock: poker.to_act === me?.player_id,
+    };
+    const was = before.current;
+    before.current = now;
+    if (!was || now.hand !== was.hand) return;
+
+    if (now.allIn > was.allIn) play("allIn");
+    else if (now.chips > was.chips) play("chip");
+    if (now.folded > was.folded) play("fold");
+
+    if (now.onTheClock && !was.onTheClock) play("yourTurn");
+    if (now.stage === "answering" && was.stage !== "answering" && answering) {
+      play("yourTurn");
+    }
+
+    if (now.stage === "payout" && was.stage !== "payout") {
+      if (me && me.won > 0) play("potWon");
+      else if (me?.is_correct === false) play("wrong");
+      else if (me?.is_correct) play("correct");
+    }
+  }, [poker, me, answering]);
+
+  /**
+   * The closing seconds, in the same escalating cue the classic clock uses.
+   *
+   * Only where the seconds are yours to spend: your own turn to act, an
+   * answering you are part of, and the count-in to the next hand, which is the
+   * one moment the whole table is counted in together.
+   */
+  const yours =
+    (poker.stage === "answering" && answering) ||
+    poker.stage === "payout" ||
+    poker.to_act === me?.player_id;
+
+  useEffect(() => {
+    if (!yours || secondsLeft === null) return;
+    if (secondsLeft <= 0 || secondsLeft > HURRY_FROM) return;
+    playCountdown(secondsLeft);
+  }, [secondsLeft, yours]);
 }

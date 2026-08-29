@@ -47,7 +47,6 @@ from app.schemas import (
     LobbyView,
     PlayerPublic,
     PokerAction,
-    PokerHand,
     ResolvedFake,
     ResolvedPair,
     RoundView,
@@ -444,17 +443,17 @@ def poker_answer(code: str, player_id: UUID, item_id: UUID) -> LobbyView:
         return _view(lobby)
 
 
-def poker_hand(code: str, player_id: UUID) -> PokerHand:
-    """The asking player's own two cards, and nobody else's.
-
-    Its own request because `LobbyView` is public -- it is broadcast to every
-    client watching the lobby, so a per-player secret cannot travel on it.
-    """
+def poker_back(code: str, player_id: UUID, backed_id: UUID) -> LobbyView:
+    """Put chips behind another player, having folded your own hand."""
     with _mutate(code) as lobby:
         lobby.player(player_id)
         _heartbeat(lobby, player_id)
+        _refresh_presence(lobby)
         _require_poker(lobby)
-        return poker.hand_of(lobby, player_id)
+
+        poker.back(lobby, player_id, backed_id)
+        lobby.touch()
+        return _view(lobby)
 
 
 def _is_poker(lobby: Lobby) -> bool:

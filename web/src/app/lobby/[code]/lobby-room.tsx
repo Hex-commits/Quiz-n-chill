@@ -40,7 +40,7 @@ import {
   leaveLobby,
   pokerAct,
   pokerAnswer,
-  pokerHand,
+  pokerBack,
   markAway,
   readyForNextRound,
   restartLobby,
@@ -135,22 +135,21 @@ export function LobbyRoom({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  /**
+   * What the setup starts on: everything ticked.
+   *
+   * A host who wants the whole pool -- which is most of them, and is the game
+   * as written -- has nothing to do but start. Narrowing it is the deliberate
+   * act, and unticking what you do not want is a shorter job than finding what
+   * you do among a dozen subjects.
+   */
   const [localSetup, setLocalSetup] = useState<LobbySettings>({
     mode: "classic",
-    subject_slugs: subjects.slice(0, 3).map((subject) => subject.slug),
+    subject_slugs: subjects.map((subject) => subject.slug),
     difficulties: ["easy", "medium", "hard"],
     round_count: 5,
     turn_seconds: 30,
   });
-
-  /**
-   * The player's own two cards.
-   *
-   * Fetched rather than read off the lobby view, because that view is public --
-   * it goes out to every client watching the lobby. Cards do not move during a
-   * hand, so one request per hand is the whole protocol.
-   */
-  const [hole, setHole] = useState<string[]>([]);
 
   const versionRef = useRef(-1);
 
@@ -174,6 +173,7 @@ export function LobbyRoom({
    * two an arriving view was talking about on every poll.
    */
   const [nextRoundDeadline, setNextRoundDeadline] = useState<number | null>(null);
+  const [pokerDeadline, setPokerDeadline] = useState<number | null>(null);
 
   const [copiedAt, setCopiedAt] = useState<number | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -205,6 +205,9 @@ export function LobbyRoom({
       );
       setNextRoundDeadline((current) =>
         reconcileDeadline(current, deadlineFrom(view.next_round_in)),
+      );
+      setPokerDeadline((current) =>
+        reconcileDeadline(current, deadlineFrom(view.poker?.seconds_left ?? null)),
       );
 
       const hosting = Boolean(
@@ -249,31 +252,17 @@ export function LobbyRoom({
     };
   }, [code, refresh, apply]);
 
-  /**
-   * Pick up this hand's cards, once per hand.
-   *
-   * Keyed on the hand rather than the poll: they are dealt once and do not
-   * change, so re-fetching on every view would be a request per second for two
-   * strings that cannot have moved.
-   */
-  const dealtHand = lobby?.poker?.hand_index ?? null;
-  useEffect(() => {
-    if (!playerId || dealtHand === null) return;
-
-    let live = true;
-    pokerHand(code, playerId).then(
-      (hand) => live && setHole(hand.cards),
-      () => {},
-    );
-    return () => {
-      live = false;
-    };
-  }, [code, playerId, dealtHand]);
-
   const poke = useCallback(() => void refresh(), [refresh]);
 
   const turnSecondsLeft = useCountdown(turnDeadline, poke);
   const nextRoundIn = useCountdown(nextRoundDeadline, poke);
+  /**
+   * The poker table's clock, whichever one it is running -- betting, answering
+   * or the wait for the next hand. Ticked here rather than read off the view so
+   * the number moves between polls, and so `onExpire` knocks: the server acts
+   * on a deadline only when a request finds it passed.
+   */
+  const pokerSecondsLeft = useCountdown(pokerDeadline, poke);
 
   useEffect(() => {
     if (!playerId) return;
@@ -757,12 +746,13 @@ export function LobbyRoom({
           lobby={lobby}
           poker={lobby.poker}
           playerId={playerId}
-          cards={hole}
+          secondsLeft={pokerSecondsLeft}
           busy={busy}
           onAct={(action, amount) =>
             act(() => pokerAct(code, playerId, action, amount))
           }
           onAnswer={(itemId) => act(() => pokerAnswer(code, playerId, itemId))}
+          onBack={(backedId) => act(() => pokerBack(code, playerId, backedId))}
         />
       </div>
     );

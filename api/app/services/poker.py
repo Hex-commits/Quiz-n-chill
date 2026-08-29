@@ -1,21 +1,23 @@
-"""Texas Hold'em played for a question instead of a hand.
+"""Poker's betting, played for a question instead of a hand.
 
-The cards are dealt and bet on exactly as poker's are. What they are worth is
-the difference: nobody's two cards are ever compared to anyone else's. Each
-community card turned over says a little more about the question the hand is
-being played for --
+There are no cards. What the blinds, the four betting rounds and the showdown
+are built around here is a question that arrives a piece at a time --
 
-    flop    the subject          "Geografie"
-    turn    the topic            "Flüsse in Europa"
-    river   the question itself  "Rhein"
+    pre-reveal  nothing yet
+    first       the subject          "Geografie"
+    second      the topic            "Flüsse in Europa"
+    third       the question itself  "Rhein"
 
--- so the first three bets are made on a question you can only partly see, and
-the last one after you can read it. The answers to choose between are not part
-of that: they come out when the betting is over, so the last bet is made on
-whether you know the answer rather than on whether you recognise it in a list.
-Everyone still in then answers at once, and whoever is right takes the pot;
-several right answers split it. A pot nobody wins is not returned. It stays on
-the table and the next hand plays for it too.
+-- so the first bets are made on a question you cannot see, and the last one
+after you can read it. The answers to choose between are not part of that: they
+come out when the betting is over, so the last bet is made on whether you know
+the answer rather than on whether you recognise it in a list. Everyone still in
+then answers at once, and whoever is right takes the pot; several right answers
+split it. A pot nobody wins is not returned. It stays on the table and the next
+hand plays for it too.
+
+The stages keep poker's names -- flop, turn, river -- because that is what they
+are: the betting rounds between one reveal and the next.
 
 This module is rules only. It never touches the store, publishes nothing, and
 every function here takes the `Lobby` it works on -- `lobbies` owns the
@@ -40,7 +42,6 @@ from app.schemas import (
     LobbyStatus,
     PokerAction,
     PokerAward,
-    PokerHand,
     PokerResult,
     PokerSeatView,
     PokerStage,
@@ -61,13 +62,16 @@ players who never risk anything must not be the ones who win."""
 PAYOUT_SECONDS = 12
 """How long the answer key stays up before the next hand is dealt."""
 
-RANKS = "23456789TJQKA"
+SIDE_BET_SHARE = 10
+"""A backer takes a tenth of what the player they backed took home.
 
-SUITS = "shdc"
+Split between them where several backed the same player, so the player who
+actually answered always keeps nine tenths of their pot however many people
+were behind them. A cut of the winnings rather than a fixed prize, because a
+side bet on a hand that got big should be worth more than one on a hand that
+did not."""
 
 BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn, PokerStage.river)
-
-DEALT = {PokerStage.flop: 3, PokerStage.turn: 1, PokerStage.river: 1}
 
 ORDER = (*BETTING, PokerStage.answering, PokerStage.payout)
 
@@ -140,6 +144,40 @@ def answer(lobby: Lobby, player_id: UUID, item_id: UUID) -> None:
         _resolve(lobby)
 
 
+def back(lobby: Lobby, player_id: UUID, backed_id: UUID) -> None:
+    """Fold, then put a big blind behind somebody still in it.
+
+    Only open to a player who has folded, and only while the betting runs: once
+    the answers are up there is nothing left to bet on that the table cannot
+    already see.
+
+    The stake leaves the stack now and is settled when the hand is. Right, and
+    it comes back with a share of what the backed player took; wrong, and it
+    joins the pot for whoever does take it.
+    """
+    table = _table(lobby)
+    if table.stage not in BETTING:
+        raise ConflictError("There is nothing left to back this hand.")
+
+    seat = table.seat(player_id)
+    if seat is None or not seat.folded:
+        raise ConflictError("Only a player who has folded can back someone.")
+    if seat.backing is not None:
+        raise ConflictError("You are already behind someone this hand.")
+
+    backed = table.seat(backed_id)
+    if backed is None or not backed.in_hand():
+        raise ConflictError("They are not in this hand.")
+    if seat.stack < table.big_blind:
+        raise ValidationError(f"Backing someone costs {table.big_blind}.")
+
+    seat.stack -= table.big_blind
+    seat.side_stake = table.big_blind
+    seat.backing = backed_id
+    _sync_players(lobby)
+    lobby.touch()
+
+
 def resync(lobby: Lobby) -> None:
     """Move the hand on for whatever the clock has decided.
 
@@ -174,22 +212,15 @@ def resync(lobby: Lobby) -> None:
         _next_hand(lobby)
 
 
-def hand_of(lobby: Lobby, player_id: UUID) -> PokerHand:
-    """One player's own two cards. The only per-player payload in the game."""
-    table = lobby.poker
-    seat = table.seat(player_id) if table else None
-    return PokerHand(
-        hand_index=lobby.round_index,
-        cards=list(seat.hole) if seat else [],
-    )
-
-
 def view(lobby: Lobby) -> PokerView | None:
-    """The table, redacted to what the cards on it have already said.
+    """The table, redacted to what the reveal has already said.
 
     The one place that decides what a player may see. Anything the deal has not
     reached yet is left out of the payload entirely rather than blanked, so
     there is nothing in it to read ahead of.
+
+    Nothing on this table is private, which is what went with the cards: every
+    player sees the same view, and the broadcast carries all of it.
     """
     table = lobby.poker
     if table is None:
@@ -203,7 +234,6 @@ def view(lobby: Lobby) -> PokerView | None:
         stage=table.stage,
         hand_index=lobby.round_index,
         hand_count=len(lobby.rounds),
-        board=list(table.board),
         pot=table.pot + sum(s.committed for s in table.seats) + table.carried,
         carried=table.carried,
         current_bet=table.current_bet,
@@ -220,11 +250,12 @@ def view(lobby: Lobby) -> PokerView | None:
                 folded=seat.folded,
                 all_in=seat.all_in,
                 sitting_out=seat.sitting_out,
-                has_cards=bool(seat.hole),
                 has_answered=seat.answer_item_id is not None,
                 answer_item_id=seat.answer_item_id if over else None,
                 is_correct=seat.correct if over else None,
                 won=seat.won if over else 0,
+                backing=seat.backing,
+                side_stake=seat.side_stake,
             )
             for seat in table.seats
         ],
@@ -247,19 +278,19 @@ def _start_hand(lobby: Lobby) -> None:
     Held rather than ended: a game of two whose second player is reloading has
     nothing wrong with it, and `resync` deals as soon as they are back. The
     table is cleared either way, so a held table shows an empty one rather than
-    the last hand left lying there.
+    the last hand left lying on it.
     """
     table = _table(lobby)
     for seat in table.seats:
-        seat.hole = []
         seat.committed = seat.contributed = 0
         seat.folded = seat.all_in = seat.acted = False
         seat.answer_item_id = None
         seat.correct = None
         seat.won = 0
+        seat.backing = None
+        seat.side_stake = 0
         seat.sitting_out = not _dealt_in(lobby, seat)
 
-    table.board = []
     table.pot = 0
     table.current_bet = 0
     table.min_raise = BIG_BLIND
@@ -278,13 +309,9 @@ def _start_hand(lobby: Lobby) -> None:
     lobby.current_round = round_
     options = [item.id for item in round_.items]
     random.shuffle(options)
+
     table.question_category_id = _pick_question(round_)
     table.option_ids = options
-    table.deck = _deck()
-
-    for seat in table.seats:
-        if not seat.sitting_out:
-            seat.hole = [table.deck.pop(), table.deck.pop()]
 
     table.button = _next_seat(table, table.button)
     _post_blinds(table)
@@ -300,7 +327,7 @@ def _post_blinds(table: PokerTable) -> None:
     """Put the blinds up and decide who is first to speak.
 
     Heads-up runs on poker's own exception: the button posts the small blind and
-    acts first before the flop, and last on every street after it.
+    acts first on the opening round, and last on every one after it.
     """
     live = [i for i, seat in enumerate(table.seats) if seat.in_hand()]
     if len(live) < 2:
@@ -319,12 +346,6 @@ def _post_blinds(table: PokerTable) -> None:
     _commit(table.seats[big], BIG_BLIND)
     table.current_bet = BIG_BLIND
     table.to_act = first if table.seats[first].can_act() else _next_actor(table, first)
-
-
-def _deck() -> list[str]:
-    cards = [rank + suit for rank in RANKS for suit in SUITS]
-    random.shuffle(cards)
-    return cards
 
 
 def _pick_question(round_: Round) -> UUID | None:
@@ -401,8 +422,8 @@ def _after_act(lobby: Lobby) -> None:
 def _betting_done(table: PokerTable) -> bool:
     """Has everyone who can still bet acted, and matched the bet?
 
-    True with nobody left to act, which is how a table that is all in gets its
-    remaining cards without being asked to bet on them.
+    True with nobody left to act, which is how a table that is all in gets the
+    rest of the question without being asked to bet on it.
     """
     return all(
         seat.acted and seat.committed == table.current_bet
@@ -412,7 +433,7 @@ def _betting_done(table: PokerTable) -> bool:
 
 
 def _next_stage(lobby: Lobby) -> None:
-    """Gather the street's chips and turn the next card over."""
+    """Gather the street's chips and let the question say one thing more."""
     table = _table(lobby)
     _collect(table)
     table.stage = ORDER[ORDER.index(table.stage) + 1]
@@ -424,9 +445,6 @@ def _next_stage(lobby: Lobby) -> None:
         _sync_players(lobby)
         lobby.touch()
         return
-
-    for _ in range(DEALT[table.stage]):
-        table.board.append(table.deck.pop())
 
     if sum(1 for seat in table.seats if seat.can_act()) < 2:
         _next_stage(lobby)
@@ -510,13 +528,16 @@ def _resolve(lobby: Lobby) -> None:
         if seat.in_hand():
             seat.correct = seat.answer_item_id in correct
 
+    right = {seat.player_id for seat in table.seats if seat.correct}
+
     _collect(table)
     carried, table.carried = table.carried, 0
+    dead = _lost_stakes(table, right)
     pots = _pots(table)
     if pots:
-        pots[0] = (pots[0][0] + carried, pots[0][1])
+        pots[0] = (pots[0][0] + carried + dead, pots[0][1])
     else:
-        table.carried = carried
+        table.carried = carried + dead
 
     awards: dict[UUID, int] = {}
     for amount, eligible in pots:
@@ -527,27 +548,29 @@ def _resolve(lobby: Lobby) -> None:
         for seat, won in _split(table, amount, winners).items():
             awards[seat] = awards.get(seat, 0) + won
 
-    for seat in table.seats:
-        seat.won = awards.get(seat.player_id, 0)
-        seat.stack += seat.won
-
-    table.pot = 0
+    _pay_backers(table, awards, right)
+    _credit(table, awards)
     _finish_hand(lobby, correct_ids=correct, awards=awards, uncontested=False)
 
 
 def _uncontested(lobby: Lobby, winner: PokerSeat | None) -> None:
-    """Everyone else folded. The pot goes without a question being asked."""
+    """Everyone else folded. The pot goes without a question being asked.
+
+    The side bets are still settled: whoever backed the last player standing
+    backed the player who took the pot, however it was taken.
+    """
     table = _table(lobby)
     _collect(table)
-    total = table.pot + table.carried
+    right = {winner.player_id} if winner is not None else set()
+    total = table.pot + table.carried + _lost_stakes(table, right)
     table.pot = 0
     table.carried = 0
 
     awards: dict[UUID, int] = {}
     if winner is not None:
-        winner.stack += total
-        winner.won = total
         awards[winner.player_id] = total
+        _pay_backers(table, awards, right)
+        _credit(table, awards)
     else:
         table.carried = total
 
@@ -585,6 +608,48 @@ def _finish_hand(
     )
     _sync_players(lobby)
     lobby.touch()
+
+
+def _lost_stakes(table: PokerTable, right: set[UUID]) -> int:
+    """The side bets that backed the wrong player. Their chips join the pot."""
+    return sum(
+        seat.side_stake
+        for seat in table.seats
+        if seat.backing is not None and seat.backing not in right
+    )
+
+
+def _pay_backers(table: PokerTable, awards: dict[UUID, int], right: set[UUID]) -> None:
+    """Hand the winning backers their stake back and their cut of the winnings.
+
+    Taken out of the award rather than added beside it, so backing someone can
+    never make a pot bigger than the chips that were put in it -- the player who
+    answered simply takes home nine tenths of it instead of all of it.
+    """
+    behind: dict[UUID, list[PokerSeat]] = {}
+    for seat in table.seats:
+        if seat.backing is None or seat.backing not in right:
+            continue
+        seat.stack += seat.side_stake
+        behind.setdefault(seat.backing, []).append(seat)
+
+    for backed, backers in behind.items():
+        cut = awards.get(backed, 0) // SIDE_BET_SHARE
+        if cut <= 0:
+            continue
+        awards[backed] -= cut
+        share, odd = divmod(cut, len(backers))
+        for index, seat in enumerate(backers):
+            paid = share + (1 if index < odd else 0)
+            awards[seat.player_id] = awards.get(seat.player_id, 0) + paid
+
+
+def _credit(table: PokerTable, awards: dict[UUID, int]) -> None:
+    """Move the settled awards onto the stacks they were won by."""
+    for seat in table.seats:
+        seat.won = awards.get(seat.player_id, 0)
+        seat.stack += seat.won
+    table.pot = 0
 
 
 def _pots(table: PokerTable) -> list[tuple[int, list[PokerSeat]]]:

@@ -21,8 +21,16 @@ from uuid import uuid4
 import pytest
 
 from app.errors import NotFoundError
-from app.schemas import Category, ItemSolution, LobbyStatus, Source
-from app.services.lobby_state import Lobby, Player, Round
+from app.schemas import (
+    Category,
+    ItemSolution,
+    LobbyStatus,
+    PokerAward,
+    PokerResult,
+    PokerStage,
+    Source,
+)
+from app.services.lobby_state import Lobby, Player, PokerSeat, PokerTable, Round
 from app.services.lobby_store import MemoryStore, SupabaseStore
 
 
@@ -80,6 +88,54 @@ def a_lobby(code: str = "TR3X") -> Lobby:
             )
         ],
     )
+
+
+def test_a_poker_table_survives_a_round_trip(store):
+    """The table is state like any other, and production keeps it as jsonb.
+
+    Worth its own test because a poker table is the most heavily typed thing
+    the lobby holds -- enums, uuids, a deadline, and a result model nested in a
+    dataclass. A memory store round-trips all of that by doing nothing at all,
+    so only this can say whether the serialised one agrees.
+    """
+    lobby = a_lobby()
+    player = lobby.players[0].id
+    deadline = datetime.now(UTC) + timedelta(seconds=30)
+    lobby.poker = PokerTable(
+        stage=PokerStage.answering,
+        seats=[
+            PokerSeat(
+                player_id=player,
+                stack=180,
+                contributed=20,
+                backing=player,
+                side_stake=10,
+                answer_item_id=lobby.rounds[0].items[0].id,
+            )
+        ],
+        pot=40,
+        carried=15,
+        big_blind=10,
+        question_category_id=lobby.rounds[0].categories[0].id,
+        option_ids=[lobby.rounds[0].items[0].id],
+        answers_by=deadline,
+        result=PokerResult(
+            correct_labels=["Berlin"],
+            awards=[PokerAward(player_id=player, amount=40)],
+            carried=15,
+        ),
+    )
+    store.create(lobby)
+
+    with store.mutate("TR3X") as loaded:
+        table = loaded.poker
+        assert table.stage is PokerStage.answering
+        assert table.seats[0].answer_item_id == lobby.rounds[0].items[0].id
+        assert table.seats[0].side_stake == 10
+        assert (table.pot, table.carried) == (40, 15)
+        assert table.question_category_id == lobby.rounds[0].categories[0].id
+        assert table.answers_by == deadline
+        assert table.result.awards[0].amount == 40
 
 
 def test_a_lobby_survives_a_round_trip(store):
