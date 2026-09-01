@@ -457,7 +457,7 @@ def poker_act(
         return _view(lobby)
 
 
-def poker_answer(code: str, player_id: UUID, item_id: UUID) -> LobbyView:
+def poker_answer(code: str, player_id: UUID, category_id: UUID) -> LobbyView:
     """Name the answer the hand is being played for. Everyone answers at once."""
     with _mutate(code) as lobby:
         lobby.player(player_id)
@@ -465,7 +465,7 @@ def poker_answer(code: str, player_id: UUID, item_id: UUID) -> LobbyView:
         _refresh_presence(lobby)
         _require_poker(lobby)
 
-        poker.answer(lobby, player_id, item_id)
+        poker.answer(lobby, player_id, category_id)
         lobby.touch()
         return _view(lobby)
 

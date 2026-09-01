@@ -238,15 +238,15 @@ export function pokerAct(
   });
 }
 
-/** Name the answer the hand is being played for. Everyone answers at once. */
+/** Say where the answer belongs. Everyone answers at once. */
 export function pokerAnswer(
   code: string,
   playerId: string,
-  itemId: string,
+  categoryId: string,
 ): Promise<LobbyView> {
   return request<LobbyView>(`/lobbies/${encodeURIComponent(code)}/poker/answer`, {
     method: "POST",
-    body: JSON.stringify({ player_id: playerId, item_id: itemId }),
+    body: JSON.stringify({ player_id: playerId, category_id: categoryId }),
   });
 }
 

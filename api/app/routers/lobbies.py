@@ -100,7 +100,7 @@ def poker_answer(code: str, payload: PokerAnswer) -> LobbyView:
     Everyone still in answers at once, so nothing about who chose what leaves
     the server until the hand pays out.
     """
-    return service.poker_answer(code, payload.player_id, payload.item_id)
+    return service.poker_answer(code, payload.player_id, payload.category_id)
 
 
 @router.post("/{code}/poker/back", response_model=LobbyView)

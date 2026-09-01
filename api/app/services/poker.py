@@ -11,10 +11,19 @@ are built around here is a question that arrives a piece at a time --
 strictly more than the one before it and the last is bet on a question you can
 read. The answers to choose between are not part of that: they come out when
 the betting is over, so the last bet is made on whether you know the answer
-rather than on whether you recognise it in a list. Everyone still in then
-answers at once, and whoever is right takes the pot; several right answers
-split it. A pot nobody wins is not returned. It stays on the table and the next
-hand plays for it too.
+rather than on whether you recognise it in a list.
+
+What is asked is one answer off the board -- "Rhein" -- and what is chosen
+between is the categories it might belong in. That is the short way round: a
+board is ten categories and twelve answers, so asking this way puts one word up
+and ten under it rather than one word up and twelve under it, and the twelve are
+the longer half. It is also the way Classic reads a board, which is one fewer
+thing to learn. A fake answer belongs in no category, so it is never asked and
+never offered.
+
+Everyone still in then answers at once, and whoever is right takes the pot;
+several right answers split it. A pot nobody wins is not returned. It stays on
+the table and the next hand plays for it too.
 
 The stages keep poker's names -- preflop, flop, turn -- because that is what
 they are: the betting rounds. There is no river, because there is nothing left
@@ -38,8 +47,10 @@ from uuid import UUID
 
 from app.errors import ConflictError, ValidationError
 from app.schemas import (
+    Category,
     CategoryKind,
     ItemPublic,
+    ItemSolution,
     LobbyStatus,
     PokerAction,
     PokerAward,
@@ -75,13 +86,36 @@ PAYOUT_SECONDS = 12
 """How long the answer key stays up before the next hand is dealt."""
 
 SIDE_BET_SHARE = 10
-"""A backer takes a tenth of what the player they backed took home.
+"""A tenth of every pot goes to whoever backed the player who took it.
 
-Split between them where several backed the same player, so the player who
-actually answered always keeps nine tenths of their pot however many people
-were behind them. A cut of the winnings rather than a fixed prize, because a
-side bet on a hand that got big should be worth more than one on a hand that
-did not."""
+Taken off the top of the pot rather than out of an award, so the side betting
+runs beside the hand instead of inside it: the pot pays for it, and nobody's
+winnings shrink because somebody put money on them. Split between everybody who
+backed one of that pot's winners, so the fewer people who saw it coming the more
+it is worth. A cut of the pot rather than a fixed prize, because a side bet on a
+hand that got big should be worth more than one on a hand that did not."""
+
+STREAK_TENTHS = 3
+"""How many tenths of a pot a run is worth, at the most.
+
+A side bet that comes in pays the tenth it always paid. The second in a row pays
+two, and the third and every one after it pays three -- so the reward for
+reading the table is that reading it again is worth more. One miss puts you back
+to a tenth, which is what makes a long run worth protecting and a big call worth
+thinking about.
+
+Capped at three because the pot still has to be worth winning. Three tenths is
+the most the rail can take out of a hand it folded out of, however long anybody
+has been running and however many of them are behind the same player."""
+
+SPLIT_PARTS, BACKED_PARTS = 10, 11
+"""How a pot several players won is shared: eleven parts to a winner with money
+on them, ten to a winner without.
+
+Backing is public, so a backed player is already the one the table is watching.
+The edge gives them a reason to want that. It is deliberately small -- a
+twentieth of a two-way pot -- because it is there to make being backed something
+to play up to, not to decide the hand before it is answered."""
 
 BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn)
 
@@ -136,8 +170,8 @@ def act(
     _after_act(lobby)
 
 
-def answer(lobby: Lobby, player_id: UUID, item_id: UUID) -> None:
-    """Name the answer. Locked in once given, and hidden until the hand pays out."""
+def answer(lobby: Lobby, player_id: UUID, category_id: UUID) -> None:
+    """Say where the answer belongs. Locked in, and hidden until the payout."""
     table = _table(lobby)
     if table.stage is not PokerStage.answering:
         raise ConflictError("There is no question to answer right now.")
@@ -145,14 +179,14 @@ def answer(lobby: Lobby, player_id: UUID, item_id: UUID) -> None:
     seat = table.seat(player_id)
     if seat is None or not seat.in_hand():
         raise ConflictError("You are not in this hand.")
-    if seat.answer_item_id is not None:
+    if seat.answer_category_id is not None:
         raise ConflictError("You have already answered.")
-    if item_id not in table.option_ids:
+    if category_id not in table.option_ids:
         raise ValidationError("That answer is not on the table.")
 
-    seat.answer_item_id = item_id
+    seat.answer_category_id = category_id
     lobby.touch()
-    if all(s.answer_item_id is not None for s in table.seats if s.in_hand()):
+    if all(s.answer_category_id is not None for s in table.seats if s.in_hand()):
         _resolve(lobby)
 
 
@@ -164,8 +198,8 @@ def back(lobby: Lobby, player_id: UUID, backed_id: UUID) -> None:
     already see.
 
     The stake leaves the stack now and is settled when the hand is. Right, and
-    it comes back with a share of what the backed player took; wrong, and it
-    joins the pot for whoever does take it.
+    it comes back with a share of the pot they took; wrong, and it joins the pot
+    for whoever does take it.
     """
     table = _table(lobby)
     if table.stage not in BETTING:
@@ -263,19 +297,20 @@ def view(lobby: Lobby) -> PokerView | None:
                 folded=seat.folded,
                 all_in=seat.all_in,
                 sitting_out=seat.sitting_out,
-                has_answered=seat.answer_item_id is not None,
-                answer_item_id=seat.answer_item_id if over else None,
+                has_answered=seat.answer_category_id is not None,
+                answer_category_id=seat.answer_category_id if over else None,
                 is_correct=seat.correct if over else None,
                 won=seat.won if over else 0,
                 backing=seat.backing,
                 side_stake=seat.side_stake,
+                side_streak=seat.side_streak,
             )
             for seat in table.seats
         ],
         subject_name=round_.subject_name if round_ else None,
         title=round_.title if round_ and seen >= 1 else None,
-        question=_question(table, round_, revealed=over) if seen >= 2 else None,
-        options=_options(table, round_) if seen >= 3 else [],
+        question=_question(table, round_) if seen >= 2 else None,
+        options=_options(table, round_, revealed=over) if seen >= 3 else [],
         result=table.result,
     )
 
@@ -297,11 +332,13 @@ def _start_hand(lobby: Lobby) -> None:
     for seat in table.seats:
         seat.committed = seat.contributed = 0
         seat.folded = seat.all_in = seat.acted = False
-        seat.answer_item_id = None
+        seat.answer_category_id = None
         seat.correct = None
         seat.won = 0
         seat.backing = None
         seat.side_stake = 0
+        # `side_streak` is not cleared here. It is the one thing a seat carries
+        # between hands, and clearing it would be a run of exactly one.
         seat.sitting_out = not _dealt_in(lobby, seat)
 
     table.pot = 0
@@ -323,10 +360,10 @@ def _start_hand(lobby: Lobby) -> None:
     # asks about a different category off it rather than repeating the hand.
     round_ = deal_board(lobby.rounds[lobby.round_index % len(lobby.rounds)])
     lobby.current_round = round_
-    options = [item.id for item in round_.items]
+    options = [category.id for category in round_.categories]
     random.shuffle(options)
 
-    table.question_category_id = _pick_question(round_)
+    table.question_item_id = _pick_question(round_)
     table.option_ids = options
 
     table.button = _next_seat(table, table.button)
@@ -365,13 +402,15 @@ def _post_blinds(table: PokerTable) -> None:
 
 
 def _pick_question(round_: Round) -> UUID | None:
-    """One category off the board, and only one that something answers.
+    """One answer off the board, and only one a category on it takes.
 
-    A board is trimmed before it is dealt, and a category whose answers were all
-    trimmed away would be a question with no right answer.
+    A board is trimmed before it is dealt, so an answer whose category was
+    trimmed away would be a question with no right answer on the table. A fake
+    is ruled out by the same test and for the same reason: it belongs nowhere,
+    and there would be nothing to pick.
     """
-    answered = {item.category_id for item in round_.items if item.category_id}
-    askable = [c.id for c in round_.categories if c.id in answered]
+    on_board = {category.id for category in round_.categories}
+    askable = [item.id for item in round_.items if item.category_id in on_board]
     return random.choice(askable) if askable else None
 
 
@@ -534,15 +573,11 @@ def _resolve(lobby: Lobby) -> None:
     """Grade the answers and push the pot to whoever got it right."""
     table = _table(lobby)
     round_ = lobby.current_round
-    correct = (
-        {item.id for item in round_.items if item.category_id == table.question_category_id}
-        if round_
-        else set()
-    )
+    correct = _answer_key(table, round_)
 
     for seat in table.seats:
         if seat.in_hand():
-            seat.correct = seat.answer_item_id in correct
+            seat.correct = seat.answer_category_id in correct
 
     right = {seat.player_id for seat in table.seats if seat.correct}
 
@@ -561,10 +596,11 @@ def _resolve(lobby: Lobby) -> None:
         if not winners:
             table.carried += amount
             continue
+        amount -= _pay_backers(table, amount, winners, awards)
         for seat, won in _split(table, amount, winners).items():
             awards[seat] = awards.get(seat, 0) + won
 
-    _pay_backers(table, awards, right)
+    _settle_stakes(table, right)
     _credit(table, awards)
     _finish_hand(lobby, correct_ids=correct, awards=awards, uncontested=False)
 
@@ -583,20 +619,19 @@ def _uncontested(lobby: Lobby, winner: PokerSeat | None) -> None:
     table.carried = 0
 
     awards: dict[UUID, int] = {}
-    if winner is not None:
-        awards[winner.player_id] = total
-        _pay_backers(table, awards, right)
-        _credit(table, awards)
-    else:
+    if winner is None:
         table.carried = total
+    else:
+        awards[winner.player_id] = total - _pay_backers(table, total, [winner], awards)
+    _settle_stakes(table, right)
+    _credit(table, awards)
 
-    round_ = lobby.current_round
-    correct = (
-        {item.id for item in round_.items if item.category_id == table.question_category_id}
-        if round_
-        else set()
+    _finish_hand(
+        lobby,
+        correct_ids=_answer_key(table, lobby.current_round),
+        awards=awards,
+        uncontested=True,
     )
-    _finish_hand(lobby, correct_ids=correct, awards=awards, uncontested=True)
 
 
 def _finish_hand(
@@ -604,17 +639,18 @@ def _finish_hand(
 ) -> None:
     table = _table(lobby)
     round_ = lobby.current_round
-    answers = [item for item in (round_.items if round_ else []) if item.id in correct_ids]
+    answers = [c for c in (round_.categories if round_ else []) if c.id in correct_ids]
 
     table.stage = PokerStage.payout
     table.to_act = None
     table.acts_by = None
     table.answers_by = None
     table.next_hand_at = datetime.now(UTC) + timedelta(seconds=PAYOUT_SECONDS)
+    asked = _asked(table, round_)
     table.result = PokerResult(
-        correct_item_ids=[item.id for item in answers],
-        correct_labels=[item.label for item in answers],
-        explanation=next((i.explanation for i in answers if i.explanation), None),
+        correct_category_ids=[c.id for c in answers],
+        correct_labels=[c.label for c in answers if c.label],
+        explanation=asked.explanation if asked else None,
         awards=[
             PokerAward(player_id=player_id, amount=amount)
             for player_id, amount in awards.items()
@@ -626,6 +662,24 @@ def _finish_hand(
     lobby.touch()
 
 
+def _asked(table: PokerTable, round_: Round | None) -> ItemSolution | None:
+    """The answer this hand is being played for, key and all."""
+    if round_ is None:
+        return None
+    return next((i for i in round_.items if i.id == table.question_item_id), None)
+
+
+def _answer_key(table: PokerTable, round_: Round | None) -> set[UUID]:
+    """The one category the asked answer belongs in.
+
+    A set of one, because that is the shape the payout reads and because a board
+    pairs one to one -- an answer that fitted two categories would be a question
+    with no answer, which is what the board rules exist to prevent.
+    """
+    asked = _asked(table, round_)
+    return {asked.category_id} if asked and asked.category_id else set()
+
+
 def _lost_stakes(table: PokerTable, right: set[UUID]) -> int:
     """The side bets that backed the wrong player. Their chips join the pot."""
     return sum(
@@ -635,29 +689,67 @@ def _lost_stakes(table: PokerTable, right: set[UUID]) -> int:
     )
 
 
-def _pay_backers(table: PokerTable, awards: dict[UUID, int], right: set[UUID]) -> None:
-    """Hand the winning backers their stake back and their cut of the winnings.
+def _settle_stakes(table: PokerTable, right: set[UUID]) -> None:
+    """Give the winning backers their stake back, and move every run on.
 
-    Taken out of the award rather than added beside it, so backing someone can
-    never make a pot bigger than the chips that were put in it -- the player who
-    answered simply takes home nine tenths of it instead of all of it.
+    The losing stakes need no returning -- they are already in the pot. Called
+    once the awards are out, because the cut those awards paid was sized on the
+    runs as they stood before this hand: a first bet that comes in pays a tenth,
+    and it is the next one that pays two.
+
+    A player who backed nobody keeps whatever run they had. It is a run of side
+    bets rather than of hands, and you cannot break one by not making one --
+    backing takes folding first, which is not always on offer.
     """
-    behind: dict[UUID, list[PokerSeat]] = {}
     for seat in table.seats:
-        if seat.backing is None or seat.backing not in right:
+        if seat.backing is None:
             continue
-        seat.stack += seat.side_stake
-        behind.setdefault(seat.backing, []).append(seat)
+        if seat.backing in right:
+            seat.stack += seat.side_stake
+            seat.side_streak += 1
+        else:
+            seat.side_streak = 0
 
-    for backed, backers in behind.items():
-        cut = awards.get(backed, 0) // SIDE_BET_SHARE
-        if cut <= 0:
-            continue
-        awards[backed] -= cut
-        share, odd = divmod(cut, len(backers))
-        for index, seat in enumerate(backers):
-            paid = share + (1 if index < odd else 0)
-            awards[seat.player_id] = awards.get(seat.player_id, 0) + paid
+
+def _pay_backers(
+    table: PokerTable, amount: int, winners: list[PokerSeat], awards: dict[UUID, int]
+) -> int:
+    """Take the side bets' cut off the top of a pot, and say what it cost.
+
+    The pot pays the side bets, not the player who was backed: a bet on somebody
+    is a bet against the table, so their winnings are the same whether one person
+    is behind them or four. Shared out between everybody who backed a winner of
+    this pot, and the caller hands the rest to the winners themselves.
+
+    How much comes off the top is the longest run behind this pot, and how it is
+    shared is each backer's own -- so a player on a run makes the bet worth more
+    and takes most of what they made it worth. Two backers with nothing behind
+    them still split a single tenth between them, which is what keeps the reward
+    for backing the player nobody else did.
+    """
+    won = {seat.player_id for seat in winners}
+    backers = [seat for seat in table.seats if seat.backing in won]
+    if not backers:
+        return 0
+
+    parts = [_run(seat) for seat in backers]
+    cut = amount * max(parts) // SIDE_BET_SHARE
+    if cut <= 0:
+        return 0
+
+    total, paid = sum(parts), 0
+    for seat, part in zip(backers, parts, strict=True):
+        share = cut * part // total
+        awards[seat.player_id] = awards.get(seat.player_id, 0) + share
+        paid += share
+    for seat in backers[: cut - paid]:
+        awards[seat.player_id] += 1
+    return cut
+
+
+def _run(seat: PokerSeat) -> int:
+    """What this backer's run is worth, in tenths of the pot."""
+    return min(seat.side_streak + 1, STREAK_TENTHS)
 
 
 def _credit(table: PokerTable, awards: dict[UUID, int]) -> None:
@@ -693,12 +785,28 @@ def _pots(table: PokerTable) -> list[tuple[int, list[PokerSeat]]]:
 
 
 def _split(table: PokerTable, amount: int, winners: list[PokerSeat]) -> dict[UUID, int]:
-    """Share a pot out, odd chips going left of the button as poker does."""
-    share, odd = divmod(amount, len(winners))
-    awards = {seat.player_id: share for seat in winners}
-    for seat in sorted(winners, key=lambda s: _from_button(table, s))[:odd]:
+    """Share a pot out, odd chips going left of the button as poker does.
+
+    Not quite evenly: a winner somebody has money on takes eleven parts where a
+    winner nobody backed takes ten. Two players answering the same question right
+    have done the same thing, so the tie is broken by what the table did about it.
+    """
+    parts = [BACKED_PARTS if _backed(table, seat) else SPLIT_PARTS for seat in winners]
+    total = sum(parts)
+    awards = {
+        seat.player_id: amount * part // total
+        for seat, part in zip(winners, parts, strict=True)
+    }
+    for seat in sorted(winners, key=lambda s: _from_button(table, s))[
+        : amount - sum(awards.values())
+    ]:
         awards[seat.player_id] += 1
     return awards
+
+
+def _backed(table: PokerTable, seat: PokerSeat) -> bool:
+    """Whether anybody at the table has money on this player."""
+    return any(other.backing == seat.player_id for other in table.seats)
 
 
 def _next_hand(lobby: Lobby) -> None:
@@ -801,36 +909,36 @@ def _sync_players(lobby: Lobby) -> None:
         player.is_active = seat.in_hand()
 
 
-def _question(table: PokerTable, round_: Round | None, *, revealed: bool):
-    """The category being asked, named unless naming it would answer it.
+def _question(table: PokerTable, round_: Round | None) -> ItemPublic | None:
+    """The answer being asked about, in words.
 
-    A picture question asks with the photograph, and printing the caption over
-    it -- "Rhein", above a photograph of the Rhine -- would be the answer.
+    Always in words, whatever kind of question this is: the photographs live on
+    the categories, and the categories are what the table is choosing between.
     """
-    if round_ is None:
-        return None
-    category = next(
-        (c for c in round_.categories if c.id == table.question_category_id), None
-    )
-    if category is None:
-        return None
-    if round_.category_kind is CategoryKind.image and not revealed:
-        return category.model_copy(update={"label": None})
-    return category
+    asked = _asked(table, round_)
+    return ItemPublic(id=asked.id, label=asked.label) if asked else None
 
 
-def _options(table: PokerTable, round_: Round | None) -> list[ItemPublic]:
-    """The answers on offer, in the order this hand fixed for them.
+def _options(
+    table: PokerTable, round_: Round | None, *, revealed: bool
+) -> list[Category]:
+    """The categories on offer, in the order this hand fixed for them.
 
-    Held back until the betting is done -- see `view`. A list of twelve answers
-    is most of a question, and putting it up beside the last bet would turn that
-    bet into "can I spot it" rather than "do I know it".
+    Held back until the betting is done -- see `view`. Ten categories is most of
+    a question, and putting them up beside the last bet would turn that bet into
+    "can I spot it" rather than "do I know it".
+
+    A picture question offers photographs, and the caption on one is the answer
+    to it: knowing the tower is the Eiffel Tower is knowing it is in France. So
+    the labels stay off until the hand pays out -- the same rule as before the
+    photographs moved from the question to the answers.
     """
     if round_ is None:
         return []
-    by_id = {item.id: item for item in round_.items}
+    hide = round_.category_kind is CategoryKind.image and not revealed
+    by_id = {category.id: category for category in round_.categories}
     return [
-        ItemPublic(id=item_id, label=by_id[item_id].label)
-        for item_id in table.option_ids
-        if item_id in by_id
+        by_id[cid].model_copy(update={"label": None}) if hide else by_id[cid]
+        for cid in table.option_ids
+        if cid in by_id
     ]

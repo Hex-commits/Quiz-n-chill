@@ -110,13 +110,13 @@ def test_a_poker_table_survives_a_round_trip(store):
                 contributed=20,
                 backing=player,
                 side_stake=10,
-                answer_item_id=lobby.rounds[0].items[0].id,
+                answer_category_id=lobby.rounds[0].categories[0].id,
             )
         ],
         pot=40,
         carried=15,
         big_blind=10,
-        question_category_id=lobby.rounds[0].categories[0].id,
+        question_item_id=lobby.rounds[0].items[0].id,
         option_ids=[lobby.rounds[0].items[0].id],
         answers_by=deadline,
         result=PokerResult(
@@ -130,10 +130,10 @@ def test_a_poker_table_survives_a_round_trip(store):
     with store.mutate("TR3X") as loaded:
         table = loaded.poker
         assert table.stage is PokerStage.answering
-        assert table.seats[0].answer_item_id == lobby.rounds[0].items[0].id
+        assert table.seats[0].answer_category_id == lobby.rounds[0].categories[0].id
         assert table.seats[0].side_stake == 10
         assert (table.pot, table.carried) == (40, 15)
-        assert table.question_category_id == lobby.rounds[0].categories[0].id
+        assert table.question_item_id == lobby.rounds[0].items[0].id
         assert table.answers_by == deadline
         assert table.result.awards[0].amount == 40
 

@@ -764,7 +764,7 @@ export function LobbyRoom({
           onAct={(action, amount) =>
             act(() => pokerAct(code, playerId, action, amount))
           }
-          onAnswer={(itemId) => act(() => pokerAnswer(code, playerId, itemId))}
+          onAnswer={(categoryId) => act(() => pokerAnswer(code, playerId, categoryId))}
           onBack={(backedId) => act(() => pokerBack(code, playerId, backedId))}
         />
       </div>

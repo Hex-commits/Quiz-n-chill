@@ -246,8 +246,8 @@ export type PokerStage =
 export type PokerAction = "fold" | "check" | "call" | "raise" | "all_in";
 
 /**
- * One player at the table, as everyone at it may see them. `answer_item_id` and
- * `is_correct` stay null until the hand pays out — answers are simultaneous.
+ * One player at the table, as everyone at it may see them. `answer_category_id`
+ * and `is_correct` stay null until the hand pays out — answers are simultaneous.
  */
 export interface PokerSeat {
   player_id: string;
@@ -257,12 +257,14 @@ export interface PokerSeat {
   all_in: boolean;
   sitting_out: boolean;
   has_answered: boolean;
-  answer_item_id: string | null;
+  answer_category_id: string | null;
   is_correct: boolean | null;
   won: number;
   /** Who this player folded and put chips behind, and how many. Public. */
   backing: string | null;
   side_stake: number;
+  /** Side bets landed in a row. What the next one pays out on, and public. */
+  side_streak: number;
 }
 
 export interface PokerAward {
@@ -272,7 +274,7 @@ export interface PokerAward {
 
 /** How a hand ended. `carried` is the part of the pot nobody won — it plays on. */
 export interface PokerResult {
-  correct_item_ids: string[];
+  correct_category_ids: string[];
   correct_labels: string[];
   explanation: string | null;
   awards: PokerAward[];
@@ -281,10 +283,28 @@ export interface PokerResult {
 }
 
 /**
+ * One answer on the poker table: a category the asked answer might belong in.
+ *
+ * Its own type rather than `Category`, because the label is not always there. A
+ * picture round offers photographs, and the caption on one is the answer to it,
+ * so the names arrive with the payout and not before.
+ */
+export interface PokerOption {
+  id: string;
+  label: string | null;
+  /** The photograph, on a picture round. Null on a worded one. */
+  image: CategoryImage | null;
+}
+
+/**
  * The table, redacted to what the reveal has already said: `subject_name` from
  * the first round, `title` from the second, `question` from the third — and
  * `options` only once the betting on it is over. What has not been revealed yet
  * is absent rather than hidden.
+ *
+ * `question` is one answer off the board, always a word; `options` are the
+ * categories it might belong in. The short way round, and the way Classic reads
+ * a board too.
  */
 export interface PokerView {
   stage: PokerStage;
@@ -305,8 +325,8 @@ export interface PokerView {
   seats: PokerSeat[];
   subject_name: string | null;
   title: string | null;
-  question: Category | null;
-  options: Item[];
+  question: Item | null;
+  options: PokerOption[];
   result: PokerResult | null;
 }
 

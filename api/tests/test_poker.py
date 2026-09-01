@@ -15,7 +15,15 @@ from fastapi.testclient import TestClient
 
 from app.errors import ConflictError, ValidationError
 from app.main import app
-from app.schemas import Category, GameMode, ItemSolution, PokerAction, PokerStage
+from app.schemas import (
+    Category,
+    CategoryKind,
+    GameMode,
+    ImagePublic,
+    ItemSolution,
+    PokerAction,
+    PokerStage,
+)
 from app.services import lobbies, poker
 
 DE, FR, ES, IT = uuid4(), uuid4(), uuid4(), uuid4()
@@ -90,15 +98,23 @@ def seat_of(code, player_id):
 
 
 def answer_key(code):
-    """The right answers to the hand in play, read off the table's own state."""
+    """Where the answer in play belongs, read off the table's own state.
+
+    One category, always: the board pairs one to one, so the answer being asked
+    about fits exactly one of the categories offered against it.
+    """
     with lobbies.edit(code) as lobby:
-        asked = lobby.poker.question_category_id
-        return [i.id for i in lobby.current_round.items if i.category_id == asked]
+        asked = next(
+            item
+            for item in lobby.current_round.items
+            if item.id == lobby.poker.question_item_id
+        )
+        return [asked.category_id]
 
 
 def a_wrong_answer(code):
     right = set(answer_key(code))
-    return next(item.id for item in view(code).options if item.id not in right)
+    return next(option.id for option in view(code).options if option.id not in right)
 
 
 def one_move(code):
@@ -202,11 +218,93 @@ def test_the_answers_stay_off_the_table_while_the_last_bet_is_made():
     payload = lobbies.get_view(code).model_dump_json()
     assert asking.question is not None
     assert asking.options == []
-    for label in ("Berlin", "Paris", "Madrid", "Rom"):
+    for label in ("Deutschland", "Frankreich", "Spanien", "Italien"):
         assert f'"{label}"' not in payload
 
     settle_bets(code)
     assert len(view(code).options) == 4
+
+
+def test_the_question_is_an_answer_and_the_options_are_where_it_belongs():
+    """The short way round: one answer up, and the categories under it.
+
+    A board is four categories and four answers here and ten to twelve of each
+    in the real thing, so this is also the shorter way round to read.
+    """
+    code, _ids = setup_poker()
+    table = deal_to_the_question(code)
+
+    with lobbies.edit(code) as lobby:
+        items = {item.id for item in lobby.current_round.items}
+        categories = {c.id for c in lobby.current_round.categories}
+
+    assert table.question.id in items
+    assert {option.id for option in table.options} == categories
+    assert set(answer_key(code)) <= categories
+
+
+def test_a_fake_answer_is_never_the_question():
+    """It belongs in no category, so there would be nothing on the table to pick."""
+    round_ = make_round("topic-0")
+    fake = ItemSolution(id=uuid4(), label="Kathmandu", position=5, category_id=None)
+    round_.items.append(fake)
+
+    asked = {poker._pick_question(round_) for _ in range(200)}
+
+    assert fake.id not in asked
+    assert asked == {item.id for item in round_.items if item.category_id}
+
+
+def test_a_picture_round_offers_its_photographs_unnamed(monkeypatch):
+    """The caption on a photograph is the answer to it.
+
+    Knowing the tower is the Eiffel Tower is knowing it is in France, so the
+    names stay off the options until the hand is over -- the same rule as when
+    the photograph was the question rather than one of the answers.
+    """
+
+    def in_pictures(slug: str):
+        round_ = make_round(slug)
+        round_.category_kind = CategoryKind.image
+        for category in round_.categories:
+            category.image = ImagePublic(
+                src="https://commons.wikimedia.org/wiki/Special:FilePath/X.jpg",
+                credit="Ein Fotograf",
+                licence="CC BY-SA 4.0",
+                licence_url="https://creativecommons.org/licenses/by-sa/4.0",
+            )
+        return round_
+
+    monkeypatch.setattr(lobbies, "_load_round", in_pictures)
+    code, (anna, ben) = setup_poker()
+    deal_to_the_question(code)
+
+    asked = view(code)
+    assert asked.question.label in ("Berlin", "Paris", "Madrid", "Rom")
+    assert all(o.label is None and o.image is not None for o in asked.options)
+
+    wrong = a_wrong_answer(code)
+    lobbies.poker_answer(code, anna, answer_key(code)[0])
+    lobbies.poker_answer(code, ben, wrong)
+
+    assert all(option.label for option in view(code).options)
+
+
+def test_the_payout_explains_the_answer_it_asked_about():
+    """The note is written on the answer, which is now the thing being asked."""
+    code, (anna, ben) = setup_poker()
+    deal_to_the_question(code)
+    with lobbies.edit(code) as lobby:
+        berlin = next(i for i in lobby.current_round.items if i.label == "Berlin")
+        lobby.poker.question_item_id = berlin.id
+
+    wrong = a_wrong_answer(code)
+    lobbies.poker_answer(code, anna, answer_key(code)[0])
+    lobbies.poker_answer(code, ben, wrong)
+
+    result = view(code).result
+    assert result.correct_labels == ["Deutschland"]
+    assert result.explanation == "Hauptstadt Deutschlands."
 
 
 def test_the_answers_are_offered_in_one_fixed_order():
@@ -344,7 +442,7 @@ def test_an_answer_is_hidden_until_the_hand_pays_out():
 
     seat = seat_of(code, first)
     assert seat.has_answered
-    assert seat.answer_item_id is None
+    assert seat.answer_category_id is None
     assert seat.is_correct is None
 
 
@@ -397,7 +495,7 @@ def test_the_answer_key_is_shown_once_the_hand_is_over():
         lobbies.poker_answer(code, seat.player_id, a_wrong_answer(code))
 
     result = view(code).result
-    assert result.correct_item_ids == answer_key(code)
+    assert result.correct_category_ids == answer_key(code)
     assert len(result.correct_labels) == 1
     assert view(code).question is not None
 
@@ -421,6 +519,34 @@ def fold_out(code, folder):
         assert table.stage in BETTING, f"hand reached {table.stage} before {folder}"
         one_move(code)
     raise AssertionError("never got the clock round to that player")
+
+
+def a_backed_hand(code, backer, backed, *, right=True):
+    """Play one hand out with `backer` folded and a blind behind `backed`.
+
+    Returns the pot it was played for, which is what the cut comes off. Everyone
+    still in answers wrongly except `backed`, and only when the bet is meant to
+    come in -- so the hand turns on the one side bet being tested and nothing
+    else.
+    """
+    fold_out(code, backer)
+    lobbies.poker_back(code, backer, backed)
+    deal_to_the_question(code)
+    pot = view(code).pot
+
+    key, wrong = answer_key(code)[0], a_wrong_answer(code)
+    for seat in view(code).seats:
+        if seat.folded or seat.sitting_out:
+            continue
+        hit = seat.player_id == backed and right
+        lobbies.poker_answer(code, seat.player_id, key if hit else wrong)
+    return pot
+
+
+def next_hand(code):
+    """Run the payout clock out and let the poll deal the next one."""
+    expire(code, "next_hand_at")
+    view(code)
 
 
 def test_backing_costs_a_big_blind_and_says_who_you_are_behind():
@@ -484,6 +610,112 @@ def test_two_backers_on_one_player_share_the_same_tenth():
     cut = pot // poker.SIDE_BET_SHARE
     assert seat_of(code, anna).won + seat_of(code, ben).won == cut
     assert seat_of(code, dan).won == pot - cut
+
+
+def test_a_split_pot_leans_towards_the_player_with_money_on_them():
+    """Two right answers, one of them backed.
+
+    The tenth comes off the pot before it is shared, so both winners pay for the
+    side bet rather than the backed one paying for it alone -- and what is left
+    goes eleven parts to ten in favour of the player the money was on.
+    """
+    code, (anna, ben, cleo, dan) = setup_poker(("Anna", "Ben", "Cleo", "Dan"))
+    fold_out(code, anna)
+    lobbies.poker_back(code, anna, ben)
+    fold_out(code, dan)
+
+    deal_to_the_question(code)
+    pot = view(code).pot
+    right = answer_key(code)[0]
+    lobbies.poker_answer(code, ben, right)
+    lobbies.poker_answer(code, cleo, right)
+
+    cut = pot // poker.SIDE_BET_SHARE
+    backed, unbacked = seat_of(code, ben).won, seat_of(code, cleo).won
+    assert seat_of(code, anna).won == cut
+    assert backed + unbacked == pot - cut
+    assert backed > unbacked
+    assert sum(seat.stack for seat in view(code).seats) == 4 * poker.STARTING_STACK
+
+
+def test_a_backer_is_paid_out_of_a_pot_nobody_had_to_answer_for():
+    """Everyone else folded, so the side bet settles against the pot as it is."""
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    lobbies.poker_back(code, anna, ben)
+    backer_stack = seat_of(code, anna).stack
+    fold_out(code, cleo)
+
+    pot = seat_of(code, anna).won + seat_of(code, ben).won
+    assert seat_of(code, anna).won == pot // poker.SIDE_BET_SHARE
+    assert seat_of(code, anna).stack == backer_stack + poker.BIG_BLIND + pot // 10
+    assert sum(seat.stack for seat in view(code).seats) == 3 * poker.STARTING_STACK
+
+
+def test_a_run_of_side_bets_pays_better_every_time():
+    """A tenth, then two, then three.
+
+    The reward for reading the table is that reading it again is worth more,
+    which is the whole of why anybody sits through a hand they folded.
+    """
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=3)
+
+    hands = []
+    for _ in range(3):
+        pot = a_backed_hand(code, anna, ben)
+        hands.append((seat_of(code, anna).won, pot))
+        next_hand(code)
+
+    for tenths, (won, pot) in zip((1, 2, 3), hands, strict=True):
+        assert won == pot * tenths // poker.SIDE_BET_SHARE
+
+
+def test_a_run_stops_paying_more_once_it_is_worth_three_tenths():
+    """The pot still has to be worth winning, however long anybody is running."""
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=5)
+    for _ in range(3):
+        a_backed_hand(code, anna, ben)
+        next_hand(code)
+
+    assert seat_of(code, anna).side_streak == 3
+    pot = a_backed_hand(code, anna, ben)
+
+    assert seat_of(code, anna).won == pot * poker.STREAK_TENTHS // poker.SIDE_BET_SHARE
+
+
+def test_one_miss_puts_a_run_back_to_a_tenth():
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=3)
+    a_backed_hand(code, anna, ben)
+    next_hand(code)
+    assert seat_of(code, anna).side_streak == 1
+
+    a_backed_hand(code, anna, ben, right=False)
+    assert seat_of(code, anna).side_streak == 0
+    next_hand(code)
+
+    pot = a_backed_hand(code, anna, ben)
+    assert seat_of(code, anna).won == pot // poker.SIDE_BET_SHARE
+
+
+def test_a_hand_you_did_not_back_leaves_your_run_alone():
+    """A run of side bets, not of hands. You cannot break one by not making one.
+
+    Backing takes folding first, and whether a hand gives you the chance is not
+    something a player picks.
+    """
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=3)
+    a_backed_hand(code, anna, ben)
+    next_hand(code)
+
+    deal_to_the_question(code)
+    for seat in view(code).seats:
+        if not (seat.folded or seat.sitting_out):
+            lobbies.poker_answer(code, seat.player_id, a_wrong_answer(code))
+    assert seat_of(code, anna).side_streak == 1
+    next_hand(code)
+
+    pot = a_backed_hand(code, anna, ben)
+    assert seat_of(code, anna).won == pot * 2 // poker.SIDE_BET_SHARE
 
 
 def test_only_a_folded_player_can_back_and_only_once():
@@ -681,7 +913,7 @@ def test_a_question_that_comes_round_again_is_asked_differently():
     asked = []
     for _ in range(10):
         with lobbies.edit(code) as lobby:
-            asked.append(lobby.poker.question_category_id)
+            asked.append(lobby.poker.question_item_id)
         lobbies.poker_act(code, view(code).to_act, PokerAction.fold)
         expire(code, "next_hand_at")
 

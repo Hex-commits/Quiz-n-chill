@@ -353,7 +353,7 @@ class PokerAction(StrEnum):
 class PokerSeatView(BaseModel):
     """One player at the table, as everyone at it may see them.
 
-    `answer_item_id` and `is_correct` stay null until the hand is paid out.
+    `answer_category_id` and `is_correct` stay null until the hand is paid out.
     Answers are simultaneous, and a view that showed them as they arrived would
     turn the last player to answer into the best-informed one.
 
@@ -369,11 +369,17 @@ class PokerSeatView(BaseModel):
     all_in: bool = False
     sitting_out: bool = False
     has_answered: bool = False
-    answer_item_id: UUID | None = None
+    answer_category_id: UUID | None = None
     is_correct: bool | None = None
     won: int = 0
     backing: UUID | None = None
     side_stake: int = 0
+    side_streak: int = 0
+    """Side bets landed in a row, which is what the next one pays out on.
+
+    Public like the backing itself. A table that can see who is running hot has
+    something to talk about, and the player on the run has something to lose.
+    """
 
 
 class PokerAward(BaseModel):
@@ -389,7 +395,7 @@ class PokerResult(BaseModel):
     them too.
     """
 
-    correct_item_ids: list[UUID] = []
+    correct_category_ids: list[UUID] = []
     correct_labels: list[str] = []
     explanation: str | None = None
     awards: list[PokerAward] = []
@@ -406,10 +412,11 @@ class PokerView(BaseModel):
     is inspected: `question` is null until the round that turns it over, and
     `options` stays empty until the betting on it is done.
 
-    `question` is one category off the board -- named, or pictured on a picture
-    question. `seconds_left` is whichever clock is running: the player on the
-    clock, the answers, or the wait before the next hand. Which one it is
-    follows from `stage`.
+    `question` is one answer off the board, always in words, and `options` are
+    the categories it might belong in -- pictured rather than named on a picture
+    question, where the caption would be the answer. `seconds_left` is whichever
+    clock is running: the player on the clock, the answers, or the wait before
+    the next hand. Which one it is follows from `stage`.
     """
 
     stage: PokerStage
@@ -432,8 +439,8 @@ class PokerView(BaseModel):
     seats: list[PokerSeatView] = []
     subject_name: str | None = None
     title: str | None = None
-    question: Category | None = None
-    options: list[ItemPublic] = []
+    question: ItemPublic | None = None
+    options: list[Category] = []
     result: PokerResult | None = None
 
 
@@ -448,7 +455,7 @@ class PokerAct(BaseModel):
 
 class PokerAnswer(BaseModel):
     player_id: UUID
-    item_id: UUID
+    category_id: UUID
 
 
 class PokerBack(BaseModel):

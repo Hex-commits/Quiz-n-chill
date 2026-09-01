@@ -89,6 +89,10 @@ class PokerSeat:
     `side_stake` is how many. Neither is part of the pot: the stake is out of
     the stack from the moment it is placed, and where it ends up is decided when
     the hand pays out.
+
+    `side_streak` is the only thing on a seat that outlives the hand it was won
+    in -- how many side bets in a row this player has had come in, which is what
+    the next one pays out on.
     """
 
     player_id: UUID
@@ -99,11 +103,12 @@ class PokerSeat:
     all_in: bool = False
     sitting_out: bool = False
     acted: bool = False
-    answer_item_id: UUID | None = None
+    answer_category_id: UUID | None = None
     correct: bool | None = None
     won: int = 0
     backing: UUID | None = None
     side_stake: int = 0
+    side_streak: int = 0
 
     def in_hand(self) -> bool:
         return not self.sitting_out and not self.folded
@@ -117,14 +122,15 @@ class PokerTable:
     """A game of betting rounds played for one question.
 
     Holds no answer key of its own: the question is the lobby's current round,
-    and `question_category_id` points at the one category off it being asked.
-    What may be shown of that, and when, is `poker.view`'s decision.
+    and `question_item_id` points at the one answer off it being asked -- the
+    table's job is to say which category that answer belongs in. What may be
+    shown of it, and when, is `poker.view`'s decision.
 
     `acted` on a seat means "has acted since the last raise", which is what
     makes a betting round finishable. `pot` is what the streets behind this one
     gathered; `carried` is the part of an earlier pot nobody answered for, and
-    it plays on. `option_ids` fixes the order the answers are offered in, so
-    polling cannot reorder them under a player mid-decision.
+    it plays on. `option_ids` is the categories, in the order this hand offers
+    them, so polling cannot reorder them under a player mid-decision.
     """
 
     stage: PokerStage = PokerStage.preflop
@@ -136,7 +142,7 @@ class PokerTable:
     pot: int = 0
     carried: int = 0
     big_blind: int = 0
-    question_category_id: UUID | None = None
+    question_item_id: UUID | None = None
     option_ids: list[UUID] = field(default_factory=list)
     acts_by: datetime | None = None
     answers_by: datetime | None = None

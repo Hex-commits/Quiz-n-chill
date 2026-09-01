@@ -30,23 +30,19 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Coins, Crown, Loader2 } from "lucide-react";
+import { Check, ChevronsUp, Coins, Crown, Flame, Loader2, X } from "lucide-react";
+
+/** Tenths of a pot a run is worth, capped. Mirrors `poker.STREAK_TENTHS`. */
+const STREAK_TENTHS = 3;
 
 import { AnswerPool } from "@/components/answer-pool";
-import { CategoryPicture, ImageCredit } from "@/components/category-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { HURRY_FROM, play, playCountdown } from "@/lib/sound";
 import { cn } from "@/lib/utils";
-import type {
-  CategoryImage,
-  LobbyView,
-  PokerAction,
-  PokerSeat,
-  PokerView,
-} from "@/lib/types";
+import type { LobbyView, PokerAction, PokerSeat, PokerView } from "@/lib/types";
 
 /**
  * How many rungs of the reveal each round has lit.
@@ -274,7 +270,6 @@ type Reveal = {
   rung: number;
   term: string;
   value: string | null;
-  image: CategoryImage | null;
 };
 
 /**
@@ -301,7 +296,6 @@ function useReveal(poker: PokerView): Reveal | null {
       : rung === 2
         ? poker.title
         : (poker.question?.label ?? null);
-  const image = rung >= 3 ? (poker.question?.image ?? null) : null;
 
   useEffect(() => {
     const was = seen.current;
@@ -320,7 +314,7 @@ function useReveal(poker: PokerView): Reveal | null {
         ? 0
         : rung;
     if (rung <= fresh || rung < 1) return;
-    if (!value && !image) return;
+    if (!value) return;
 
     play(rung >= 3 ? "reveal" : "step");
     /* Raising the curtain *is* the reaction to a view arriving, and the sound
@@ -328,8 +322,8 @@ function useReveal(poker: PokerView): Reveal | null {
        count-in does, is not available to something that also has to make a
        noise. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurtain({ rung, term: CURTAIN_TERM[rung], value, image });
-  }, [poker.hand_index, poker.stage, rung, value, image]);
+    setCurtain({ rung, term: CURTAIN_TERM[rung], value });
+  }, [poker.hand_index, poker.stage, rung, value]);
 
   useEffect(() => {
     if (!curtain) return;
@@ -359,15 +353,9 @@ function Curtain({ curtain }: { curtain: Reveal }) {
       <p className="text-muted-foreground text-xs font-bold tracking-[0.3em] uppercase">
         {curtain.term}
       </p>
-      {curtain.image ? (
-        <div className="animate-quiz-count-in w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl">
-          <CategoryPicture image={curtain.image} label="The question" />
-        </div>
-      ) : (
-        <p className="animate-quiz-count-in text-primary max-w-4xl text-center text-4xl leading-none font-black text-balance sm:text-6xl">
-          {curtain.value}
-        </p>
-      )}
+      <p className="animate-quiz-count-in text-primary max-w-4xl text-center text-4xl leading-none font-black text-balance sm:text-6xl">
+        {curtain.value}
+      </p>
     </div>
   );
 }
@@ -386,7 +374,6 @@ function Curtain({ curtain }: { curtain: Reveal }) {
  */
 function Felt({ poker, biggest }: { poker: PokerView; biggest: number }) {
   const revealed = REVEALED[poker.stage];
-  const image = revealed >= 3 ? (poker.question?.image ?? null) : null;
 
   return (
     <div
@@ -411,9 +398,12 @@ function Felt({ poker, biggest }: { poker: PokerView; biggest: number }) {
             Pot
           </span>
           {/* The pot is a pile like any other, and on the first bet of a hand
-              it is the smallest one on the table. It should look it. */}
+              it is the smallest one on the table. It should look it -- and it
+              should be seen to grow, so the figure is keyed on itself and every
+              call, raise and blind that lands replays the swell. */}
           <span
-            className="font-mono font-bold tabular-nums [--chip-base:2rem] sm:[--chip-base:2.75rem]"
+            key={poker.pot}
+            className="animate-quiz-zoom font-mono font-bold tabular-nums [--chip-base:2rem] sm:[--chip-base:2.75rem]"
             style={chipFont(poker.pot, biggest, CHIP_FLOOR.pot)}
           >
             {poker.pot}
@@ -439,19 +429,10 @@ function Felt({ poker, biggest }: { poker: PokerView; biggest: number }) {
           <BoardCard
             term="Question"
             value={poker.question?.label ?? null}
-            image={image}
             up={revealed >= 3}
             wide
           />
         </div>
-
-        {/* The licence is owed wherever the work is shown, and on this table it
-            is shown on a card the size of a stamp. */}
-        {image ? (
-          <div className="text-emerald-100/70">
-            <ImageCredit image={image} className="text-[9px]" />
-          </div>
-        ) : null}
       </div>
     </div>
   );
@@ -469,17 +450,19 @@ function Felt({ poker, biggest }: { poker: PokerView; biggest: number }) {
  * a phone a whole row to itself. It is the one card anybody has to *read*, and
  * a sentence set four words to a line in a poker-shaped box is a sentence
  * nobody reads twice.
+ *
+ * Always words, never a photograph. The pictures on a picture round belong to
+ * the categories, and the categories are what the table picks between -- so
+ * they come out under the felt with the rest of the answers, not on it.
  */
 function BoardCard({
   term,
   value,
-  image,
   up,
   wide,
 }: {
   term: string;
   value: string | null;
-  image?: CategoryImage | null;
   /** Turned over. What is still face down has no value in the payload either. */
   up: boolean;
   wide?: boolean;
@@ -504,26 +487,14 @@ function BoardCard({
           <span className="text-[7px] font-bold tracking-[0.15em] text-emerald-800/60 uppercase sm:text-[9px]">
             {term}
           </span>
-          {image ? (
-            /* A height rather than an aspect ratio: the three cards are stretched
-               to a common height, and a picture that sets its own would drag the
-               two beside it into tall thin strips. Cropping is the lesser cost --
-               the curtain shows the picture whole, and the card zooms. */
-            <CategoryPicture
-              image={image}
-              label={value ?? "The question"}
-              className="h-16 w-full rounded-(--radius-sm) sm:h-24"
-            />
-          ) : (
-            <span
-              className={cn(
-                "leading-tight font-semibold text-balance",
-                wide ? "text-[11px] sm:text-sm" : "text-[8px] sm:text-[11px]",
-              )}
-            >
-              {value}
-            </span>
-          )}
+          <span
+            className={cn(
+              "leading-tight font-semibold text-balance",
+              wide ? "text-[11px] sm:text-sm" : "text-[8px] sm:text-[11px]",
+            )}
+          >
+            {value}
+          </span>
         </div>
       </div>
     </div>
@@ -582,11 +553,25 @@ function Seat({
   return (
     <div
       className={cn(
-        "bg-card/95 relative w-20 rounded-xl border px-2 py-1.5 shadow-lg backdrop-blur-sm transition-colors sm:w-28",
+        "bg-card/95 relative w-20 rounded-xl border px-2 py-1.5 shadow-lg backdrop-blur-sm sm:w-28",
+        /* Named rather than `all`: the glow below drives `box-shadow`, and a
+           transition on the same property fights the animation for it. */
+        "ease-(--ease-soft) transition-[opacity,border-color,background-color] duration-300",
         onTheClock && "border-primary ring-primary/40 ring-2",
         out && "opacity-60",
       )}
     >
+      {/* A check moves no chips, so the only thing it changes is whose plaque
+          is breathing -- which has to carry across the felt. On a layer of its
+          own because the pulse is a `box-shadow`, and the plaque composes its
+          ring and its lift out of that same property. */}
+      {onTheClock ? (
+        <span
+          className="animate-quiz-glow pointer-events-none absolute inset-0 rounded-xl"
+          aria-hidden
+        />
+      ) : null}
+
       <div className="flex items-center gap-1">
         <span className="min-w-0 flex-1 truncate text-[11px] font-medium sm:text-sm">
           {name}
@@ -641,20 +626,51 @@ function Seat({
         </span>
       ) : null}
 
+      {/* The opposite corner, and for the same reason the dealer button is on
+          one: a run is a standing fact about a player, not one of the things
+          they did this hand. The numeral is what the next side bet pays, in
+          tenths of a pot -- the multiplier itself rather than a count of what
+          got them there, which is the number they are deciding on. */}
+      {seat.side_streak > 0 ? (
+        <span
+          key={seat.side_streak}
+          className={cn(
+            "animate-quiz-pop absolute -top-1.5 -right-1.5 flex items-center gap-px rounded-full",
+            "bg-amber-400 px-1 py-0.5 font-mono text-[9px] font-bold text-amber-950 shadow",
+          )}
+          title={`${seat.side_streak} side bets in a row`}
+        >
+          <Flame className="size-2.5" aria-hidden />×
+          {Math.min(seat.side_streak + 1, STREAK_TENTHS)}
+        </span>
+      ) : null}
+
+      {/* Two spans, because the pop animates `transform` and the placing of
+          the pill is a transform too -- one element doing both loses its
+          centring for the length of every bet. The outer one holds it in
+          place; the inner one is what moves. */}
       {stake > 0 ? (
         <span
           className={cn(
-            "absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full",
-            "bg-amber-400 px-1.5 py-0.5 font-mono font-semibold tabular-nums text-amber-950 shadow",
-            "[--chip-base:0.8125rem]",
+            "absolute left-1/2 -translate-x-1/2",
             stakeBelow ? "top-full mt-1" : "bottom-full mb-1",
           )}
-          style={chipFont(stake, biggest, CHIP_FLOOR.bet)}
         >
-          {/* Sized in `em`, so the coin grows with the number beside it and the
-              whole pill reads as one bet rather than as an icon and a figure. */}
-          <Coins className="size-[1em]" aria-hidden />
-          {stake}
+          <span
+            key={stake}
+            className={cn(
+              "animate-quiz-pop flex items-center gap-0.5 rounded-full",
+              "bg-amber-400 px-1.5 py-0.5 font-mono font-semibold tabular-nums text-amber-950 shadow",
+              "[--chip-base:0.8125rem]",
+            )}
+            style={chipFont(stake, biggest, CHIP_FLOOR.bet)}
+          >
+            {/* Sized in `em`, so the coin grows with the number beside it and
+                the whole pill reads as one bet rather than as an icon and a
+                figure. */}
+            <Coins className="size-[1em]" aria-hidden />
+            {stake}
+          </span>
         </span>
       ) : null}
     </div>
@@ -686,6 +702,13 @@ function Betting({
   onAct: (action: PokerAction, amount?: number) => void;
   onBack: (backedId: string) => void;
 }) {
+  /* Which button was pressed. `busy` already says a move is in flight but not
+     which one, and which one is the whole job here: it is what lets every move
+     you did *not* take go grey. Read through `busy` rather than cleared when
+     the move settles, so a press that fails leaves nothing behind. */
+  const [pressed, setPressed] = useState<string | null>(null);
+  const pending = busy ? pressed : null;
+
   if (!me || me.sitting_out) {
     return <Waiting>Sitting this hand out.</Waiting>;
   }
@@ -709,43 +732,158 @@ function Betting({
     poker.current_bet + poker.pot,
   ].filter((size, index, all) => size < max && all.indexOf(size) === index);
 
+  /* Each move as a glyph, a tone and a figure -- never a sentence. The two that
+     spend nothing are drawn as outlines, meeting a bet takes the primary fill,
+     and going all in takes the amber that is already the colour of chips pushed
+     forward on this table. */
+  const moves = [
+    {
+      key: "fold",
+      icon: X,
+      label: "Fold",
+      amount: null,
+      variant: "outline" as const,
+      tone: "text-muted-foreground hover:border-destructive/50 hover:bg-destructive/5 hover:text-destructive",
+      run: () => onAct("fold"),
+    },
+    owed > 0
+      ? {
+          key: "call",
+          icon: Coins,
+          label: "Call",
+          amount: Math.min(owed, me.stack),
+          variant: "default" as const,
+          tone: "",
+          run: () => onAct("call"),
+        }
+      : {
+          key: "check",
+          icon: Check,
+          label: "Check",
+          amount: null,
+          variant: "outline" as const,
+          tone: "",
+          run: () => onAct("check"),
+        },
+    ...raises.map((size) => ({
+      key: `raise-${size}`,
+      icon: ChevronsUp,
+      label: "Raise",
+      amount: size,
+      variant: "secondary" as const,
+      tone: "",
+      run: () => onAct("raise", size),
+    })),
+    {
+      key: "all-in",
+      icon: Flame,
+      label: "All in",
+      amount: max,
+      variant: "secondary" as const,
+      tone: "bg-amber-400 text-amber-950 hover:bg-amber-300 dark:bg-amber-400 dark:text-amber-950",
+      run: () => onAct("all_in"),
+    },
+  ];
+
+  const locked = busy || pending !== null;
+
   return (
-    <Card>
+    <Card className="animate-quiz-rise">
       <CardContent className="space-y-2">
         {poker.stage === "turn" ? (
           <p className="text-muted-foreground text-center text-xs">
             The answers come out once this betting round is done.
           </p>
         ) : null}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button variant="outline" disabled={busy} onClick={() => onAct("fold")}>
-            Fold
-          </Button>
-          {owed > 0 ? (
-            <Button disabled={busy} onClick={() => onAct("call")}>
-              Call {Math.min(owed, me.stack)}
-            </Button>
-          ) : (
-            <Button disabled={busy} onClick={() => onAct("check")}>
-              Check
-            </Button>
-          )}
-          {raises.map((size) => (
-            <Button
-              key={size}
-              variant="secondary"
-              disabled={busy}
-              onClick={() => onAct("raise", size)}
-            >
-              Raise to {size}
-            </Button>
+        <div className="flex flex-wrap items-stretch justify-center gap-2 sm:gap-2.5">
+          {moves.map((move) => (
+            <Act
+              key={move.key}
+              icon={move.icon}
+              label={move.label}
+              amount={move.amount}
+              variant={move.variant}
+              tone={move.tone}
+              chosen={pending === move.key}
+              dimmed={locked && pending !== move.key}
+              onClick={() => {
+                setPressed(move.key);
+                move.run();
+              }}
+            />
           ))}
-          <Button variant="secondary" disabled={busy} onClick={() => onAct("all_in")}>
-            All in {max}
-          </Button>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * One move, as a chip the size of an answer.
+ *
+ * The same object the answers are picked from -- lift on hover, press on click,
+ * a shine across it -- because both are the one decision the table is waiting
+ * on, and there is no reason for them to be different objects.
+ *
+ * Three states, and none of them is written down. Idle. The one you pressed,
+ * which lifts, outlines itself and spins where its glyph was. And every other
+ * one, which goes flat, grey and colourless the moment you press anything. The
+ * greying is the half that says the click landed: a spinner alone in a row of
+ * live buttons reads as a screen still waiting to be told what to do.
+ */
+function Act({
+  icon: Icon,
+  label,
+  amount,
+  variant,
+  tone,
+  chosen,
+  dimmed,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  label: string;
+  /** What it costs, or null where the move spends nothing. */
+  amount: number | null;
+  variant: "default" | "outline" | "secondary";
+  /** Colour this move and no other. */
+  tone: string;
+  /** The one that was pressed. */
+  chosen: boolean;
+  /** One of the ones that was not, while a move is in flight. */
+  dimmed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      size="lg"
+      variant={variant}
+      className={cn(
+        "quiz-shine ease-(--ease-soft) h-auto min-h-12 grow basis-24 gap-1.5 px-4 py-2.5",
+        "text-base font-semibold transition-all duration-200 sm:grow-0",
+        tone,
+        !chosen &&
+          !dimmed &&
+          "hover:z-10 hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg active:translate-y-0 active:scale-[0.98] active:duration-75",
+        /* Held at full strength against the base `disabled:opacity-50`: the
+           pressed button is the one thing on the bar that must not go grey. */
+        chosen &&
+          "animate-quiz-zoom outline-primary z-10 scale-[1.03] shadow-lg outline-2 outline-offset-2 outline-solid disabled:opacity-100",
+        dimmed && "scale-[0.98] opacity-40 saturate-0 shadow-none disabled:opacity-40",
+      )}
+      disabled={chosen || dimmed}
+      onClick={onClick}
+    >
+      {chosen ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : (
+        <Icon className="size-4" aria-hidden />
+      )}
+      {label}
+      {amount !== null ? (
+        <span className="font-mono font-bold tabular-nums">{amount}</span>
+      ) : null}
+    </Button>
   );
 }
 
@@ -770,11 +908,14 @@ function Backing({
   busy: boolean;
   onBack: (backedId: string) => void;
 }) {
+  const [pressed, setPressed] = useState<string | null>(null);
+  const pending = busy ? pressed : null;
+
   if (me.backing) {
     return (
       <Waiting>
         You are behind {nameOf(me.backing)} for {me.side_stake}. A share of
-        whatever they take is yours.
+        whatever pot they take is yours -- paid by the pot, not by them.
       </Waiting>
     );
   }
@@ -787,24 +928,43 @@ function Backing({
   return (
     <Card>
       <CardContent className="space-y-2">
-        <p className="text-sm">
+        <p className="flex items-center gap-1.5 text-sm">
           You folded. Put {poker.big_blind} behind someone still in it?
+          {me.side_streak > 0 ? (
+            <span className="flex items-center gap-0.5 font-mono font-bold text-amber-500">
+              <Flame className="size-3.5" aria-hidden />×
+              {Math.min(me.side_streak + 1, STREAK_TENTHS)}
+            </span>
+          ) : null}
         </p>
         <p className="text-muted-foreground text-xs">
-          They answer right and your stake comes back with a share of what they
-          take. Wrong, and it joins the pot for whoever does take it.
+          They answer right and your stake comes back with a share of the pot,
+          split with anyone else who backed a winner: a tenth of it, two tenths
+          on a second call in a row, three on a third and after. Wrong, and the
+          stake joins the pot for whoever does take it and your run starts over.
+          It costs them nothing either way -- money on them buys them the bigger
+          half of a pot they have to split.
         </p>
-        <div className="flex flex-wrap gap-2">
+        {/* The same chips the betting bar is made of, and the same answer to a
+            click: the one you picked lights up, the rest go out. */}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
           {candidates.map((seat) => (
-            <Button
+            <Act
               key={seat.player_id}
+              icon={Coins}
+              label={nameOf(seat.player_id)}
+              amount={poker.big_blind}
               variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => onBack(seat.player_id)}
-            >
-              Back {nameOf(seat.player_id)}
-            </Button>
+              tone=""
+              chosen={pending === seat.player_id}
+              dimmed={
+                (busy || pending !== null) && pending !== seat.player_id
+              }
+              onClick={() => {
+                setPressed(seat.player_id);
+                onBack(seat.player_id);
+              }}
+            />
           ))}
         </div>
       </CardContent>
@@ -864,7 +1024,7 @@ function Answering({
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium">
-            Which of these belongs to the question?
+            Where does {poker.question?.label ?? "it"} belong?
           </p>
           <span className="text-muted-foreground font-mono text-xs tabular-nums">
             {answered}/{answering}
