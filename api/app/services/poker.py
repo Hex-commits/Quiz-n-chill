@@ -119,6 +119,14 @@ to play up to, not to decide the hand before it is answered."""
 
 BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn)
 
+LIVE = (*BETTING, PokerStage.answering)
+"""When a side bet may be placed: the whole of a hand that is still undecided.
+
+Not the payout, and that is the only exclusion. By then `correct` is public and
+a bet on a player known to be right would be chips off the table for nothing.
+Everything before it is a live read, the answering round included -- the options
+are up by then, but who knows the answer is exactly what is still unsettled."""
+
 ORDER = (*BETTING, PokerStage.answering, PokerStage.payout)
 
 
@@ -191,31 +199,44 @@ def answer(lobby: Lobby, player_id: UUID, category_id: UUID) -> None:
 
 
 def back(lobby: Lobby, player_id: UUID, backed_id: UUID) -> None:
-    """Fold, then put a big blind behind somebody still in it.
+    """Put a big blind behind somebody still in the hand.
 
-    Only open to a player who has folded, and only while the betting runs: once
-    the answers are up there is nothing left to bet on that the table cannot
-    already see.
+    Open to anybody who was dealt in, at any point in a hand that is still
+    undecided -- folded or not, and whether or not it is your turn. It is a
+    second game running beside the first rather than the consolation for having
+    left the first: a player still holding chips in the pot can put money on
+    somebody else as readily as a player who has folded and has nothing else to
+    do, and neither has to wait for the other.
+
+    Two things it may not be. It may not be a bet on yourself: that is the hand
+    you are already playing, and the pot is what it pays. And it may not be the
+    chips you had left to play with -- a side bet that puts you all in would
+    settle your own hand for you, which is not a side bet at all.
 
     The stake leaves the stack now and is settled when the hand is. Right, and
     it comes back with a share of the pot they took; wrong, and it joins the pot
     for whoever does take it.
     """
     table = _table(lobby)
-    if table.stage not in BETTING:
+    if table.stage not in LIVE:
         raise ConflictError("There is nothing left to back this hand.")
 
     seat = table.seat(player_id)
-    if seat is None or not seat.folded:
-        raise ConflictError("Only a player who has folded can back someone.")
+    if seat is None or seat.sitting_out:
+        raise ConflictError("You are not at this hand.")
     if seat.backing is not None:
         raise ConflictError("You are already behind someone this hand.")
 
     backed = table.seat(backed_id)
+    if backed is seat:
+        raise ConflictError("You cannot back yourself. That is the hand you are in.")
     if backed is None or not backed.in_hand():
         raise ConflictError("They are not in this hand.")
+
     if seat.stack < table.big_blind:
         raise ValidationError(f"Backing someone costs {table.big_blind}.")
+    if seat.in_hand() and seat.stack == table.big_blind:
+        raise ValidationError("A side bet cannot be the chips you have left to play.")
 
     seat.stack -= table.big_blind
     seat.side_stake = table.big_blind

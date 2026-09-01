@@ -44,11 +44,18 @@ export type Answer = {
 export function AnswerPool({
   items,
   selectedId,
+  correctId,
   disabled,
   onSelect,
 }: {
   items: Answer[];
   selectedId: string | null;
+  /**
+   * The right answer, once there is no longer anything to lose by saying it.
+   * Setting it turns the pool into the reveal: the answer goes green, a pick
+   * that missed it goes red, and nothing takes a click any more.
+   */
+  correctId?: string | null;
   disabled?: boolean;
   /** Called with null when the pick is being taken back. */
   onSelect: (itemId: string | null) => void;
@@ -64,6 +71,8 @@ export function AnswerPool({
       <div className="flex flex-wrap justify-center gap-3 sm:gap-3.5">
         {items.map((item) => {
           const picked = selectedId === item.id;
+          const right = correctId != null && correctId === item.id;
+          const wrong = correctId != null && picked && !right;
           return (
             <Button
               key={item.id}
@@ -80,8 +89,17 @@ export function AnswerPool({
                 "active:translate-y-0 active:scale-[0.98] active:duration-75",
                 picked &&
                   "outline-primary z-10 scale-[1.03] shadow-lg outline-solid outline-2 outline-offset-2",
+                /* The answer is the loudest chip in the pool -- filled, lifted
+                   and outlined, whether or not anybody picked it. */
+                right &&
+                  "bg-success text-success-foreground hover:bg-success outline-success z-10 scale-[1.03] shadow-lg outline-solid outline-2 outline-offset-2",
+                wrong && "outline-destructive z-10 outline-solid outline-2 outline-offset-2",
+                /* A revealed pool is a statement, not a question. Left visible
+                   rather than `disabled`, which would fade the answer just as
+                   it is being made. */
+                correctId != null && "pointer-events-none",
               )}
-              variant={picked ? "default" : "outline"}
+              variant={wrong ? "destructive" : picked || right ? "default" : "outline"}
               disabled={disabled}
               aria-pressed={picked}
               onClick={() => onSelect(picked ? null : item.id)}

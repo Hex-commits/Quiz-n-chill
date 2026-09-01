@@ -718,14 +718,35 @@ def test_a_hand_you_did_not_back_leaves_your_run_alone():
     assert seat_of(code, anna).won == pot * 2 // poker.SIDE_BET_SHARE
 
 
-def test_only_a_folded_player_can_back_and_only_once():
+def test_a_player_still_in_the_hand_can_back_somebody_else():
+    """The side game runs beside the first, not instead of it.
+
+    Folding is not the price of admission: a player with chips in the pot can
+    put money on somebody else without giving up their own hand to do it.
+    """
+    code, _ids = setup_poker(("Anna", "Ben", "Cleo"))
+    backer = view(code).to_act
+    target = next(
+        seat.player_id
+        for seat in view(code).seats
+        if seat.player_id != backer and not seat.folded
+    )
+    stack = seat_of(code, backer).stack
+
+    lobbies.poker_back(code, backer, target)
+
+    seat = seat_of(code, backer)
+    assert (seat.backing, seat.side_stake) == (target, poker.BIG_BLIND)
+    assert seat.folded is False, "backing is not folding"
+    assert seat.stack == stack - poker.BIG_BLIND
+    assert view(code).to_act == backer, "and it is still their turn to act"
+
+
+def test_backing_is_still_one_bet_a_hand():
     code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
-
-    with pytest.raises(ConflictError, match="has folded"):
-        lobbies.poker_back(code, view(code).to_act, ben)
-
     fold_out(code, anna)
     lobbies.poker_back(code, anna, ben)
+
     with pytest.raises(ConflictError, match="already behind"):
         lobbies.poker_back(code, anna, cleo)
 
@@ -734,7 +755,7 @@ def test_you_cannot_back_yourself_or_somebody_who_has_folded():
     code, (anna, ben, _cleo, _dan) = setup_poker(("Anna", "Ben", "Cleo", "Dan"))
     fold_out(code, anna)
 
-    with pytest.raises(ConflictError, match="not in this hand"):
+    with pytest.raises(ConflictError, match="cannot back yourself"):
         lobbies.poker_back(code, anna, anna)
 
     fold_out(code, ben)
@@ -742,13 +763,83 @@ def test_you_cannot_back_yourself_or_somebody_who_has_folded():
         lobbies.poker_back(code, anna, ben)
 
 
-def test_backing_closes_when_the_answers_go_up():
+def test_a_side_bet_may_not_be_the_chips_you_had_left_to_play():
+    """It would settle your own hand for you, which is not a side bet at all.
+
+    Only binds on a player still in it. Somebody who has folded has nothing left
+    to play with this hand, so spending down to nothing costs them nothing now.
+    """
+    code, _ids = setup_poker(("Anna", "Ben", "Cleo"))
+    live = view(code).to_act
+    target = next(
+        seat.player_id for seat in view(code).seats if seat.player_id != live
+    )
+    with lobbies.edit(code) as lobby:
+        lobby.poker.seat(live).stack = poker.BIG_BLIND
+
+    with pytest.raises(ValidationError, match="chips you have left"):
+        lobbies.poker_back(code, live, target)
+
+    fold_out(code, live)
+    lobbies.poker_back(code, live, target)
+    assert seat_of(code, live).stack == 0
+
+
+def test_backing_stays_open_while_the_answers_are_being_given():
+    """Who knows it is exactly what is still unsettled once the options are up."""
     code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"))
     fold_out(code, anna)
     deal_to_the_question(code)
+    assert view(code).stage is PokerStage.answering
+
+    lobbies.poker_back(code, anna, ben)
+
+    assert seat_of(code, anna).backing == ben
+
+
+def test_backing_closes_once_the_hand_has_paid_out():
+    """By then who was right is public, and a bet on it is chips for nothing."""
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    deal_to_the_question(code)
+    for player in (ben, cleo):
+        lobbies.poker_answer(code, player, a_wrong_answer(code))
+    assert view(code).stage is PokerStage.payout
 
     with pytest.raises(ConflictError, match="nothing left to back"):
         lobbies.poker_back(code, anna, ben)
+
+
+def test_a_backer_who_wins_the_pot_himself_is_paid_from_it_once():
+    """Two bets, two payouts, and not a chip made up out of nowhere.
+
+    Backing somebody else while playing your own hand is a hedge, and both sides
+    of it can come in: the pot for the hand you played, the cut for the read you
+    made. The stakes still have to add up.
+    """
+    code, (_anna, _ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, cleo)
+    backer = view(code).to_act
+    other = next(
+        seat.player_id
+        for seat in view(code).seats
+        if seat.player_id not in (backer, cleo)
+    )
+    lobbies.poker_back(code, backer, other)
+
+    deal_to_the_question(code)
+    pot = view(code).pot
+    right = answer_key(code)[0]
+    lobbies.poker_answer(code, backer, right)
+    lobbies.poker_answer(code, other, right)
+
+    cut = pot // poker.SIDE_BET_SHARE
+    backer_won, other_won = seat_of(code, backer).won, seat_of(code, other).won
+
+    assert backer_won + other_won == pot, "the whole pot, and not a chip more"
+    assert backer_won > (pot - cut) // 2, "their share of the rest, and the cut on top"
+    assert other_won > 0, "and the player they backed is not paying for the privilege"
+    assert sum(seat.stack for seat in view(code).seats) == 3 * poker.STARTING_STACK
 
 
 # ---------------------------------------------------------------------------

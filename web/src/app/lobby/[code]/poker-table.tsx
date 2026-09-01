@@ -30,7 +30,15 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronsUp, Coins, Crown, Flame, Loader2, X } from "lucide-react";
+import {
+  Check,
+  ChevronsUp,
+  Coins,
+  Flame,
+  HandCoins,
+  Loader2,
+  X,
+} from "lucide-react";
 
 /** Tenths of a pot a run is worth, capped. Mirrors `poker.STREAK_TENTHS`. */
 const STREAK_TENTHS = 3;
@@ -38,7 +46,12 @@ const STREAK_TENTHS = 3;
 import { AnswerPool } from "@/components/answer-pool";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { HURRY_FROM, play, playCountdown } from "@/lib/sound";
 import { cn } from "@/lib/utils";
@@ -162,6 +175,11 @@ export function PokerTable({
   const nameOf = (id: string) =>
     lobby.players.find((player) => player.id === id)?.nickname ?? "—";
 
+  /* Only ever answers once the hand is over: `options` arrive with the answers
+     and the answers with the payout, so before then there is nothing to name. */
+  const labelOf = (id: string | null) =>
+    poker.options.find((option) => option.id === id)?.label ?? null;
+
   /* What the bars are drawn against: the biggest stack at the table, or the pot
      where that is bigger still. Early in a hand the pot is most of the chips
      that have moved, and a bar scaled to a full stack would never leave zero. */
@@ -181,7 +199,12 @@ export function PokerTable({
   return (
     <>
       {curtain ? <Curtain curtain={curtain} /> : null}
-      <div className="mx-auto w-full max-w-3xl space-y-3">
+      {/* Wider than the table needs, because the table is no longer the whole
+          of it: from `lg` the side betting takes a rail of its own beside the
+          felt, on the same measurements Classic's board and its turn order use.
+          Below `lg` the grid collapses to one column and the rail falls in
+          under the action bar, which is where a thumb already is. */}
+      <div className="mx-auto w-full max-w-3xl space-y-3 lg:max-w-6xl">
       <div className="flex items-center justify-between gap-2">
         {/* An open-end table has no "of": it is over when one player has the
             chips, and a total drawn from the question pool would be a promise
@@ -205,9 +228,13 @@ export function PokerTable({
         ) : null}
       </div>
 
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="min-w-0 space-y-3">
       {/* Taller than it is wide on a phone, where a landscape table would leave
           the felt too narrow to read a question off; landscape from `sm`, which
-          is the shape of the real thing. */}
+          is the shape of the real thing. The chairs are laid on this box, so it
+          keeps its own aspect ratio and simply gets a narrower one to work in
+          -- nothing about the ring cares how wide the column is. */}
       <div className="relative aspect-[4/5] w-full sm:aspect-[16/10]">
         <Felt poker={poker} biggest={biggest} />
         {around.map((seat, index) => {
@@ -230,6 +257,7 @@ export function PokerTable({
                 isDealer={seat.player_id === poker.button_id}
                 onTheClock={seat.player_id === poker.to_act}
                 backing={seat.backing ? nameOf(seat.backing) : null}
+                pick={labelOf(seat.answer_category_id)}
                 biggest={biggest}
                 stage={poker.stage}
                 stakeBelow={chair.upper}
@@ -240,7 +268,7 @@ export function PokerTable({
       </div>
 
       {poker.stage === "payout" && poker.result ? (
-        <Payout poker={poker} nameOf={nameOf} secondsLeft={secondsLeft} />
+        <Payout poker={poker} me={me} nameOf={nameOf} secondsLeft={secondsLeft} />
       ) : poker.stage === "answering" ? (
         <Answering
           poker={poker}
@@ -258,9 +286,24 @@ export function PokerTable({
           nameOf={nameOf}
           busy={busy}
           onAct={onAct}
-          onBack={onBack}
         />
       )}
+      </div>
+
+      {/* Always there, at every stage, whether you are in the hand or out of
+          it. That is the whole point of the rail: the side betting is a second
+          game running beside the first, and a panel that only appears once you
+          fold is a consolation prize instead. */}
+      <aside className="lg:sticky lg:top-0 lg:self-start">
+        <SideBets
+          poker={poker}
+          me={me}
+          nameOf={nameOf}
+          busy={busy}
+          onBack={onBack}
+        />
+      </aside>
+      </div>
       </div>
     </>
   );
@@ -521,6 +564,7 @@ function Seat({
   isDealer,
   onTheClock,
   backing,
+  pick,
   biggest,
   stage,
   stakeBelow,
@@ -532,6 +576,8 @@ function Seat({
   onTheClock: boolean;
   /** Who they are behind, having folded. */
   backing: string | null;
+  /** What they answered, in words. Named only once the hand has paid out. */
+  pick: string | null;
   /** The biggest stack at the table, for the bar to be read against. */
   biggest: number;
   stage: PokerView["stage"];
@@ -540,15 +586,24 @@ function Seat({
 }) {
   const out = seat.folded || seat.sitting_out;
   const stake = seat.committed + seat.side_stake;
+  /* Right or wrong, and only at the payout: a plaque that went green while the
+     answers were still coming in would answer the question for the table.
+     Null for anyone who was not in the hand -- there is no verdict on a fold. */
+  const verdict = stage === "payout" ? seat.is_correct : null;
+  /* What they answered takes the note over at the payout, because that is the
+     one moment it is worth a line: every plaque says what its player thought,
+     coloured by whether it was right, and the table reads as one reveal. */
   const note = seat.sitting_out
     ? "sitting out"
-    : seat.all_in
-      ? "all in"
-      : seat.folded
-        ? backing
-          ? `behind ${backing}`
-          : "folded"
-        : null;
+    : verdict !== null
+      ? (pick ?? "no answer")
+      : seat.all_in
+        ? "all in"
+        : seat.folded
+          ? backing
+            ? `behind ${backing}`
+            : "folded"
+          : null;
 
   return (
     <div
@@ -558,6 +613,8 @@ function Seat({
            transition on the same property fights the animation for it. */
         "ease-(--ease-soft) transition-[opacity,border-color,background-color] duration-300",
         onTheClock && "border-primary ring-primary/40 ring-2",
+        verdict === true && "border-success ring-success/40 ring-2",
+        verdict === false && "border-destructive/60 ring-destructive/25 ring-2",
         out && "opacity-60",
       )}
     >
@@ -577,8 +634,10 @@ function Seat({
           {name}
           {isMe ? <span className="text-muted-foreground"> (you)</span> : null}
         </span>
-        {seat.is_correct === true ? (
-          <Crown className="size-3 shrink-0 text-amber-500" aria-label="Right" />
+        {verdict === true ? (
+          <Check className="text-success size-3 shrink-0" aria-label="Right" />
+        ) : verdict === false ? (
+          <X className="text-destructive size-3 shrink-0" aria-label="Wrong" />
         ) : null}
         {stage === "answering" && seat.has_answered ? (
           <Check className="text-success size-3 shrink-0" aria-label="Answered" />
@@ -610,7 +669,13 @@ function Seat({
       </div>
 
       {note ? (
-        <p className="text-muted-foreground truncate text-[9px] sm:text-[10px]">
+        <p
+          className={cn(
+            "text-muted-foreground truncate text-[9px] sm:text-[10px]",
+            verdict === true && "text-success font-semibold",
+            verdict === false && "text-destructive line-through",
+          )}
+        >
           {note}
         </p>
       ) : null}
@@ -692,7 +757,6 @@ function Betting({
   nameOf,
   busy,
   onAct,
-  onBack,
 }: {
   poker: PokerView;
   me: PokerSeat | null;
@@ -700,7 +764,6 @@ function Betting({
   nameOf: (id: string) => string;
   busy: boolean;
   onAct: (action: PokerAction, amount?: number) => void;
-  onBack: (backedId: string) => void;
 }) {
   /* Which button was pressed. `busy` already says a move is in flight but not
      which one, and which one is the whole job here: it is what lets every move
@@ -713,8 +776,11 @@ function Betting({
     return <Waiting>Sitting this hand out.</Waiting>;
   }
 
+  /* A folded player is told so and nothing more. What they can still do about
+     it is in the rail, where it was all along and where it stays whether they
+     folded or not. */
   if (me.folded) {
-    return <Backing poker={poker} me={me} nameOf={nameOf} busy={busy} onBack={onBack} />;
+    return <Waiting>You folded. Watching this one out.</Waiting>;
   }
 
   if (poker.to_act !== playerId) {
@@ -839,6 +905,7 @@ function Act({
   tone,
   chosen,
   dimmed,
+  className,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -852,6 +919,8 @@ function Act({
   chosen: boolean;
   /** One of the ones that was not, while a move is in flight. */
   dimmed: boolean;
+  /** Sizing for where it sits -- the bar under the felt, or the rail beside it. */
+  className?: string;
   onClick: () => void;
 }) {
   return (
@@ -870,6 +939,7 @@ function Act({
         chosen &&
           "animate-quiz-zoom outline-primary z-10 scale-[1.03] shadow-lg outline-2 outline-offset-2 outline-solid disabled:opacity-100",
         dimmed && "scale-[0.98] opacity-40 saturate-0 shadow-none disabled:opacity-40",
+        className,
       )}
       disabled={chosen || dimmed}
       onClick={onClick}
@@ -888,14 +958,24 @@ function Act({
 }
 
 /**
- * Out of the hand, but not out of the game.
+ * The side bets, as a rail that is always there.
  *
- * A folded player can put a big blind behind somebody still in it. It gives the
- * players who folded early something to do besides watch, and it is a real read
- * rather than a raffle: you fold before the question is up, so you are betting
- * on who at this table knows their subjects.
+ * A second game running beside the first. You do not have to fold to play it
+ * and you do not have to wait for your turn: put a big blind behind anybody
+ * still in the hand, at any point before it pays out, and take a share of the
+ * pot they take. It is a real read rather than a raffle -- you are betting on
+ * who at this table knows their subjects, and the earlier you call it the less
+ * you know when you do.
+ *
+ * It keeps its place at every stage and in every state, which is the point of
+ * putting it in a rail. A panel that appeared only once you folded said that
+ * side betting was what you did instead of playing; a rail says it is another
+ * thing you can be doing while you play. So the card is always rendered, and
+ * what changes inside it is only which of its four things it has to say: what
+ * your run is worth, what you have already put on, who you could put it on, and
+ * what the rest of the table has riding.
  */
-function Backing({
+function SideBets({
   poker,
   me,
   nameOf,
@@ -903,7 +983,7 @@ function Backing({
   onBack,
 }: {
   poker: PokerView;
-  me: PokerSeat;
+  me: PokerSeat | null;
   nameOf: (id: string) => string;
   busy: boolean;
   onBack: (backedId: string) => void;
@@ -911,65 +991,144 @@ function Backing({
   const [pressed, setPressed] = useState<string | null>(null);
   const pending = busy ? pressed : null;
 
-  if (me.backing) {
-    return (
-      <Waiting>
-        You are behind {nameOf(me.backing)} for {me.side_stake}. A share of
-        whatever pot they take is yours -- paid by the pot, not by them.
-      </Waiting>
-    );
-  }
-
-  const candidates = poker.seats.filter((seat) => !seat.folded && !seat.sitting_out);
-  if (me.stack < poker.big_blind || candidates.length === 0) {
-    return <Waiting>You folded. Watching this one out.</Waiting>;
-  }
+  /* Everything the rail knows, worked out once. `open` is the server's rule
+     restated: any stage but the payout, a seat that was dealt in, one bet a
+     hand, and a stake that is not the chips you had left to play with. */
+  const live = poker.stage !== "payout";
+  const bets = poker.seats.flatMap((seat) =>
+    seat.backing ? [{ seat, on: seat.backing }] : [],
+  );
+  const candidates = poker.seats.filter(
+    (seat) => !seat.folded && !seat.sitting_out && seat.player_id !== me?.player_id,
+  );
+  const spare = me ? me.stack - poker.big_blind : 0;
+  const afford = me ? spare > 0 || (spare === 0 && me.folded) : false;
+  const open =
+    live && Boolean(me) && !me?.sitting_out && !me?.backing && afford &&
+    candidates.length > 0;
 
   return (
-    <Card>
-      <CardContent className="space-y-2">
-        <p className="flex items-center gap-1.5 text-sm">
-          You folded. Put {poker.big_blind} behind someone still in it?
-          {me.side_streak > 0 ? (
-            <span className="flex items-center gap-0.5 font-mono font-bold text-amber-500">
-              <Flame className="size-3.5" aria-hidden />×
+    <Card className="lg:shrink-0">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-1.5 text-sm">
+          <HandCoins className="size-4" aria-hidden />
+          Side bets
+          {/* Your multiplier, in the rail as well as on your plaque: it is the
+              number the decision below is actually made on. */}
+          {me && me.side_streak > 0 ? (
+            <span
+              key={me.side_streak}
+              className="animate-quiz-pop ml-auto flex items-center gap-0.5 rounded-full bg-amber-400 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-950"
+              title={`${me.side_streak} side bets in a row`}
+            >
+              <Flame className="size-3" aria-hidden />×
               {Math.min(me.side_streak + 1, STREAK_TENTHS)}
             </span>
           ) : null}
-        </p>
-        <p className="text-muted-foreground text-xs">
-          They answer right and your stake comes back with a share of the pot,
-          split with anyone else who backed a winner: a tenth of it, two tenths
-          on a second call in a row, three on a third and after. Wrong, and the
-          stake joins the pot for whoever does take it and your run starts over.
-          It costs them nothing either way -- money on them buys them the bigger
-          half of a pot they have to split.
-        </p>
-        {/* The same chips the betting bar is made of, and the same answer to a
-            click: the one you picked lights up, the rest go out. */}
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
-          {candidates.map((seat) => (
-            <Act
-              key={seat.player_id}
-              icon={Coins}
-              label={nameOf(seat.player_id)}
-              amount={poker.big_blind}
-              variant="outline"
-              tone=""
-              chosen={pending === seat.player_id}
-              dimmed={
-                (busy || pending !== null) && pending !== seat.player_id
-              }
-              onClick={() => {
-                setPressed(seat.player_id);
-                onBack(seat.player_id);
-              }}
-            />
-          ))}
-        </div>
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {open ? (
+          <>
+            <p className="text-sm">
+              Put {poker.big_blind} behind someone still in it?
+            </p>
+            {/* The same chips the betting bar is made of, and the same answer
+                to a click: the one you picked lights up, the rest go out. Full
+                width here, because a rail is a column and a ragged row of
+                name-sized buttons in one reads as an accident. */}
+            <div className="flex flex-col gap-2">
+              {candidates.map((seat) => (
+                <Act
+                  key={seat.player_id}
+                  icon={Coins}
+                  label={nameOf(seat.player_id)}
+                  amount={null}
+                  variant="outline"
+                  tone=""
+                  className="w-full grow-0 basis-auto justify-start"
+                  chosen={pending === seat.player_id}
+                  dimmed={(busy || pending !== null) && pending !== seat.player_id}
+                  onClick={() => {
+                    setPressed(seat.player_id);
+                    onBack(seat.player_id);
+                  }}
+                />
+              ))}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              They answer right and your stake comes back with a share of the
+              pot, split with anyone else who backed a winner: a tenth of it,
+              two tenths on a second call in a row, three on a third and after.
+              Wrong, and the stake joins the pot for whoever does take it and
+              your run starts over. It costs them nothing either way -- money on
+              them buys them the bigger half of a pot they have to split.
+            </p>
+          </>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            {noBet(poker, me, candidates, nameOf)}
+          </p>
+        )}
+
+        {/* What the rest of the table has riding, which is half of why the rail
+            is worth its width: a side bet is public from the moment it is
+            placed, and who is behind whom is the thing to talk about while
+            somebody else is thinking. */}
+        {bets.length > 0 ? (
+          <div className="space-y-1 border-t pt-2">
+            {bets.map(({ seat, on }) => (
+              <div
+                key={seat.player_id}
+                className={cn(
+                  "flex items-center gap-1.5 text-xs",
+                  seat.player_id === me?.player_id && "font-medium",
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {seat.player_id === me?.player_id ? "You" : nameOf(seat.player_id)}
+                  <span className="text-muted-foreground"> on </span>
+                  {nameOf(on)}
+                </span>
+                <span className="flex shrink-0 items-center gap-0.5 font-mono tabular-nums text-amber-500">
+                  <Coins className="size-3" aria-hidden />
+                  {seat.side_stake}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
+}
+
+/**
+ * What the rail says when it has no bet to offer.
+ *
+ * Ordered by what the player most needs to hear rather than by how the guards
+ * happen to be written on the server: the bet you already have first, then
+ * whether there is anything to bet on, then the money.
+ */
+function noBet(
+  poker: PokerView,
+  me: PokerSeat | null,
+  candidates: PokerSeat[],
+  nameOf: (id: string) => string,
+) {
+  if (me?.backing) {
+    return `You are behind ${nameOf(me.backing)} for ${me.side_stake}. A share of whatever pot they take is yours -- paid by the pot, not by them.`;
+  }
+  if (!me || me.sitting_out) return "You are sitting this hand out.";
+  if (poker.stage === "payout") {
+    return "The hand is settled. The next one deals in a moment.";
+  }
+  if (candidates.length === 0) return "Nobody left to back on this one.";
+  if (me.stack < poker.big_blind) {
+    return `Backing someone costs ${poker.big_blind}, and you are short of it.`;
+  }
+  return "A side bet cannot be the chips you have left to play with.";
 }
 
 /**
@@ -1056,18 +1215,32 @@ function Answering({
   );
 }
 
-/** What the hand was for, once it is over. */
+/**
+ * What the hand was for, once it is over.
+ *
+ * The pool comes back up rather than being replaced by a sentence naming the
+ * answer. It is the same board the table just bet on, so the answer lands where
+ * the question was asked -- green on the one that was right, red on the one you
+ * picked if it was not. Who else was right is on the plaques, where the players
+ * are.
+ */
 function Payout({
   poker,
+  me,
   nameOf,
   secondsLeft,
 }: {
   poker: PokerView;
+  me: PokerSeat | null;
   nameOf: (id: string) => string;
   secondsLeft: number | null;
 }) {
   const result = poker.result;
   if (!result) return null;
+
+  /* No key means no reveal to draw: the pool would come back up as a live
+     question nobody could answer. The line below still says so in words. */
+  const answerId = result.correct_category_ids[0] ?? null;
 
   return (
     <Card>
@@ -1076,14 +1249,28 @@ function Payout({
           <p className="font-medium">
             Everyone folded — the pot goes without a question being asked.
           </p>
-        ) : (
-          <p>
-            <span className="text-muted-foreground">The answer was </span>
-            <span className="font-medium">
-              {result.correct_labels.join(", ") || "—"}
-            </span>
-          </p>
-        )}
+        ) : null}
+
+        {answerId && poker.options.length > 0 ? (
+          <div className="space-y-2">
+            <p className="font-medium">
+              Where does {poker.question?.label ?? "it"} belong?
+            </p>
+            <AnswerPool
+              items={poker.options}
+              selectedId={me?.answer_category_id ?? null}
+              correctId={answerId}
+              onSelect={() => {}}
+            />
+          </div>
+        ) : null}
+
+        <p>
+          <span className="text-muted-foreground">The answer was </span>
+          <span className="text-success font-medium">
+            {result.correct_labels.join(", ") || "—"}
+          </span>
+        </p>
         {result.explanation ? (
           <p className="text-muted-foreground">{result.explanation}</p>
         ) : null}
