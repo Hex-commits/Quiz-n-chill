@@ -1173,22 +1173,14 @@ function Answering({
     (seat) => !seat.folded && !seat.sitting_out,
   ).length;
 
-  if (!me || me.folded || me.sitting_out) {
-    return (
-      <Waiting>
-        {me?.backing ? "Riding on your pick. " : "Out of this one. "}
-        {answered} of {answering} have answered.
-      </Waiting>
-    );
-  }
-
-  if (me.has_answered) {
-    return (
-      <Waiting>
-        Locked in. {answered} of {answering} have answered.
-      </Waiting>
-    );
-  }
+  /* Out of the hand, or done with it. Either way there is no answer left to
+     give -- and either way the question is still worth reading. Being out of a
+     hand is not being out of the quiz: the folded player is watching this one
+     to find out whether they were right to fold, the backer has money riding on
+     somebody else's answer, and both of them want to know it before the payout
+     tells them. */
+  const out = !me || me.folded || me.sitting_out;
+  const watching = out || Boolean(me?.has_answered);
 
   return (
     <Card>
@@ -1205,23 +1197,38 @@ function Answering({
           value={((secondsLeft ?? 0) / Math.max(seconds, 1)) * 100}
           className="h-1.5"
         />
+        {/* `readOnly` rather than `disabled`: see the pool. A watcher is reading
+            these, not choosing between them, and greying them out would make
+            the question harder to follow than not showing it at all. */}
         <AnswerPool
           items={poker.options}
-          selectedId={picked}
-          disabled={busy}
+          selectedId={out ? null : picked}
+          disabled={busy && !watching}
+          readOnly={watching}
           onSelect={setPicked}
         />
-        {/* As heavy as the chips above it: the pool is the decision, and this
-            is the half of it that spends chips. */}
-        <Button
-          size="lg"
-          className="w-full"
-          disabled={busy || picked === null}
-          onClick={() => picked && onAnswer(picked)}
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-          Lock in
-        </Button>
+        {watching ? (
+          <p className="text-muted-foreground text-center text-sm">
+            {!out
+              ? "Locked in."
+              : me?.backing
+                ? "Riding on your pick."
+                : "Out of this one."}{" "}
+            {answered} of {answering} have answered.
+          </p>
+        ) : (
+          /* As heavy as the chips above it: the pool is the decision, and this
+             is the half of it that spends chips. */
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={busy || picked === null}
+            onClick={() => picked && onAnswer(picked)}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+            Lock in
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

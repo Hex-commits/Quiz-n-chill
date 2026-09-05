@@ -48,6 +48,7 @@ export function AnswerPool({
   selectedId,
   correctId,
   disabled,
+  readOnly,
   onSelect,
   onPick,
   pulse,
@@ -61,6 +62,13 @@ export function AnswerPool({
    */
   correctId?: string | null;
   disabled?: boolean;
+  /**
+   * Shown to somebody who has no answer to give — out of the hand, or already
+   * locked in. Not `disabled`, for the reason the reveal is not: a pool nobody
+   * can click is still a pool somebody is reading, and half-faded is the one
+   * thing it must not be.
+   */
+  readOnly?: boolean;
   /** Called with null when the pick is being taken back. */
   onSelect: (itemId: string | null) => void;
   /**
@@ -126,8 +134,9 @@ export function AnswerPool({
                 wrong && "outline-destructive z-10 outline-solid outline-2 outline-offset-2",
                 /* A revealed pool is a statement, not a question. Left visible
                    rather than `disabled`, which would fade the answer just as
-                   it is being made. */
-                correctId != null && "pointer-events-none",
+                   it is being made -- and the same goes for a pool being read
+                   by somebody who cannot answer it. */
+                (correctId != null || readOnly) && "pointer-events-none",
               )}
               variant={wrong ? "destructive" : picked || right ? "default" : "outline"}
               disabled={disabled}
