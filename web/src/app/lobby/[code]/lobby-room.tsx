@@ -52,7 +52,7 @@ import {
 import { copyText } from "@/lib/clipboard";
 import { forgetPlayer, recallPlayer } from "@/lib/identity";
 import { forgetPlayed, NO_PLAYED, playedSlugs, rememberPlayed } from "@/lib/played";
-import { subscribeToLobby } from "@/lib/realtime";
+import { subscribeToLobby, subscribeToPicks } from "@/lib/realtime";
 import { shuffleBySeed } from "@/lib/shuffle";
 import {
   HURRY_FROM,
@@ -162,6 +162,27 @@ export function LobbyRoom({
     open_end: false,
     turn_seconds: 30,
   });
+
+  /**
+   * The chip somebody else just clicked, and the line out to say so.
+   *
+   * Kept apart from `selectedItemId`, which is only ever this browser's own
+   * pick: what arrives here is a wiggle, not a selection. Only the player on the
+   * clock can place anything, so nothing about a pick is a secret the reveal
+   * has yet to make -- the rest of the table is watching one player think, and
+   * this is the part of that they can see.
+   */
+  const [pulse, setPulse] = useState<{ id: string } | null>(null);
+  const picks = useRef<{ send: (itemId: string) => void } | null>(null);
+
+  useEffect(() => {
+    const channel = subscribeToPicks(code, (itemId) => setPulse({ id: itemId }));
+    picks.current = channel;
+    return () => {
+      picks.current = null;
+      channel.close();
+    };
+  }, [code]);
 
   const versionRef = useRef(-1);
 
@@ -963,6 +984,8 @@ export function LobbyRoom({
                       selectedId={selectedItemId}
                       disabled={!isMyTurn || busy}
                       onSelect={setSelectedItemId}
+                      onPick={(itemId) => picks.current?.send(itemId)}
+                      pulse={pulse}
                     />
                     {lobby.timed_out ? (
                       <p className="text-muted-foreground flex items-center justify-center gap-2 pt-4 text-sm">

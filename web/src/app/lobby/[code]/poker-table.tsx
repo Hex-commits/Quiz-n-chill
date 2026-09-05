@@ -40,9 +40,6 @@ import {
   X,
 } from "lucide-react";
 
-/** Tenths of a pot a run is worth, capped. Mirrors `poker.STREAK_TENTHS`. */
-const STREAK_TENTHS = 3;
-
 import { AnswerPool } from "@/components/answer-pool";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -585,7 +582,7 @@ function Seat({
   stakeBelow: boolean;
 }) {
   const out = seat.folded || seat.sitting_out;
-  const stake = seat.committed + seat.side_stake;
+  const stake = seat.committed + (seat.side_free ? 0 : seat.side_stake);
   /* Right or wrong, and only at the payout: a plaque that went green while the
      answers were still coming in would answer the question for the table.
      Null for anyone who was not in the hand -- there is no verdict on a fold. */
@@ -594,7 +591,9 @@ function Seat({
      one moment it is worth a line: every plaque says what its player thought,
      coloured by whether it was right, and the table reads as one reveal. */
   const note = seat.sitting_out
-    ? "sitting out"
+    ? backing
+      ? `behind ${backing}`
+      : "sitting out"
     : verdict !== null
       ? (pick ?? "no answer")
       : seat.all_in
@@ -688,25 +687,6 @@ function Seat({
           title="Dealer"
         >
           D
-        </span>
-      ) : null}
-
-      {/* The opposite corner, and for the same reason the dealer button is on
-          one: a run is a standing fact about a player, not one of the things
-          they did this hand. The numeral is what the next side bet pays, in
-          tenths of a pot -- the multiplier itself rather than a count of what
-          got them there, which is the number they are deciding on. */}
-      {seat.side_streak > 0 ? (
-        <span
-          key={seat.side_streak}
-          className={cn(
-            "animate-quiz-pop absolute -top-1.5 -right-1.5 flex items-center gap-px rounded-full",
-            "bg-amber-400 px-1 py-0.5 font-mono text-[9px] font-bold text-amber-950 shadow",
-          )}
-          title={`${seat.side_streak} side bets in a row`}
-        >
-          <Flame className="size-2.5" aria-hidden />×
-          {Math.min(seat.side_streak + 1, STREAK_TENTHS)}
         </span>
       ) : null}
 
@@ -992,8 +972,8 @@ function SideBets({
   const pending = busy ? pressed : null;
 
   /* Everything the rail knows, worked out once. `open` is the server's rule
-     restated: any stage but the payout, a seat that was dealt in, one bet a
-     hand, and a stake that is not the chips you had left to play with. */
+     restated: any stage but the payout, a seat at the table, one bet a hand,
+     and a stake that is not the chips you had left to play with. */
   const live = poker.stage !== "payout";
   const bets = poker.seats.flatMap((seat) =>
     seat.backing ? [{ seat, on: seat.backing }] : [],
@@ -1001,11 +981,17 @@ function SideBets({
   const candidates = poker.seats.filter(
     (seat) => !seat.folded && !seat.sitting_out && seat.player_id !== me?.player_id,
   );
-  const spare = me ? me.stack - poker.big_blind : 0;
-  const afford = me ? spare > 0 || (spare === 0 && me.folded) : false;
+  const price = poker.side_price;
+  /* Out, and the bet is on the house. An empty stack is the one seat the deal
+     cannot reach, so there is nothing to stake and nothing to lose -- and this
+     is the only way back to being dealt in at all. */
+  const free = Boolean(me && me.sitting_out && me.stack === 0);
+  const spare = me ? me.stack - price : 0;
+  const afford =
+    free ||
+    (me ? spare > 0 || (spare === 0 && (me.folded || me.sitting_out)) : false);
   const open =
-    live && Boolean(me) && !me?.sitting_out && !me?.backing && afford &&
-    candidates.length > 0;
+    live && Boolean(me) && !me?.backing && afford && candidates.length > 0;
 
   return (
     <Card className="lg:shrink-0">
@@ -1013,16 +999,16 @@ function SideBets({
         <CardTitle className="flex items-center gap-1.5 text-sm">
           <HandCoins className="size-4" aria-hidden />
           Side bets
-          {/* Your multiplier, in the rail as well as on your plaque: it is the
-              number the decision below is actually made on. */}
-          {me && me.side_streak > 0 ? (
+          {/* What the next one costs, where the eye already is. It moves under
+              the player between streets, which is the whole of the mechanic. */}
+          {live && price > 0 ? (
             <span
-              key={me.side_streak}
+              key={price}
               className="animate-quiz-pop ml-auto flex items-center gap-0.5 rounded-full bg-amber-400 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-950"
-              title={`${me.side_streak} side bets in a row`}
+              title="What backing somebody costs at this stage"
             >
-              <Flame className="size-3" aria-hidden />×
-              {Math.min(me.side_streak + 1, STREAK_TENTHS)}
+              <Coins className="size-3" aria-hidden />
+              {price}
             </span>
           ) : null}
         </CardTitle>
@@ -1032,7 +1018,9 @@ function SideBets({
         {open ? (
           <>
             <p className="text-sm">
-              Put {poker.big_blind} behind someone still in it?
+              {free
+                ? "Nothing to bet with, so this one is free. Back someone still in it?"
+                : `Put ${price} behind someone still in it?`}
             </p>
             {/* The same chips the betting bar is made of, and the same answer
                 to a click: the one you picked lights up, the rest go out. Full
@@ -1058,12 +1046,15 @@ function SideBets({
               ))}
             </div>
             <p className="text-muted-foreground text-xs">
-              They answer right and your stake comes back with a share of the
-              pot, split with anyone else who backed a winner: a tenth of it,
-              two tenths on a second call in a row, three on a third and after.
-              Wrong, and the stake joins the pot for whoever does take it and
-              your run starts over. It costs them nothing either way -- money on
-              them buys them the bigger half of a pot they have to split.
+              {free
+                ? `They answer right and you are back in with ${price}. Wrong and
+                   you are no worse off than you already are.`
+                : `They answer right and you take ${price * 2}, paid by the house
+                   rather than out of their pot. Wrong, and the stake joins the
+                   pot for whoever does take it.`}{" "}
+              Waiting costs: the price goes up as the hand runs on, and so does
+              what it pays. It costs them nothing either way -- money on them
+              buys them the bigger half of a pot they have to split.
             </p>
           </>
         ) : (
@@ -1091,7 +1082,20 @@ function SideBets({
                   <span className="text-muted-foreground"> on </span>
                   {nameOf(on)}
                 </span>
-                <span className="flex shrink-0 items-center gap-0.5 font-mono tabular-nums text-amber-500">
+                <span
+                  className={cn(
+                    "flex shrink-0 items-center gap-0.5 font-mono tabular-nums",
+                    /* Quieter, because no chips moved for it: a free bet is a
+                       player with nothing reading the table, and the pill is
+                       otherwise a count of what somebody put up. */
+                    seat.side_free ? "text-muted-foreground" : "text-amber-500",
+                  )}
+                  title={
+                    seat.side_free
+                      ? "Nothing down -- they are playing their way back in"
+                      : undefined
+                  }
+                >
                   <Coins className="size-3" aria-hidden />
                   {seat.side_stake}
                 </span>
@@ -1118,15 +1122,16 @@ function noBet(
   nameOf: (id: string) => string,
 ) {
   if (me?.backing) {
-    return `You are behind ${nameOf(me.backing)} for ${me.side_stake}. A share of whatever pot they take is yours -- paid by the pot, not by them.`;
+    const takes = me.side_free ? me.side_stake : me.side_stake * 2;
+    return `You are behind ${nameOf(me.backing)} for ${me.side_free ? "nothing" : me.side_stake}. They answer right and you take ${takes}, paid by the house rather than out of their pot.`;
   }
-  if (!me || me.sitting_out) return "You are sitting this hand out.";
+  if (!me) return "You are watching this one.";
   if (poker.stage === "payout") {
     return "The hand is settled. The next one deals in a moment.";
   }
   if (candidates.length === 0) return "Nobody left to back on this one.";
-  if (me.stack < poker.big_blind) {
-    return `Backing someone costs ${poker.big_blind}, and you are short of it.`;
+  if (me.stack < poker.side_price) {
+    return `Backing someone costs ${poker.side_price} by now, and you are short of it.`;
   }
   return "A side bet cannot be the chips you have left to play with.";
 }

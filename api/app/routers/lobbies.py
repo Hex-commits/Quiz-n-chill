@@ -105,10 +105,11 @@ def poker_answer(code: str, payload: PokerAnswer) -> LobbyView:
 
 @router.post("/{code}/poker/back", response_model=LobbyView)
 def poker_back(code: str, payload: PokerBack) -> LobbyView:
-    """Back another player with a big blind, having folded your own hand.
+    """Put chips behind another player, at whatever the stage costs.
 
-    Right, and the stake comes back with a share of what they took. Wrong, and
-    it joins the pot for whoever does take it.
+    Right, and the stake comes back doubled, paid by the house. Wrong, and it
+    joins the pot for whoever does take it. A player with no chips left backs
+    for nothing and is paid the stake once, which is the way back into the game.
     """
     return service.poker_back(code, payload.player_id, payload.backed_id)
 
@@ -144,9 +145,9 @@ def mark_away(code: str, payload: PlayerAction) -> Response:
 def leave(code: str, payload: PlayerAction) -> Response:
     """Drop out of a lobby.
 
-    Works at any point. Mid-game the turn passes on if it was the leaver's, the
-    host role moves if the host left, and the lobby is discarded once the last
-    player is gone. The other players find out on their next poll.
+    Works at any point. Mid-game the turn passes on if it was the leaver's and
+    the host role moves if the host left. The other players find out on their
+    next poll. An emptied lobby stays put until its expiry sweeps it.
     """
     service.leave_lobby(code, payload.player_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

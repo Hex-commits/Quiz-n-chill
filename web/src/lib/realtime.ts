@@ -87,3 +87,53 @@ export function subscribeToLobby(
     void socket.removeChannel(channel);
   };
 }
+
+/**
+ * Picks, as they are made, on everybody's screen.
+ *
+ * A player considering an answer is not a move -- the move is the placement,
+ * and that still goes over HTTP and comes back as a `LobbyView` like every
+ * other one. But the table is watching one player think, and until now it had
+ * nothing to watch: the chip they clicked lit up in their own browser and
+ * nowhere else. This carries that click, and only that click.
+ *
+ * Its own topic rather than `lobby:CODE`, which belongs to the API -- clients
+ * only ever listen there. Two topics also means the server is never taught an
+ * event it has no opinion about, and joining one topic twice on a single socket
+ * is a duplicate join.
+ *
+ * Nothing here is authoritative. The payload is an item id the receiver already
+ * has in its pool, sent by someone who already holds the lobby code; a forged
+ * one flashes a chip and changes no state. A dropped frame costs a flash.
+ */
+const PICK_EVENT = "answer-picked";
+
+export function subscribeToPicks(
+  code: string,
+  onPick: (itemId: string) => void,
+): { send: (itemId: string) => void; close: () => void } {
+  const socket = getClient();
+  if (!socket) return { send: () => {}, close: () => {} };
+
+  /* `self: false` is the default, and is set anyway: the picker's own chip has
+     already flared off the click, without waiting for a round trip. */
+  const channel: RealtimeChannel = socket.channel(`lobby:${code.toUpperCase()}:picks`, {
+    config: { broadcast: { self: false } },
+  });
+  channel
+    .on("broadcast", { event: PICK_EVENT }, (message) => {
+      const itemId = (message?.payload as { item_id?: unknown } | undefined)?.item_id;
+      if (typeof itemId === "string") onPick(itemId);
+    })
+    .subscribe();
+
+  return {
+    send: (itemId) =>
+      void channel.send({
+        type: "broadcast",
+        event: PICK_EVENT,
+        payload: { item_id: itemId },
+      }),
+    close: () => void socket.removeChannel(channel),
+  };
+}

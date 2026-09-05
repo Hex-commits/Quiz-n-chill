@@ -29,10 +29,32 @@
  * because CC BY-SA wants attribution wherever the work is shown.
  */
 
+import { useEffect, useRef } from "react";
+
 import { ImageCredit } from "@/components/category-image";
 import { Button } from "@/components/ui/button";
 import type { CategoryImage } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+/**
+ * Wiggle a chip, the way the lobby code wiggles when you copy it.
+ *
+ * By hand rather than by class, because the class alone only ever fires once:
+ * React leaves it on the element between picks, and an animation that is
+ * already applied does not restart when it is applied again. Taking it off,
+ * reading a layout property to force the removal to take, and putting it back
+ * is the way to say "again" to CSS.
+ *
+ * On the button itself rather than an overlay inside it. What the click has to
+ * say is that *this chip* was the one, and a chip that moves says it -- the
+ * same thing the code does when it has just been copied.
+ */
+function wobble(el: HTMLElement | null | undefined) {
+  if (!el) return;
+  el.classList.remove("animate-quiz-wobble");
+  void el.offsetWidth;
+  el.classList.add("animate-quiz-wobble");
+}
 
 export type Answer = {
   id: string;
@@ -47,6 +69,8 @@ export function AnswerPool({
   correctId,
   disabled,
   onSelect,
+  onPick,
+  pulse,
 }: {
   items: Answer[];
   selectedId: string | null;
@@ -59,7 +83,28 @@ export function AnswerPool({
   disabled?: boolean;
   /** Called with null when the pick is being taken back. */
   onSelect: (itemId: string | null) => void;
+  /**
+   * The chip that was clicked, whichever way the selection went -- so a pick
+   * being taken back is still a click, and still reportable. `onSelect` says
+   * what the pool now holds; this says what the player just pressed.
+   */
+  onPick?: (itemId: string) => void;
+  /**
+   * A pick made on somebody else's screen, to wiggle on this one too.
+   *
+   * A fresh object every time, even for the same chip twice: identity is what
+   * fires it, because an id on its own cannot tell a repeat from a re-render.
+   */
+  pulse?: { id: string } | null;
 }) {
+  /* Held so an incoming pick can be wiggled the same way a local one is --
+     there is one chip per answer, and a pick from either side moves it. */
+  const chips = useRef(new Map<string, HTMLButtonElement>());
+
+  useEffect(() => {
+    if (pulse) wobble(chips.current.get(pulse.id));
+  }, [pulse]);
+
   /* Mapped rather than filtered, so the narrowing survives: a `.filter` on a
      truthy field still hands back the optional type. */
   const credits = items.flatMap((item) =>
@@ -76,6 +121,10 @@ export function AnswerPool({
           return (
             <Button
               key={item.id}
+              ref={(el) => {
+                if (el) chips.current.set(item.id, el);
+                else chips.current.delete(item.id);
+              }}
               size="lg"
               className={cn(
                 "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-semibold whitespace-normal",
@@ -102,7 +151,11 @@ export function AnswerPool({
               variant={wrong ? "destructive" : picked || right ? "default" : "outline"}
               disabled={disabled}
               aria-pressed={picked}
-              onClick={() => onSelect(picked ? null : item.id)}
+              onClick={(event) => {
+                wobble(event.currentTarget);
+                onPick?.(item.id);
+                onSelect(picked ? null : item.id);
+              }}
             >
               {item.image ? (
                 /* Absolute inside a sized frame, as the category cards do it: in

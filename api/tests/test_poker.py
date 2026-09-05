@@ -549,7 +549,28 @@ def next_hand(code):
     view(code)
 
 
-def test_backing_costs_a_big_blind_and_says_who_you_are_behind():
+def price(code):
+    """What a side bet costs at the stage this hand has reached."""
+    return poker.SIDE_BET_LADDER[view(code).stage]
+
+
+def bust(code, player):
+    """Take a player's chips away and deal the hand that leaves them out.
+
+    Played out rather than just emptied, because `sitting_out` is decided when a
+    hand is dealt: a stack emptied mid-hand is still in the one being played.
+    """
+    deal_to_the_question(code)
+    for seat in view(code).seats:
+        if not (seat.folded or seat.sitting_out):
+            lobbies.poker_answer(code, seat.player_id, a_wrong_answer(code))
+    with lobbies.edit(code) as lobby:
+        lobby.poker.seat(player).stack = 0
+    next_hand(code)
+    assert seat_of(code, player).sitting_out
+
+
+def test_backing_costs_what_the_stage_costs_and_says_who_you_are_behind():
     code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"))
     fold_out(code, anna)
     stack = seat_of(code, anna).stack
@@ -558,13 +579,51 @@ def test_backing_costs_a_big_blind_and_says_who_you_are_behind():
 
     backer = seat_of(code, anna)
     assert backer.backing == ben
-    assert backer.side_stake == poker.BIG_BLIND
-    assert backer.stack == stack - poker.BIG_BLIND
+    assert backer.side_stake == poker.SIDE_BET_LADDER[PokerStage.preflop]
+    assert backer.stack == stack - backer.side_stake
 
 
-def test_backing_the_right_answer_returns_the_stake_with_a_share_of_the_pot():
+def test_the_price_of_a_side_bet_rises_as_the_hand_goes_on():
+    """A read is priced by how much of the hand it was made on.
+
+    The rung is charged at the moment the bet is placed, so a player who waits
+    to see the table play pays for having seen it -- and is paid more for it,
+    since what it pays is what they put up.
+    """
+    seen = []
+    for stage in poker.LIVE:
+        code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+        fold_out(code, anna)
+        while view(code).stage is not stage:
+            settle_bets(code)
+
+        assert view(code).side_price == poker.SIDE_BET_LADDER[stage]
+        lobbies.poker_back(code, anna, ben)
+        seen.append(seat_of(code, anna).side_stake)
+
+    assert seen == [10, 20, 50, 50]
+
+
+def test_the_price_is_zero_once_there_is_nothing_left_to_back():
     code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
     fold_out(code, anna)
+    deal_to_the_question(code)
+    for player in (ben, cleo):
+        lobbies.poker_answer(code, player, a_wrong_answer(code))
+
+    assert view(code).stage is PokerStage.payout
+    assert view(code).side_price == 0
+
+
+def test_backing_the_right_answer_pays_double_and_the_pot_keeps_its_chips():
+    """The house pays the rail, so the hand pays its winner in full.
+
+    Which is the whole of the change: what a hand is worth is settled by the
+    hand, and a player who won one is no worse off for having been watched.
+    """
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    stake = price(code)
     lobbies.poker_back(code, anna, ben)
     backer_stack = seat_of(code, anna).stack
 
@@ -573,15 +632,15 @@ def test_backing_the_right_answer_returns_the_stake_with_a_share_of_the_pot():
     lobbies.poker_answer(code, ben, answer_key(code)[0])
     lobbies.poker_answer(code, cleo, a_wrong_answer(code))
 
-    cut = pot // poker.SIDE_BET_SHARE
-    assert seat_of(code, anna).won == cut
-    assert seat_of(code, anna).stack == backer_stack + poker.BIG_BLIND + cut
-    assert seat_of(code, ben).won == pot - cut
+    assert seat_of(code, anna).won == stake * poker.SIDE_BET_PAYOUT
+    assert seat_of(code, anna).stack == backer_stack + stake * poker.SIDE_BET_PAYOUT
+    assert seat_of(code, ben).won == pot, "not a chip of it went to the rail"
 
 
 def test_backing_the_wrong_player_loses_the_stake_into_the_pot():
     code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
     fold_out(code, anna)
+    stake = price(code)
     lobbies.poker_back(code, anna, cleo)
     backer_stack = seat_of(code, anna).stack
 
@@ -590,14 +649,16 @@ def test_backing_the_wrong_player_loses_the_stake_into_the_pot():
     lobbies.poker_answer(code, ben, answer_key(code)[0])
     lobbies.poker_answer(code, cleo, a_wrong_answer(code))
 
-    assert seat_of(code, anna).stack == backer_stack
-    assert seat_of(code, ben).won == pot + poker.BIG_BLIND
+    assert seat_of(code, anna).stack == backer_stack, "nothing came back"
+    assert seat_of(code, ben).won == pot + stake
     assert sum(seat.stack for seat in view(code).seats) == 3 * poker.STARTING_STACK
 
 
-def test_two_backers_on_one_player_share_the_same_tenth():
+def test_two_backers_on_one_player_are_each_paid_in_full():
+    """Nobody splits anything. The bets are separate, and so are the payouts."""
     code, (anna, ben, cleo, dan) = setup_poker(("Anna", "Ben", "Cleo", "Dan"))
     fold_out(code, anna)
+    stake = price(code)
     lobbies.poker_back(code, anna, dan)
     fold_out(code, ben)
     lobbies.poker_back(code, ben, dan)
@@ -607,17 +668,18 @@ def test_two_backers_on_one_player_share_the_same_tenth():
     lobbies.poker_answer(code, cleo, a_wrong_answer(code))
     lobbies.poker_answer(code, dan, answer_key(code)[0])
 
-    cut = pot // poker.SIDE_BET_SHARE
-    assert seat_of(code, anna).won + seat_of(code, ben).won == cut
-    assert seat_of(code, dan).won == pot - cut
+    paid = stake * poker.SIDE_BET_PAYOUT
+    assert seat_of(code, anna).won == paid
+    assert seat_of(code, ben).won == paid
+    assert seat_of(code, dan).won == pot
 
 
 def test_a_split_pot_leans_towards_the_player_with_money_on_them():
     """Two right answers, one of them backed.
 
-    The tenth comes off the pot before it is shared, so both winners pay for the
-    side bet rather than the backed one paying for it alone -- and what is left
-    goes eleven parts to ten in favour of the player the money was on.
+    The pot is shared eleven parts to ten in favour of the player the money was
+    on -- and the whole of it is shared, because the side bet is not paid out of
+    it any more.
     """
     code, (anna, ben, cleo, dan) = setup_poker(("Anna", "Ben", "Cleo", "Dan"))
     fold_out(code, anna)
@@ -630,92 +692,24 @@ def test_a_split_pot_leans_towards_the_player_with_money_on_them():
     lobbies.poker_answer(code, ben, right)
     lobbies.poker_answer(code, cleo, right)
 
-    cut = pot // poker.SIDE_BET_SHARE
     backed, unbacked = seat_of(code, ben).won, seat_of(code, cleo).won
-    assert seat_of(code, anna).won == cut
-    assert backed + unbacked == pot - cut
+    assert backed + unbacked == pot
     assert backed > unbacked
-    assert sum(seat.stack for seat in view(code).seats) == 4 * poker.STARTING_STACK
 
 
-def test_a_backer_is_paid_out_of_a_pot_nobody_had_to_answer_for():
-    """Everyone else folded, so the side bet settles against the pot as it is."""
+def test_a_backer_is_paid_on_a_pot_nobody_had_to_answer_for():
+    """Everyone else folded, so the side bet settles on the hand as it ended."""
     code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
     fold_out(code, anna)
+    stake = price(code)
     lobbies.poker_back(code, anna, ben)
     backer_stack = seat_of(code, anna).stack
     fold_out(code, cleo)
 
-    pot = seat_of(code, anna).won + seat_of(code, ben).won
-    assert seat_of(code, anna).won == pot // poker.SIDE_BET_SHARE
-    assert seat_of(code, anna).stack == backer_stack + poker.BIG_BLIND + pot // 10
-    assert sum(seat.stack for seat in view(code).seats) == 3 * poker.STARTING_STACK
-
-
-def test_a_run_of_side_bets_pays_better_every_time():
-    """A tenth, then two, then three.
-
-    The reward for reading the table is that reading it again is worth more,
-    which is the whole of why anybody sits through a hand they folded.
-    """
-    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=3)
-
-    hands = []
-    for _ in range(3):
-        pot = a_backed_hand(code, anna, ben)
-        hands.append((seat_of(code, anna).won, pot))
-        next_hand(code)
-
-    for tenths, (won, pot) in zip((1, 2, 3), hands, strict=True):
-        assert won == pot * tenths // poker.SIDE_BET_SHARE
-
-
-def test_a_run_stops_paying_more_once_it_is_worth_three_tenths():
-    """The pot still has to be worth winning, however long anybody is running."""
-    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=5)
-    for _ in range(3):
-        a_backed_hand(code, anna, ben)
-        next_hand(code)
-
-    assert seat_of(code, anna).side_streak == 3
-    pot = a_backed_hand(code, anna, ben)
-
-    assert seat_of(code, anna).won == pot * poker.STREAK_TENTHS // poker.SIDE_BET_SHARE
-
-
-def test_one_miss_puts_a_run_back_to_a_tenth():
-    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=3)
-    a_backed_hand(code, anna, ben)
-    next_hand(code)
-    assert seat_of(code, anna).side_streak == 1
-
-    a_backed_hand(code, anna, ben, right=False)
-    assert seat_of(code, anna).side_streak == 0
-    next_hand(code)
-
-    pot = a_backed_hand(code, anna, ben)
-    assert seat_of(code, anna).won == pot // poker.SIDE_BET_SHARE
-
-
-def test_a_hand_you_did_not_back_leaves_your_run_alone():
-    """A run of side bets, not of hands. You cannot break one by not making one.
-
-    Backing takes folding first, and whether a hand gives you the chance is not
-    something a player picks.
-    """
-    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=3)
-    a_backed_hand(code, anna, ben)
-    next_hand(code)
-
-    deal_to_the_question(code)
-    for seat in view(code).seats:
-        if not (seat.folded or seat.sitting_out):
-            lobbies.poker_answer(code, seat.player_id, a_wrong_answer(code))
-    assert seat_of(code, anna).side_streak == 1
-    next_hand(code)
-
-    pot = a_backed_hand(code, anna, ben)
-    assert seat_of(code, anna).won == pot * 2 // poker.SIDE_BET_SHARE
+    paid = stake * poker.SIDE_BET_PAYOUT
+    assert seat_of(code, anna).won == paid
+    assert seat_of(code, anna).stack == backer_stack + paid
+    assert seat_of(code, ben).won > 0
 
 
 def test_a_player_still_in_the_hand_can_back_somebody_else():
@@ -732,13 +726,14 @@ def test_a_player_still_in_the_hand_can_back_somebody_else():
         if seat.player_id != backer and not seat.folded
     )
     stack = seat_of(code, backer).stack
+    stake = price(code)
 
     lobbies.poker_back(code, backer, target)
 
     seat = seat_of(code, backer)
-    assert (seat.backing, seat.side_stake) == (target, poker.BIG_BLIND)
+    assert (seat.backing, seat.side_stake) == (target, stake)
     assert seat.folded is False, "backing is not folding"
-    assert seat.stack == stack - poker.BIG_BLIND
+    assert seat.stack == stack - stake
     assert view(code).to_act == backer, "and it is still their turn to act"
 
 
@@ -775,7 +770,7 @@ def test_a_side_bet_may_not_be_the_chips_you_had_left_to_play():
         seat.player_id for seat in view(code).seats if seat.player_id != live
     )
     with lobbies.edit(code) as lobby:
-        lobby.poker.seat(live).stack = poker.BIG_BLIND
+        lobby.poker.seat(live).stack = price(code)
 
     with pytest.raises(ValidationError, match="chips you have left"):
         lobbies.poker_back(code, live, target)
@@ -783,6 +778,63 @@ def test_a_side_bet_may_not_be_the_chips_you_had_left_to_play():
     fold_out(code, live)
     lobbies.poker_back(code, live, target)
     assert seat_of(code, live).stack == 0
+
+
+def test_a_stack_too_short_for_the_rung_cannot_back_at_it():
+    """The price is the price.
+
+    Being nearly broke buys no discount. Only being broke outright changes the
+    terms, and that is a different bet -- see the free one below.
+    """
+    code, (anna, ben, _cleo) = setup_poker(("Anna", "Ben", "Cleo"))
+    fold_out(code, anna)
+    while view(code).stage is not PokerStage.turn:
+        settle_bets(code)
+    with lobbies.edit(code) as lobby:
+        lobby.poker.seat(anna).stack = poker.SIDE_BET_LADDER[PokerStage.turn] - 1
+
+    with pytest.raises(ValidationError, match="Backing someone costs 50"):
+        lobbies.poker_back(code, anna, ben)
+
+
+def test_a_player_with_no_chips_backs_for_nothing_and_wins_their_way_back_in():
+    """The way back to the table for somebody already off it.
+
+    They are not in the hand and cannot be -- the deal passes an empty stack by
+    -- so the bet costs nothing and pays what it was worth. One good read and
+    they are dealt in again.
+    """
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=4)
+    bust(code, anna)
+    stake = price(code)
+
+    lobbies.poker_back(code, anna, ben)
+    out = seat_of(code, anna)
+    assert (out.stack, out.side_stake, out.side_free) == (0, stake, True)
+
+    deal_to_the_question(code)
+    lobbies.poker_answer(code, ben, answer_key(code)[0])
+    lobbies.poker_answer(code, cleo, a_wrong_answer(code))
+
+    assert seat_of(code, anna).won == stake, "the stake once, not twice"
+    assert seat_of(code, anna).stack == stake
+    next_hand(code)
+    assert seat_of(code, anna).sitting_out is False, "and they are dealt back in"
+
+
+def test_a_free_bet_that_misses_costs_nothing_and_leaves_the_pot_alone():
+    """There is no stake to lose, so the pot is not handed one."""
+    code, (anna, ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"), hands=4)
+    bust(code, anna)
+    lobbies.poker_back(code, anna, cleo)
+
+    deal_to_the_question(code)
+    pot = view(code).pot
+    lobbies.poker_answer(code, ben, answer_key(code)[0])
+    lobbies.poker_answer(code, cleo, a_wrong_answer(code))
+
+    assert seat_of(code, anna).stack == 0
+    assert seat_of(code, ben).won == pot, "the pot is what the table put in"
 
 
 def test_backing_stays_open_while_the_answers_are_being_given():
@@ -810,12 +862,12 @@ def test_backing_closes_once_the_hand_has_paid_out():
         lobbies.poker_back(code, anna, ben)
 
 
-def test_a_backer_who_wins_the_pot_himself_is_paid_from_it_once():
-    """Two bets, two payouts, and not a chip made up out of nowhere.
+def test_a_backer_who_wins_the_pot_himself_is_paid_for_both():
+    """Two bets, two payouts, and neither one taken out of the other.
 
     Backing somebody else while playing your own hand is a hedge, and both sides
-    of it can come in: the pot for the hand you played, the cut for the read you
-    made. The stakes still have to add up.
+    of it can come in: the pot for the hand you played, the doubled stake for
+    the read you made.
     """
     code, (_anna, _ben, cleo) = setup_poker(("Anna", "Ben", "Cleo"))
     fold_out(code, cleo)
@@ -825,6 +877,7 @@ def test_a_backer_who_wins_the_pot_himself_is_paid_from_it_once():
         for seat in view(code).seats
         if seat.player_id not in (backer, cleo)
     )
+    stake = price(code)
     lobbies.poker_back(code, backer, other)
 
     deal_to_the_question(code)
@@ -833,13 +886,11 @@ def test_a_backer_who_wins_the_pot_himself_is_paid_from_it_once():
     lobbies.poker_answer(code, backer, right)
     lobbies.poker_answer(code, other, right)
 
-    cut = pot // poker.SIDE_BET_SHARE
+    paid = stake * poker.SIDE_BET_PAYOUT
     backer_won, other_won = seat_of(code, backer).won, seat_of(code, other).won
-
-    assert backer_won + other_won == pot, "the whole pot, and not a chip more"
-    assert backer_won > (pot - cut) // 2, "their share of the rest, and the cut on top"
+    assert backer_won + other_won == pot + paid, "the pot, and the bet on top"
+    assert backer_won - paid > 0, "their share of the pot as well as the payout"
     assert other_won > 0, "and the player they backed is not paying for the privilege"
-    assert sum(seat.stack for seat in view(code).seats) == 3 * poker.STARTING_STACK
 
 
 # ---------------------------------------------------------------------------
@@ -951,7 +1002,8 @@ def test_the_routes_carry_the_moves():
     )
     assert backed.status_code == 200
     seats = {s["player_id"]: s for s in backed.json()["poker"]["seats"]}
-    assert seats[str(on_the_clock)]["side_stake"] == poker.BIG_BLIND
+    preflop = poker.SIDE_BET_LADDER[PokerStage.preflop]
+    assert seats[str(on_the_clock)]["side_stake"] == preflop
 
 
 # ---------------------------------------------------------------------------

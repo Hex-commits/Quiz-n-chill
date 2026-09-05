@@ -85,14 +85,15 @@ class PokerSeat:
     second is what a side pot is built from when somebody is all in for less
     than the rest.
 
-    `backing` is who this player put chips behind after folding, and
-    `side_stake` is how many. Neither is part of the pot: the stake is out of
-    the stack from the moment it is placed, and where it ends up is decided when
-    the hand pays out.
+    `backing` is who this player put chips behind and `side_stake` is what that
+    cost, which is whatever the stage they placed it at was priced at. Neither is
+    part of the pot: the stake is out of the stack from the moment it is placed,
+    and where it ends up is decided when the hand pays out.
 
-    `side_streak` is the only thing on a seat that outlives the hand it was won
-    in -- how many side bets in a row this player has had come in, which is what
-    the next one pays out on.
+    `side_free` is a bet by a player who had nothing to bet. Their stack was
+    never touched, so there is nothing to return, nothing for the pot to collect
+    when it misses, and it pays the stake once rather than twice when it comes
+    in. It is the only way back to the table for a player with no chips.
     """
 
     player_id: UUID
@@ -108,7 +109,7 @@ class PokerSeat:
     won: int = 0
     backing: UUID | None = None
     side_stake: int = 0
-    side_streak: int = 0
+    side_free: bool = False
 
     def in_hand(self) -> bool:
         return not self.sitting_out and not self.folded

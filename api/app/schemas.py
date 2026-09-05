@@ -374,11 +374,11 @@ class PokerSeatView(BaseModel):
     won: int = 0
     backing: UUID | None = None
     side_stake: int = 0
-    side_streak: int = 0
-    """Side bets landed in a row, which is what the next one pays out on.
+    side_free: bool = False
+    """A bet placed by a player with no chips to place one with.
 
-    Public like the backing itself. A table that can see who is running hot has
-    something to talk about, and the player on the run has something to lose.
+    Public like the backing itself: what it says is that somebody knocked out is
+    reading the table for a way back, and the table can see them do it.
     """
 
 
@@ -433,6 +433,14 @@ class PokerView(BaseModel):
     current_bet: int = 0
     min_raise: int = 0
     big_blind: int = 0
+    side_price: int = 0
+    """What backing somebody costs right now, which rises as the hand goes on.
+
+    Sent rather than mirrored client-side, because it is the number on the
+    button the player is about to press and it changes under them: a rail
+    quoting the price from two streets ago is quoting the wrong bet. Zero once
+    the hand has paid out, when there is nothing left to back.
+    """
     button_id: UUID | None = None
     to_act: UUID | None = None
     seconds_left: int | None = None

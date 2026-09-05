@@ -351,8 +351,8 @@ def reset_to_lobby(code: str, player_id: UUID) -> LobbyView:
         return _view(lobby)
 
 
-def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
-    """Remove a player. Returns None if that emptied the lobby.
+def leave_lobby(code: str, player_id: UUID) -> LobbyView:
+    """Remove a player. The lobby stays, empty, until its expiry sweeps it.
 
     The awkward part is mid-game: `turn_cursor` is a position in `players`, so
     removing anyone re-indexes the list underneath it. Whoever should be on the
@@ -369,12 +369,7 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
 
         lobby.players.remove(player)
 
-        if not lobby.players:
-            emptied = True
-        else:
-            emptied = False
-
-        if not emptied:
+        if lobby.players:
             if not any(candidate.is_host for candidate in lobby.players):
                 lobby.players[0].is_host = True
 
@@ -385,13 +380,8 @@ def leave_lobby(code: str, player_id: UUID) -> LobbyView | None:
                 lobby.turn_cursor = _index_of(lobby, keep_id) if keep_id else 0
                 _maybe_finish_round(lobby)
 
-            lobby.touch()
-            view = _view(lobby)
-
-    if emptied:
-        _store.delete(code)
-        return None
-    return view
+        lobby.touch()
+        return _view(lobby)
 
 
 def get_view(code: str, player_id: UUID | None = None) -> LobbyView:
@@ -471,7 +461,7 @@ def poker_answer(code: str, player_id: UUID, category_id: UUID) -> LobbyView:
 
 
 def poker_back(code: str, player_id: UUID, backed_id: UUID) -> LobbyView:
-    """Put chips behind another player, having folded your own hand."""
+    """Put chips behind another player, in or out of the hand yourself."""
     with _mutate(code) as lobby:
         lobby.player(player_id)
         _heartbeat(lobby, player_id)

@@ -857,12 +857,11 @@ def test_the_host_role_moves_when_the_host_leaves():
     lobbies.start_game(code, ben, ["topic-a"])
 
 
-def test_the_last_player_leaving_discards_the_lobby():
+def test_the_last_player_leaving_keeps_the_lobby():
     code, anna = lobbies.create_lobby("Anna")
 
-    assert lobbies.leave_lobby(code, anna) is None
-    with pytest.raises(NotFoundError, match="No lobby"):
-        lobbies.get_view(code)
+    assert lobbies.leave_lobby(code, anna).players == []
+    assert lobbies.get_view(code).players == []
 
 
 def test_leaving_on_your_turn_passes_the_turn_on():
