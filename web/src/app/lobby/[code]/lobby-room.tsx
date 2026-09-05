@@ -73,7 +73,6 @@ import type {
   Subject,
 } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
-import { wobble } from "@/lib/wobble";
 import { cn } from "@/lib/utils";
 
 import { PokerTable } from "./poker-table";
@@ -91,6 +90,9 @@ const POLL_MS = 4_000;
 const SETTINGS_DEBOUNCE_MS = 400;
 
 const COPIED_MS = 2_000;
+
+/** Long enough to outlast `quiz-wobble`, which is what it is clearing up after. */
+const WOBBLE_MS = 700;
 
 /**
  * How long the count-in before a round lasts, mirroring `NEXT_ROUND_COUNTDOWN`
@@ -177,7 +179,12 @@ export function LobbyRoom({
   const picks = useRef<{ send: (itemId: string) => void } | null>(null);
 
   useEffect(() => {
-    const channel = subscribeToPicks(code, (itemId) => setPulse({ id: itemId }));
+    const channel = subscribeToPicks(code, (itemId) => {
+      setPulse({ id: itemId });
+      /* Cleared again on the way out, because it is an event and not a state:
+         a chip still holding the class would never wiggle a second time. */
+      window.setTimeout(() => setPulse(null), WOBBLE_MS);
+    });
     picks.current = channel;
     return () => {
       picks.current = null;
@@ -1963,11 +1970,21 @@ function CategoryCard({
   onPlace: () => void;
 }) {
   const missed = reveal !== null && reveal.solved_by === null;
+  /**
+   * One animation at a time, because they are one property.
+   *
+   * The card rises as it is dealt into the board, wiggles when an answer lands
+   * on it, and carries neither the rest of the time. Both classes at once would
+   * be settled by which was written first in the stylesheet, and taking the
+   * wiggle off afterwards would set the entrance running again.
+   */
+  const [phase, setPhase] = useState<"rise" | "idle" | "wobble">("rise");
 
   return (
     <Card
       className={cn(
-        "animate-quiz-rise",
+        phase === "rise" && "animate-quiz-rise",
+        phase === "wobble" && "animate-quiz-wobble",
         "lg:min-h-0 lg:[--card-spacing:--spacing(2)]",
         /* The card carries its own width now that the parent names no tracks,
            and it is stated as a share of the line rather than in pixels:
@@ -1996,14 +2013,21 @@ function CategoryCard({
         full && !reveal && "bg-muted/50 opacity-60",
         missed && "border-amber-500/50",
       )}
-      style={{ animationDelay: `${enterDelayMs}ms` }}
+      /* The stagger belongs to the entrance. A wiggle is a reply to a click
+         and cannot arrive a third of a second after it. */
+      style={{ animationDelay: phase === "rise" ? `${enterDelayMs}ms` : "0s" }}
+      /* By name: the badges inside the card pop as answers land in it, and
+         their animation ends on this element too. */
+      onAnimationEnd={(event) => {
+        if (event.animationName !== "quiz-pop") setPhase("idle");
+      }}
       /* The card is the answer being given -- the pool above only picks which
          one -- so it is the card that says the click landed. Armed only: an
          unarmed one is not refusing a click, it is not a target yet. */
       onClick={
         armed
-          ? (event) => {
-              wobble(event.currentTarget);
+          ? () => {
+              setPhase("wobble");
               onPlace();
             }
           : undefined

@@ -29,13 +29,12 @@
  * because CC BY-SA wants attribution wherever the work is shown.
  */
 
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 
 import { ImageCredit } from "@/components/category-image";
 import { Button } from "@/components/ui/button";
 import type { CategoryImage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { wobble } from "@/lib/wobble";
 
 export type Answer = {
   id: string;
@@ -78,13 +77,15 @@ export function AnswerPool({
    */
   pulse?: { id: string } | null;
 }) {
-  /* Held so an incoming pick can be wiggled the same way a local one is --
-     there is one chip per answer, and a pick from either side moves it. */
-  const chips = useRef(new Map<string, HTMLButtonElement>());
-
-  useEffect(() => {
-    if (pulse) wobble(chips.current.get(pulse.id));
-  }, [pulse]);
+  /**
+   * The chip this browser just clicked, until its wiggle is over.
+   *
+   * Rendered rather than put on the element by hand. A click changes what the
+   * pool holds, React writes the new `className` over the old one on the
+   * re-render that follows, and a class added behind its back is gone in the
+   * same tick -- before the animation has had a frame.
+   */
+  const [clicked, setClicked] = useState<string | null>(null);
 
   /* Mapped rather than filtered, so the narrowing survives: a `.filter` on a
      truthy field still hands back the optional type. */
@@ -102,10 +103,6 @@ export function AnswerPool({
           return (
             <Button
               key={item.id}
-              ref={(el) => {
-                if (el) chips.current.set(item.id, el);
-                else chips.current.delete(item.id);
-              }}
               size="lg"
               className={cn(
                 "quiz-shine h-auto min-h-12 px-5 py-2.5 text-base font-semibold whitespace-normal",
@@ -117,6 +114,9 @@ export function AnswerPool({
                    picked. */
                 "hover:z-10 hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-lg",
                 "active:translate-y-0 active:scale-[0.98] active:duration-75",
+                /* Somebody picked this one -- here or on another screen. */
+                (clicked === item.id || pulse?.id === item.id) &&
+                  "animate-quiz-wobble",
                 picked &&
                   "outline-primary z-10 scale-[1.03] shadow-lg outline-solid outline-2 outline-offset-2",
                 /* The answer is the loudest chip in the pool -- filled, lifted
@@ -132,10 +132,16 @@ export function AnswerPool({
               variant={wrong ? "destructive" : picked || right ? "default" : "outline"}
               disabled={disabled}
               aria-pressed={picked}
-              onClick={(event) => {
-                wobble(event.currentTarget);
+              onClick={() => {
+                setClicked(item.id);
                 onPick?.(item.id);
                 onSelect(picked ? null : item.id);
+              }}
+              /* By name, because `quiz-shine` runs on a pseudo-element of this
+                 same button and its animation ends here too -- on the hover
+                 that comes with every click. */
+              onAnimationEnd={(event) => {
+                if (event.animationName === "quiz-wobble") setClicked(null);
               }}
             >
               {item.image ? (
