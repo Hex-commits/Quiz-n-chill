@@ -73,6 +73,7 @@ import type {
   Subject,
 } from "@/lib/types";
 import { useStored } from "@/lib/use-stored";
+import { wobble } from "@/lib/wobble";
 import { cn } from "@/lib/utils";
 
 import { PokerTable } from "./poker-table";
@@ -1996,7 +1997,17 @@ function CategoryCard({
         missed && "border-amber-500/50",
       )}
       style={{ animationDelay: `${enterDelayMs}ms` }}
-      onClick={armed ? onPlace : undefined}
+      /* The card is the answer being given -- the pool above only picks which
+         one -- so it is the card that says the click landed. Armed only: an
+         unarmed one is not refusing a click, it is not a target yet. */
+      onClick={
+        armed
+          ? (event) => {
+              wobble(event.currentTarget);
+              onPlace();
+            }
+          : undefined
+      }
       aria-disabled={full || undefined}
     >
       {image ? (

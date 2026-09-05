@@ -299,7 +299,18 @@
   animation: quiz-shake 380ms ease-in-out;
 }
 
-.animate-quiz-wobble {
+/**
+ * Written twice over, so it wins.
+ *
+ * The wiggle is a reply to a click, and it goes on whatever was clicked --
+ * including a category card, which is already carrying `animate-quiz-rise`
+ * from being dealt into the board. `animation` is one property and the last
+ * rule in the sheet takes all of it, so one class beside the other is decided
+ * by which was written first, which is no way to decide it. Repeating the
+ * selector is the smallest way to say "this one, whatever else is on the
+ * element"; `wobble()` clears the inline delay that comes with the entrance.
+ */
+.animate-quiz-wobble.animate-quiz-wobble {
   animation: quiz-wobble 600ms ease-in-out;
 }
 
@@ -497,7 +508,8 @@
   .animate-quiz-count-in,
   .animate-quiz-pop,
   .animate-quiz-shake,
-  .animate-quiz-wobble,
+  /* Doubled to match the rule above, which a single class no longer outranks. */
+  .animate-quiz-wobble.animate-quiz-wobble,
   .animate-quiz-zoom,
   .animate-quiz-glow,
   .animate-quiz-rise,

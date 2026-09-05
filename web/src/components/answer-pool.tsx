@@ -35,26 +35,7 @@ import { ImageCredit } from "@/components/category-image";
 import { Button } from "@/components/ui/button";
 import type { CategoryImage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-/**
- * Wiggle a chip, the way the lobby code wiggles when you copy it.
- *
- * By hand rather than by class, because the class alone only ever fires once:
- * React leaves it on the element between picks, and an animation that is
- * already applied does not restart when it is applied again. Taking it off,
- * reading a layout property to force the removal to take, and putting it back
- * is the way to say "again" to CSS.
- *
- * On the button itself rather than an overlay inside it. What the click has to
- * say is that *this chip* was the one, and a chip that moves says it -- the
- * same thing the code does when it has just been copied.
- */
-function wobble(el: HTMLElement | null | undefined) {
-  if (!el) return;
-  el.classList.remove("animate-quiz-wobble");
-  void el.offsetWidth;
-  el.classList.add("animate-quiz-wobble");
-}
+import { wobble } from "@/lib/wobble";
 
 export type Answer = {
   id: string;
