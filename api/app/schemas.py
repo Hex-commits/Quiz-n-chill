@@ -374,6 +374,8 @@ class PokerSeatView(BaseModel):
     won: int = 0
     backing: UUID | None = None
     side_stake: int = 0
+    side_odds: int = 0
+    """What this bet pays back per chip staked, fixed when it was placed."""
     side_free: bool = False
     """A bet placed by a player with no chips to place one with.
 
@@ -434,6 +436,11 @@ class PokerView(BaseModel):
     min_raise: int = 0
     big_blind: int = 0
     side_price: int = 0
+    side_odds: int = 0
+    """What a side bet placed right now would pay per chip staked.
+
+    Falls as the hand runs on, which is the whole of the mechanic: the stake is
+    the same at every stage and only the odds move."""
     """What backing somebody costs right now, which rises as the hand goes on.
 
     Sent rather than mirrored client-side, because it is the number on the

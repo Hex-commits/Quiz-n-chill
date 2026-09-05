@@ -96,38 +96,40 @@ to play up to, not to decide the hand before it is answered."""
 
 BETTING = (PokerStage.preflop, PokerStage.flop, PokerStage.turn)
 
+SIDE_BET_STAKE = BIG_BLIND
+"""What backing somebody costs, and it is the same whenever you do it.
+
+Flat, so that the only thing separating an early call from a late one is what it
+pays. A price that climbed made the two move together -- a later read cost more
+and won more -- and left waiting as the better play at every point in the hand,
+which is the one thing a bet on a hand in progress must not be."""
+
 SIDE_BET_LADDER = {
-    PokerStage.preflop: 10,
-    PokerStage.flop: 20,
-    PokerStage.turn: 50,
-    PokerStage.answering: 50,
+    PokerStage.preflop: 4,
+    PokerStage.flop: 3,
+    PokerStage.turn: 2,
+    PokerStage.answering: 2,
 }
-"""What backing somebody costs, by how far the hand has got.
+"""What a winning side bet pays, as a multiple of the stake, by how far the hand
+had got when it was placed.
 
-The price is the clock, and it is what makes sitting through a hand you folded
-worth doing. A read made before a chip has moved is a guess and is priced like
-one. The same read two streets later is a read of how the table actually played
--- who raised, who would not let it go -- and it costs five times as much to
-make and pays five times as much for being right.
+The odds are the clock, and they run down. Before a chip has moved, the subject
+is all anybody has: backing a player on "Geografie" is a read on the player, and
+it is worth four times the stake because it is very nearly a guess. Two streets
+later the question itself is face up on the felt and the betting has said who
+liked it -- the same call, made knowing most of what there is to know, and worth
+half as much.
 
-The answering round is priced like the turn rather than above it. The options go
-up, but nobody has answered yet: the board is louder and the table is not, so
-there is no new read of the players to charge for.
+So the reward is for calling it early and being right, which is the only version
+of this bet that is a read at all. Wait for certainty and there is nothing left
+to pay you for.
+
+The answering round pays like the turn rather than under it. The options go up,
+but nobody has answered yet: the board is louder and the table is not, so there
+is no less of a read of the players to pay out on.
 
 Also the whole of when a side bet may be placed -- see `LIVE`. A stage with no
-price is a stage with no bet, which is exactly the payout and nothing else."""
-
-SIDE_BET_PAYOUT = 2
-"""Right, and the stake comes back doubled. Wrong, and it joins the pot.
-
-Paid by the house, not by the pot. The pot used to pay: a tenth off the top,
-before the players who won the hand saw any of it, scaled by how long a run the
-backer was on. That made the two games one -- what the rail took, the table
-lost, and a well-read hand paid out less than a badly-read one of the same size.
-
-Now they are separate. What a hand is worth is settled by the hand, what a read
-is worth is settled by the read, and the ladder above is where the reward for a
-late call comes from instead of out of somebody else's winnings."""
+odds is a stage with no bet, which is exactly the payout and nothing else."""
 
 LIVE = tuple(SIDE_BET_LADDER)
 """When a side bet may be placed: the whole of a hand that is still undecided.
@@ -217,17 +219,18 @@ def back(lobby: Lobby, player_id: UUID, backed_id: UUID) -> None:
     having left the first: a player holding chips in the pot can put money on
     somebody else as readily as one who folded, and neither has to wait.
 
-    What it costs is what the hand has reached -- see `SIDE_BET_LADDER`. The
-    price is taken now and settled when the hand is: right, and it comes back
-    doubled out of the house; wrong, and it joins the pot for whoever takes it.
+    What it costs is the same at every stage; what it pays is not -- see
+    `SIDE_BET_LADDER`. The stake is taken now and settled when the hand is:
+    right, and it comes back at the odds the hand was showing when the chips
+    went down; wrong, and it joins the pot for whoever takes it.
 
     **A player with no chips backs for nothing.** That is the way back in. They
     are not in the hand and cannot be -- the deal passed them by, and it will go
     on passing them by while their stack is empty -- so there is nothing to take
     a stake out of and nothing to lose by reading the table wrong. Getting it
-    right pays what the bet was worth rather than twice it, which is the same
-    chips a backer who could afford the stake ends the hand up: the difference
-    between them is the risk, and being out is having none left to take.
+    right pays them the winnings without the stake back, which is the same chips
+    a backer who could afford the stake ends the hand up: the difference between
+    them is the risk, and being out is having none left to take.
 
     Two things it may not be. It may not be a bet on yourself: that is the hand
     you are already playing, and the pot is what it pays. And it may not be the
@@ -250,7 +253,7 @@ def back(lobby: Lobby, player_id: UUID, backed_id: UUID) -> None:
     if backed is None or not backed.in_hand():
         raise ConflictError("They are not in this hand.")
 
-    price = SIDE_BET_LADDER[table.stage]
+    price = SIDE_BET_STAKE
     # Out, rather than merely broke: an all-in player has no chips either, and
     # they are playing a hand for them. Sitting out with an empty stack is the
     # one seat the deal cannot reach.
@@ -265,6 +268,10 @@ def back(lobby: Lobby, player_id: UUID, backed_id: UUID) -> None:
         seat.stack -= price
 
     seat.side_stake = price
+    # Fixed here rather than read back at the payout, because what the bet is
+    # worth is a fact about when it was made. The hand moves on; the odds it was
+    # struck at do not.
+    seat.side_odds = SIDE_BET_LADDER[table.stage]
     seat.side_free = free
     seat.backing = backed_id
     _sync_players(lobby)
@@ -333,7 +340,8 @@ def view(lobby: Lobby) -> PokerView | None:
         current_bet=table.current_bet,
         min_raise=table.min_raise,
         big_blind=table.big_blind,
-        side_price=SIDE_BET_LADDER.get(table.stage, 0),
+        side_price=SIDE_BET_STAKE if table.stage in LIVE else 0,
+        side_odds=SIDE_BET_LADDER.get(table.stage, 0),
         button_id=_seat_id(table, table.button),
         to_act=_seat_id(table, table.to_act),
         seconds_left=_seconds_left(table),
@@ -351,6 +359,7 @@ def view(lobby: Lobby) -> PokerView | None:
                 won=seat.won if over else 0,
                 backing=seat.backing,
                 side_stake=seat.side_stake,
+                side_odds=seat.side_odds,
                 side_free=seat.side_free,
             )
             for seat in table.seats
@@ -385,6 +394,7 @@ def _start_hand(lobby: Lobby) -> None:
         seat.won = 0
         seat.backing = None
         seat.side_stake = 0
+        seat.side_odds = 0
         seat.side_free = False
         seat.sitting_out = not _dealt_in(lobby, seat)
 
@@ -749,10 +759,14 @@ def _settle_stakes(
     is named on the payout screen beside the hand it was made on. `_credit` is
     what moves it.
 
-    Doubled for a backer who put the stake up, and the stake itself for one who
-    had nothing to put up: both end the hand ahead by what the bet was worth,
-    which is the point -- what separated them was the risk, and a player with an
-    empty stack was not carrying any.
+    Paid at the odds the bet was struck at, which is what makes an early read
+    worth making: the stake never moved, so the whole of the difference between
+    calling it on the subject and calling it on the question is in here.
+
+    A backer who put the stake up gets it back with the winnings on top; one who
+    had nothing to put up gets the winnings alone. Both end the hand ahead by the
+    same chips, which is the point -- what separated them was the risk, and a
+    player with an empty stack was not carrying any.
 
     The pot is not asked for a chip of it. A hand pays what a hand is worth to
     the players who won it, however many people were watching.
@@ -760,8 +774,8 @@ def _settle_stakes(
     for seat in table.seats:
         if seat.backing is None or seat.backing not in right:
             continue
-        prize = seat.side_stake * (1 if seat.side_free else SIDE_BET_PAYOUT)
-        awards[seat.player_id] = awards.get(seat.player_id, 0) + prize
+        odds = seat.side_odds - 1 if seat.side_free else seat.side_odds
+        awards[seat.player_id] = awards.get(seat.player_id, 0) + seat.side_stake * odds
 
 
 def _credit(table: PokerTable, awards: dict[UUID, int]) -> None:

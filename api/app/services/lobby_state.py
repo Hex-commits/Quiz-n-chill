@@ -109,6 +109,7 @@ class PokerSeat:
     won: int = 0
     backing: UUID | None = None
     side_stake: int = 0
+    side_odds: int = 0
     side_free: bool = False
 
     def in_hand(self) -> bool:

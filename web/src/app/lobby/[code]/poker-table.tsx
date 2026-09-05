@@ -37,6 +37,7 @@ import {
   Flame,
   HandCoins,
   Loader2,
+  TrendingDown,
   X,
 } from "lucide-react";
 
@@ -982,6 +983,7 @@ function SideBets({
     (seat) => !seat.folded && !seat.sitting_out && seat.player_id !== me?.player_id,
   );
   const price = poker.side_price;
+  const odds = poker.side_odds;
   /* Out, and the bet is on the house. An empty stack is the one seat the deal
      cannot reach, so there is nothing to stake and nothing to lose -- and this
      is the only way back to being dealt in at all. */
@@ -999,16 +1001,17 @@ function SideBets({
         <CardTitle className="flex items-center gap-1.5 text-sm">
           <HandCoins className="size-4" aria-hidden />
           Side bets
-          {/* What the next one costs, where the eye already is. It moves under
-              the player between streets, which is the whole of the mechanic. */}
-          {live && price > 0 ? (
+          {/* What the next one pays, where the eye already is. It falls under
+              the player between streets, which is the whole of the mechanic --
+              so it is keyed on itself and drops with a jolt rather than
+              quietly. The price does not move and so is not drawn here. */}
+          {live && odds > 0 ? (
             <span
-              key={price}
+              key={odds}
               className="animate-quiz-pop ml-auto flex items-center gap-0.5 rounded-full bg-amber-400 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-950"
-              title="What backing somebody costs at this stage"
+              title="What backing somebody pays, per chip, at this stage"
             >
-              <Coins className="size-3" aria-hidden />
-              {price}
+              <TrendingDown className="size-3" aria-hidden />×{odds}
             </span>
           ) : null}
         </CardTitle>
@@ -1047,14 +1050,16 @@ function SideBets({
             </div>
             <p className="text-muted-foreground text-xs">
               {free
-                ? `They answer right and you are back in with ${price}. Wrong and
-                   you are no worse off than you already are.`
-                : `They answer right and you take ${price * 2}, paid by the house
-                   rather than out of their pot. Wrong, and the stake joins the
-                   pot for whoever does take it.`}{" "}
-              Waiting costs: the price goes up as the hand runs on, and so does
-              what it pays. It costs them nothing either way -- money on them
-              buys them the bigger half of a pot they have to split.
+                ? `They answer right and you are back in with ${price * (odds - 1)}.
+                   Wrong and you are no worse off than you already are.`
+                : `They answer right and you take ${price * odds}, paid by the
+                   house rather than out of their pot. Wrong, and the stake joins
+                   the pot for whoever does take it.`}{" "}
+              Waiting costs: the stake is the same all hand, but what it pays
+              falls every street -- a read made on the subject alone is worth
+              twice one made once the question is up. It costs them nothing
+              either way; money on them buys them the bigger half of a pot they
+              have to split.
             </p>
           </>
         ) : (
@@ -1092,12 +1097,14 @@ function SideBets({
                   )}
                   title={
                     seat.side_free
-                      ? "Nothing down -- they are playing their way back in"
-                      : undefined
+                      ? `Nothing down at ×${seat.side_odds} -- playing their way back in`
+                      : `${seat.side_stake} down at ×${seat.side_odds}`
                   }
                 >
                   <Coins className="size-3" aria-hidden />
-                  {seat.side_stake}
+                  {seat.side_free
+                    ? seat.side_stake * (seat.side_odds - 1)
+                    : seat.side_stake * seat.side_odds}
                 </span>
               </div>
             ))}
@@ -1122,8 +1129,8 @@ function noBet(
   nameOf: (id: string) => string,
 ) {
   if (me?.backing) {
-    const takes = me.side_free ? me.side_stake : me.side_stake * 2;
-    return `You are behind ${nameOf(me.backing)} for ${me.side_free ? "nothing" : me.side_stake}. They answer right and you take ${takes}, paid by the house rather than out of their pot.`;
+    const takes = me.side_stake * (me.side_free ? me.side_odds - 1 : me.side_odds);
+    return `You are behind ${nameOf(me.backing)} for ${me.side_free ? "nothing" : me.side_stake} at ×${me.side_odds}. They answer right and you take ${takes}, paid by the house rather than out of their pot.`;
   }
   if (!me) return "You are watching this one.";
   if (poker.stage === "payout") {
@@ -1131,7 +1138,7 @@ function noBet(
   }
   if (candidates.length === 0) return "Nobody left to back on this one.";
   if (me.stack < poker.side_price) {
-    return `Backing someone costs ${poker.side_price} by now, and you are short of it.`;
+    return `Backing someone costs ${poker.side_price}, and you are short of it.`;
   }
   return "A side bet cannot be the chips you have left to play with.";
 }

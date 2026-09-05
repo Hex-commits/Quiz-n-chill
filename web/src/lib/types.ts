@@ -263,6 +263,8 @@ export interface PokerSeat {
   /** Who this player put chips behind, and what the stage charged. Public. */
   backing: string | null;
   side_stake: number;
+  /** What this bet pays per chip staked, fixed when it was placed. */
+  side_odds: number;
   /**
    * A bet by a player with nothing to bet: no chips left the stack, and it pays
    * the stake once rather than twice. The way back in for somebody knocked out.
@@ -323,6 +325,11 @@ export interface PokerView {
   big_blind: number;
   /** What backing somebody costs right now. It rises as the hand goes on. */
   side_price: number;
+  /**
+   * What a side bet placed right now pays per chip staked. Falls as the hand
+   * runs on — the stake is flat, and only this moves.
+   */
+  side_odds: number;
   button_id: string | null;
   to_act: string | null;
   /** Whichever clock is running. Which one it is follows from `stage`. */
